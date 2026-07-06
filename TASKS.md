@@ -62,7 +62,7 @@ numbers; the **order we execute** is:
 - **Current task:** Apple-focus session (user direction 2026-07-06: Apple ecosystem first). Done: PR #7 quick-add merged; PR #8 = macOS bug fixes 4.16–4.20 (entitlements, FileKeyStore fallback for QR, bookmarks, Bonjour keys, error SnackBars) + 3.12 iCloud channel; 188 tests; macOS launched OK, iOS builds.
 - **Blocked on user:** 4.21 re-verify on a fresh installed release build (pick folder → relaunch → still syncs; QR renders; LAN discovery prompts). Apple Developer account for: iCloud entitlement flip + Keychain Sharing capability (steps in docs/packaging.md), TestFlight 4.3, notarized dmg 4.4. Also Play Console/MSIX cert; real-device testing (2.11, 5.5, 5.8, 5.10).
 - **Apple tail (next per user direction):** camera QR scan for pairing (iOS), ASO metadata 4.9–4.12, screenshot staging from simulators. Then: Linux tray 5.1/5.2, Android SAF verification, ARB extraction.
-- **Next action:** PR #8 merged (all 6 checks green). Fresh session: camera QR scan for pairing (iOS first, per Apple-first direction) or ASO metadata 4.9–4.12. User: re-verify per 4.21.
+- **Next action:** REQUIREMENTS.md triaged into Phase 6 (6.1–6.11). Now: 6.1 camera QR scan (Apple pairing completeness), then 6.2 remote-change notification; ASO 4.9–4.12 needs the user's name pick. User: re-verify per 4.21.
 
 ## Phase 0 — Foundations
 
@@ -195,6 +195,44 @@ fixes; 4.18 is the follow-on persistence bug the picker fix will expose.
 - [ ] 5.8 Battery audit: sync frequency, wake locks, background refresh behavior (needs devices)
 - [x] 5.9 Onboarding: guided empty state (add hint + shortcut + pair-device button); richer flow post-beta if needed
 - [ ] 5.10 Beta round on all five platforms; triage and fix (user + devices)
+
+## Phase 6 — User-sourced requirements (REQUIREMENTS.md, triaged 2026-07-06)
+
+Only the 🆕/🔶 items become tasks; ✅ ones map to existing work (R1.3→0.6,
+R2.2→1.9, R5.1/R5.2→project premise). Ordering favors the driver/dispatcher
+scenario and Apple-first direction.
+
+- [ ] 6.1 (R1.4 + pairing UX) Camera QR scan for pairing: scan the invitation
+  QR instead of pasting text — mobile_scanner screen on iOS/Android + macOS
+  (webcam scans the phone's QR); NSCameraUsageDescription + macOS camera
+  entitlement; feeds the existing `accept` flow
+- [ ] 6.2 (R1.2) Remote-change notification: when a merge changes visible
+  todos, post one local "List updated" notification via the existing
+  AlarmScheduler abstraction; desktop obeys the notifications opt-in; batch
+  per sync pass (no per-row spam); generated locally — never a push server
+- [ ] 6.3 (R1.1) Define + document target sync latency per transport (LAN
+  push target <5s, mailbox = poll interval); add a "last sync/next poll"
+  line to sync settings; measure LAN path in the multi-device simulator
+- [ ] 6.4 (R2.1) Tappable links: linkify URLs in title/notes (list tiles +
+  editor read mode), open via url_launcher; no markup required
+- [ ] 6.5 (R2.3) Glanceable mode: display-density setting (default/large);
+  large = bigger checkboxes/type, tighter info, one-tap complete targets —
+  suits a dashboard-mounted phone
+- [ ] 6.6 (R3.1) Theme override setting (system/light/dark) — engine exists
+  (5.4); verify QR + settings legibility in both modes
+- [ ] 6.7 (R3.2) Minimalist audit: main list shows only user content — move
+  any sync/debug affordances behind the app bar/menus (mostly true today;
+  audit once 6.3's status line lands, keep it inside sync settings)
+- [ ] 6.8 (R4.1) Calendar view: month/week screen from due dates, local only;
+  day tap filters the list; reuse `todo_sections` date logic
+- [ ] 6.9 (R4.2) Recurrence UX gap: engine + editor dropdown exist (1.4/1.8);
+  add completed-occurrence → next-occurrence spawn if missing, plus
+  "duplicate yesterday's list" action for daily duty lists
+- [ ] 6.10 (R1.4) Unattended viewer doc + audit: sync auto-resumes after
+  restart (SyncBootstrap does), document Doze/iOS background-fetch limits
+  honestly in docs/sync.md; verify no interaction needed post-reboot
+- [ ] 6.11 (R4.3/R4.4, optional tail) Habit streaks; per-task focus timer
+  with end notification (desktop behind alarms opt-in)
 
 ## Testing (cross-cutting — details in docs/testing.md)
 
