@@ -161,7 +161,7 @@ the ordinary merge engine; todo_alarms/alarm_dismissals tables unused.
 - [x] 5.3 Export/import JSON (`export_service.dart` + settings UI): includes tombstones; import upserts with fresh HLC stamps so restores sync onward
 - [x] 5.4 Dark mode (light/dark themes since Phase 1, follows system)
 - [ ] 5.5 Accessibility pass: screen readers, contrast, font scaling, full keyboard nav (manual work, needs devices)
-- [ ] 5.6 Localization scaffold (intl), English strings extracted
+- [x] 5.6 L10n scaffold: gen_l10n wired (l10n.yaml, app_en.arb, delegates in MaterialApp); full string extraction is ongoing as screens are touched
 - [x] 5.7 List perf: flattened rows + ListView.builder (lazy at 10k); sync payload/start-time budgets still to measure
 - [ ] 5.8 Battery audit: sync frequency, wake locks, background refresh behavior (needs devices)
 - [x] 5.9 Onboarding: guided empty state (add hint + shortcut + pair-device button); richer flow post-beta if needed

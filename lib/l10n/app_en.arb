@@ -1,0 +1,15 @@
+{
+  "@@locale": "en",
+  "appTitle": "Knot",
+  "todosTitle": "Todos",
+  "emptyStateTitle": "No todos yet — add one!",
+  "emptyStateHint": "Tap + to add a todo. Ctrl/Cmd+N works too.",
+  "pairAnotherDevice": "Pair another device",
+  "addTodoTooltip": "Add todo",
+  "settingsTooltip": "Settings",
+  "newTodoTitle": "New todo",
+  "newTodoHint": "What needs doing?",
+  "add": "Add",
+  "cancel": "Cancel",
+  "save": "Save"
+}
