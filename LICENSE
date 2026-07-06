@@ -1,116 +1,88 @@
-Required Notice: Copyright (c) 2026 saimadhuri95
+# Knot Source Available License 1.0
 
-# PolyForm Noncommercial License 1.0.0
+Copyright (c) 2026 saimadhuri95. All rights reserved.
 
-<https://polyformproject.org/licenses/noncommercial/1.0.0>
+This software and associated documentation (the "Software") are made available
+only under the terms below. If you do not agree to these terms, do not use,
+copy, modify, or access the Software except as allowed by applicable law.
 
-## Acceptance
+## 1. Permitted Uses
 
-In order to get any license under these terms, you must agree to them as both
-strict obligations and conditions to all your licenses.
+Subject to these terms, `saimadhuri95` grants you a limited, revocable,
+non-exclusive, non-transferable, non-sublicensable license to:
 
-## Copyright License
+- read and inspect the Software;
+- clone or download the Software from the official repository solely for
+  evaluation, security review, personal study, or preparing contributions;
+- run the Software locally for personal evaluation, testing, or development;
+- make private modifications that you do not distribute or make available to
+  anyone else; and
+- submit issues, patches, and pull requests to the official repository.
 
-The licensor grants you a copyright license for the software to do everything
-you might do with the software that would otherwise infringe the licensor's
-copyright in it for any permitted purpose. However, you may only distribute the
-software according to [Distribution License](#distribution-license) and make
-changes or new works based on the software according to
-[Changes and New Works License](#changes-and-new-works-license).
+## 2. No Redistribution
 
-## Distribution License
+You may not distribute, publish, mirror, sublicense, transfer, sell, resell,
+share, lease, rent, or otherwise make the Software or any modified version
+available to any third party without prior written permission from
+`saimadhuri95`.
 
-The licensor grants you an additional copyright license to distribute copies of
-the software. Your license to distribute covers distributing the software with
-changes and new works permitted by
-[Changes and New Works License](#changes-and-new-works-license).
+This includes, without limitation:
 
-## Notices
+- app stores;
+- package managers;
+- public or private software repositories, except GitHub forks used solely to
+  submit contributions to the official repository;
+- source archives;
+- binary builds;
+- hosted services;
+- websites;
+- mirrors;
+- torrents or file-sharing systems; and
+- bundled distributions with other software.
 
-You must ensure that anyone who gets a copy of any part of the software from
-you also gets a copy of these terms or the URL for them above, as well as copies
-of any plain-text lines beginning with `Required Notice:` that the licensor
-provided with the software. For example:
+## 3. No Commercial Use Without Permission
 
-> Required Notice: Copyright Yoyodyne, Inc. (http://example.com)
+Commercial use requires a separate written license from `saimadhuri95`.
+Commercial use includes, without limitation, enterprise deployment, internal
+business use, paid support offerings, hosted offerings, resale, paid
+redistribution, app-store distribution, and use in products or services offered
+to customers or clients.
 
-## Changes and New Works License
+## 4. Contributions
 
-The licensor grants you an additional copyright license to make changes and new
-works based on the software for any permitted purpose.
+Contributions to the official repository are accepted only under the
+Contributor License Agreement in `CLA.md`. By submitting a contribution, you
+grant the rights described in that agreement.
 
-## Patent License
+## 5. GitHub Public Repository Notice
 
-The licensor grants you a patent license for the software that covers patent
-claims the licensor can license, or becomes able to license, that you would
-infringe by using the software.
+If the official repository is public on GitHub, GitHub's Terms of Service may
+allow GitHub users to view and fork the repository through GitHub's service.
+Those platform permissions do not grant any additional right to redistribute,
+publish, package, sell, host, or otherwise share the Software outside the
+limited GitHub functionality.
 
-## Noncommercial Purposes
+## 6. Ownership
 
-Any noncommercial purpose is a permitted purpose.
+The Software is owned by `saimadhuri95` and its licensors. No rights are granted
+except as expressly stated in this license. All rights not expressly granted are
+reserved.
 
-## Personal Uses
+## 7. Termination
 
-Personal use for research, experiment, and testing for the benefit of public
-knowledge, personal study, private entertainment, hobby projects, amateur
-pursuits, or religious observance, without any anticipated commercial
-application, is use for a permitted purpose.
+Any license granted to you under these terms terminates automatically if you
+violate these terms. Upon termination, you must stop using the Software and
+delete all copies in your possession or control, except copies you are required
+to retain by law.
 
-## Noncommercial Organizations
+## 8. No Warranty
 
-Use by any charitable organization, educational institution, public research
-organization, public safety or health organization, environmental protection
-organization, or government institution is use for a permitted purpose
-regardless of the source of funding or obligations resulting from the funding.
+The Software is provided "as is", without warranty of any kind, express or
+implied, including warranties of merchantability, fitness for a particular
+purpose, title, and non-infringement.
 
-## Fair Use
+## 9. Limitation of Liability
 
-You may have "fair use" rights for the software under the law. These terms do
-not limit them.
-
-## No Other Rights
-
-These terms do not allow you to sublicense or transfer any of your licenses to
-anyone else, or prevent the licensor from granting licenses to anyone else.
-These terms do not imply any other licenses.
-
-## Patent Defense
-
-If you make any written claim that the software infringes or contributes to
-infringement of any patent, your patent license for the software granted under
-these terms ends immediately. If your company makes such a claim, your patent
-license ends immediately for work on behalf of your company.
-
-## Violations
-
-The first time you are notified in writing that you have violated any of these
-terms, or done anything with the software not covered by your licenses, your
-licenses can nonetheless continue if you come into full compliance with these
-terms, and take practical steps to correct past violations, within 32 days of
-receiving notice. Otherwise, all your licenses end immediately.
-
-## No Liability
-
-As far as the law allows, the software comes as is, without any warranty or
-condition, and the licensor will not be liable to you for any damages arising
-out of these terms or the use or nature of the software, under any kind of
-legal claim.
-
-## Definitions
-
-The licensor is the individual or entity offering these terms, and the software
-is the software the licensor makes available under these terms.
-
-You refers to the individual or entity agreeing to these terms.
-
-Your company is any legal entity, sole proprietorship, or other kind of
-organization that you work for, plus all organizations that have control over,
-are under the control of, or are under common control with that organization.
-Control means ownership of substantially all the assets of an entity, or the
-power to direct its management and policies by vote, contract, or otherwise.
-Control can be direct or indirect.
-
-Your licenses are all the licenses granted to you for the software under these
-terms.
-
-Use means anything you do with the software requiring one of your licenses.
+To the maximum extent permitted by law, `saimadhuri95` and any contributors
+will not be liable for any claim, damages, or other liability arising from or
+related to the Software or these terms.

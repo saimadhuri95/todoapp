@@ -3,8 +3,8 @@
 A local-first todo app for **Windows, macOS, Linux, iOS, and Android** with
 cross-device sync and alarms — **no central server**. Knot ties your devices
 together directly: no account, no cloud backend, your data never leaves your
-control. Source-available for noncommercial use under the PolyForm
-Noncommercial License 1.0.0.
+control. Source-available for reading, evaluation, and contribution; redistribution
+requires written permission from `saimadhuri95`.
 
 ## Why it's different
 
@@ -58,11 +58,12 @@ signing and store steps are in [docs/packaging.md](docs/packaging.md).
 
 ## License
 
-Knot is licensed under the PolyForm Noncommercial License 1.0.0. You may read,
-study, modify, and share the software for noncommercial purposes under the
-license terms in [LICENSE](LICENSE).
+Knot is source-available under the Knot Source Available License 1.0. You may
+read, study, clone, run locally for evaluation, and submit contributions under
+the terms in [LICENSE](LICENSE).
 
-Commercial use, enterprise deployment, resale, hosted offerings, paid
-redistribution, and commercial app-store distribution require a separate
-written license from `saimadhuri95`. Contributions are welcome under the terms in
-[CONTRIBUTING.md](CONTRIBUTING.md).
+Redistribution is not permitted without prior written permission from
+`saimadhuri95`. This includes free redistribution, app-store distribution,
+package-manager distribution, public mirrors, binaries, hosted offerings,
+resale, paid redistribution, and enterprise or commercial use. Contributions
+are welcome under the terms in [CONTRIBUTING.md](CONTRIBUTING.md).

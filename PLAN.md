@@ -80,4 +80,4 @@ Full strategy in [docs/testing.md](docs/testing.md). Highlights:
    the reliable cross-network path there
 4. ~~Recurrence scope for v1~~ → RRULE subset shipped: FREQ/INTERVAL/BYDAY with
    RFC 5545 skip semantics (task 1.4)
-5. ~~App name~~ → **Knot** (decided 2026-07-06; bundle id `com.sai.knot`, PolyForm Noncommercial license)
+5. ~~App name~~ → **Knot** (decided 2026-07-06; bundle id `com.sai.knot`, Knot Source Available license)

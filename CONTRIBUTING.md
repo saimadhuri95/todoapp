@@ -31,8 +31,9 @@ we can discuss the best path.
   available.
 - Update docs or tests when behavior changes.
 
-## Commercial Licensing
+## Redistribution and Commercial Licensing
 
-Commercial use, enterprise deployment, resale, hosted offerings, paid
-redistribution, and commercial app-store distribution require a separate
-written license from `saimadhuri95`.
+Redistribution is not permitted without prior written permission from
+`saimadhuri95`. This includes free redistribution, app-store distribution,
+package-manager distribution, public mirrors, binaries, hosted offerings,
+resale, paid redistribution, and enterprise or commercial use.

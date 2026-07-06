@@ -6,5 +6,6 @@ Describe the change and why it is needed.
 
 - [ ] I have read and agree to the Contributor License Agreement in `CLA.md`.
 - [ ] I confirm I have the right to submit this contribution.
+- [ ] I understand the project license does not permit redistribution without written permission from `saimadhuri95`.
 - [ ] I updated tests or documentation when behavior changed.
 - [ ] I ran relevant formatting, analysis, or tests when available.
