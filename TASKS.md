@@ -48,10 +48,10 @@ that comfortably fits inside a window (roughly 15–30 substantial prompts).
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Current task:** **Phase 0 complete.** CI green on all 5 platform builds.
-- **State:** Repo public at github.com/saimadhuri95/todoapp, 3 commits on main, CI green (gate + linux/android/windows/macos/ios debug builds). 29 tests. drift schema v1, HLC/Clock, LwwApplier, ADR 0001 landed.
-- **Blockers for user:** install Xcode + Android Studio (needed for local platform builds, Phase 2); pick a LICENSE
-- **Next action (S5):** Phase 1 data layer — 1.1–1.3 (todo/list/tag repositories over schema v1, HLC stamping on every mutation via task 1.5 pattern), then 1.6 tests. Pure Dart, no blockers.
+- **Current task:** Phase 0 complete; Phase 1 data layer done except recurrence (1.4, half of 1.6)
+- **State:** Repositories (todo/list) with in-transaction HLC stamping; shared syncColumns map; 40 tests green; CI green. Repo: github.com/saimadhuri95/todoapp.
+- **Blockers for user:** install Xcode + Android Studio (needed for Phase 2 device testing); pick a LICENSE
+- **Next action (S6):** 1.4 recurrence engine (RRULE subset: daily/weekly+mask/monthly/yearly, next-occurrence expansion; edge cases Jan-31-monthly, leap years) + finish 1.6 tests. Then UI slice 1.7–1.8.
 
 ## Phase 0 — Foundations
 
@@ -67,12 +67,12 @@ that comfortably fits inside a window (roughly 15–30 substantial prompts).
 ## Phase 1 — Core app (local-only)
 
 ### Data layer
-- [ ] 1.1 Todo repository: create / edit / complete / uncomplete / soft-delete (tombstone) / restore
-- [ ] 1.2 Lists: create / rename / recolor / archive; move todo between lists
-- [ ] 1.3 Tags + priority fields
+- [x] 1.1 TodoRepository: create/edit/complete/uncomplete/softDelete/restore + watchActive/watchCompleted (`lib/data/repositories/`)
+- [x] 1.2 ListRepository: create/rename/setColor/setSortOrder/archive; move todo via edit(listId)
+- [x] 1.3 Tags (JSON column + typed extension) + priority
 - [ ] 1.4 Recurrence: RRULE subset (daily, weekly with weekday mask, monthly, yearly); next-occurrence expansion
-- [ ] 1.5 Every mutation stamps per-field HLC timestamps (sync-ready from day one)
-- [ ] 1.6 Unit tests: repository CRUD, tombstones, recurrence expansion edge cases (Jan 31 monthly, leap years)
+- [x] 1.5 Every mutation stamps per-field HLC in-transaction (shared `sync_fields.dart`, also used by LwwApplier)
+- [ ] 1.6 Unit tests: repository CRUD/tombstones done (11 tests); recurrence edge cases pending 1.4
 
 ### UI
 - [ ] 1.7 Todo list screen: grouped views — Today, Upcoming, Overdue, Completed, per-list

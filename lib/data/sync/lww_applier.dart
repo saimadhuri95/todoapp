@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../core/hlc.dart';
 import '../db/database.dart';
+import 'sync_fields.dart';
 
 /// A single field-level write, the unit of sync in the hand-rolled CRDT
 /// (see docs/decisions/0001-crdt-choice.md). Row creation/deletion ops are
@@ -30,33 +31,11 @@ class LwwApplier {
 
   final AppDatabase _db;
 
-  /// Allowlisted (entity, field) → SQL column. Guards the dynamic SQL in
-  /// [apply]; never interpolate unvalidated names.
-  static const Map<String, Map<String, String>> _columns = {
-    'todos': {
-      'listId': 'list_id',
-      'title': 'title',
-      'notes': 'notes',
-      'dueAtMs': 'due_at_ms',
-      'recurrenceRule': 'recurrence_rule',
-      'completedAtMs': 'completed_at_ms',
-      'priority': 'priority',
-      'tagsJson': 'tags_json',
-      'deleted': 'deleted',
-    },
-    'todo_lists': {
-      'name': 'name',
-      'color': 'color',
-      'sortOrder': 'sort_order',
-      'deleted': 'deleted',
-    },
-  };
-
   /// Returns true if the write was applied, false if it lost LWW (or was a
   /// duplicate). Ties (identical HLC) are duplicates by definition — HLCs
   /// embed the writer's nodeId, so two devices can never mint the same one.
   Future<bool> apply(FieldWrite w) {
-    final column = _columns[w.entity]?[w.field];
+    final column = syncColumns[w.entity]?[w.field];
     if (column == null) {
       throw ArgumentError('Unknown entity/field: ${w.entity}.${w.field}');
     }
