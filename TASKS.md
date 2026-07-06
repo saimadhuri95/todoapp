@@ -59,11 +59,11 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Current task:** Phase 5 polish in progress on branch `phase-5-polish` (PR #4 alarms merged green).
-- **State:** 135 tests. Done this chunk: 5.3 export/import + UI, 5.7 lazy list, 5.9 onboarding empty-state, permission allowlist in .claude/settings.json.
-- **Blocked on user/devices:** Xcode (→ iOS/macOS alarm testing, signing); MSIX cert; Play Console; publish v0.1.0 draft release; 5.5 a11y + 5.8 battery + 5.10 beta need real devices.
-- **Remaining automatable:** 5.6 l10n scaffold, 2.10 DST suite + wall-clock alarm storage, 5.1 Linux tray/autostart, 5.2 background-at-login toggle, 1.9 natural-date quick-add, camera QR scan, native folder pickers (iCloud/SAF).
-- **Next action:** merge this PR on green → pick next from remaining-automatable list (suggest 2.10 DST correctness first — it's the biggest correctness gap left).
+- **Current task:** All automatable work through Phase 5 is merged (PRs #1–#6, all green). 139 tests.
+- **State:** Knot is feature-complete for v0.1: local-first todos, encrypted serverless sync (LAN + cloud-folder), alarms with cross-device dismissal, export/import, l10n scaffold, packaging + release pipeline. Draft v0.1.0 release awaits user publish.
+- **Blocked on user:** run `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer` + `sudo xcodebuild -license accept` → then local macOS run + iOS build + manual alarm testing (2.11); Apple Developer/Play Console/MSIX cert for store distribution; publish draft release.
+- **Remaining feature tail (automatable, lower priority):** 5.1/5.2 Linux tray + background-at-login, camera QR scan, 1.9 natural-date quick-add, native iCloud/SAF folder pickers, ongoing string extraction into ARB.
+- **Next action:** after Xcode activation → flutter doctor green, `flutter run -d macos` first live run, `flutter build ios --no-codesign`. Then pick from the feature tail or device-dependent polish.
 
 ## Phase 0 — Foundations
 
