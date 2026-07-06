@@ -1,7 +1,9 @@
-# TodoApp (working title)
+# Knot
 
 A local-first todo app for **Windows, macOS, Linux, iOS, and Android** with
-cross-device sync and alarms — **no central server**.
+cross-device sync and alarms — **no central server**. Knot ties your devices
+together directly: no account, no cloud backend, your data never leaves your
+control. MIT licensed.
 
 ## Why it's different
 

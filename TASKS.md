@@ -69,7 +69,7 @@ numbers; the **order we execute** is:
 
 - [x] 0.1 Scaffold Flutter project with all five platform targets enabled (Flutter 3.44.4, org `com.sai`)
 - [x] 0.2 Verify builds: **all 5 platforms build green on CI** (run 28763958480). Local iOS/macOS/Android builds still need user to install Xcode + Android Studio (required for Phase 2 device testing, not for CI)
-- [x] 0.3 Repo hygiene: strict `analysis_options.yaml` done; .gitignore from scaffold; LICENSE pending (ask user which license)
+- [x] 0.3 Repo hygiene: strict `analysis_options.yaml`, .gitignore, MIT LICENSE (user decision 2026-07-06)
 - [x] 0.4 State management: **Riverpod** (dependency added when first used); feature-first folders
 - [x] 0.5 CI: GitHub Actions (.github/workflows/ci.yml) — format/analyze/test gate + 5-target debug-build matrix; repo public (free Actions)
 - [x] 0.6 CRDT spike → **hand-rolled per-field LWW** (docs/decisions/0001-crdt-choice.md); LwwApplier + 7 convergence tests landed as proof
@@ -138,7 +138,7 @@ numbers; the **order we execute** is:
 
 ## Phase 4 — Packaging & distribution (executed THIRD — before alarms)
 
-- [ ] 4.1 App icon, name, bundle ids
+- [x] 4.1 Name **Knot**, bundle id `com.sai.knot`, display name on all 5 platforms, MIT LICENSE. App icon still pending (needs artwork)
 - [ ] 4.2 Android: signing config, Play internal track
 - [ ] 4.3 iOS: provisioning, notification entitlements, TestFlight
 - [ ] 4.4 macOS: hardened runtime, notarized .dmg

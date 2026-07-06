@@ -34,7 +34,7 @@ class TodoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'TodoApp',
+    title: 'Knot',
     theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal)),
     darkTheme: ThemeData(
       colorScheme: ColorScheme.fromSeed(
