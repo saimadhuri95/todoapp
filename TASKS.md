@@ -59,10 +59,11 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Current task:** PR #1 merged into main (Phase 1 + sync core + crypto + mailbox transport). CI fix on main pending green (libsecret for flutter_secure_storage Linux build).
-- **State:** 98 tests green. Done: Phase 1 (1.9 deferred), 3.1–3.5, 3.7, 3.10. Caution: PR #1 was merged while Linux CI leg was red (missing apt dep, fixed on main) — check CI conclusion as a separate step before merging next time.
-- **Blockers for user:** install Xcode + Android Studio (packaging phase); pick a LICENSE
-- **Next action:** new branch → 3.9 LAN transport (mDNS + TCP; testable via loopback), 3.13 sync orchestrator, 3.14 sync status UI + 3.12 folder picker wiring for the mailbox. Then 3.6 pairing UI (QR + group-key distribution) and 3.8 device management. Then Phase 4 packaging.
+- **Current task:** Phase 3 functionally complete end-to-end; main green on all 5 platforms; 116 tests.
+- **State:** Done: 3.1–3.7 (camera QR scan pending), 3.9 (protocol; mDNS pending), 3.10, 3.13, partial 3.12/3.14. The core promise works: pair via invitation → shared folder → Sync now → encrypted todos flow, serverless. Merged via PRs #1–#2; pairing chunk landed direct on main (gh pr merge --delete-branch switches local checkout to main — create the next branch BEFORE committing).
+- **Phase 3 oddments (non-blocking):** 3.8 device revoke + key rotation, 3.11 mailbox compaction, mDNS discovery, camera QR scan, iCloud/SAF folder access, auto-sync triggers, per-device last-synced display.
+- **Blockers for user:** install Xcode + Android Studio (needed NOW for Phase 4 packaging); pick a LICENSE; app name (PLAN.md open question 5)
+- **Next action (Phase 4):** 4.1 app identity (name/icon/bundle ids — ask user for app name first), 4.7 release pipeline (tag → CI builds artifacts), then per-platform store/packaging configs (4.2–4.6; signing needs user accounts/certs).
 
 ## Phase 0 — Foundations
 
