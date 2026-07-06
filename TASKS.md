@@ -59,11 +59,11 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Current task:** Phases 3 & 4 complete (except items blocked on user accounts). App is **Knot**, MIT, icons generated, release pipeline ready.
-- **State:** Branch `app-identity-knot` (PR #3 grew to include everything). Schema v2 (devices.deleted, sync_log.lastSyncedAtMs). SyncService auto-triggers + mDNS + LAN server boot. Compaction, rename/revoke + key rotation. Android toolchain ✓ (SDK 36, Studio installed).
-- **Blocked on user:** Xcode install (App Store, needs their password) → then 4.3/4.4 signing (needs Apple Developer $99/yr); Play Console ($25) for 4.2 upload; code-signing cert for MSIX. All steps in docs/packaging.md.
-- **Deferred to polish:** camera QR scanning, iCloud-container/SAF native folder access (desktop picker works now), Flathub submission.
-- **Next action:** merge PR #3 on green CI → alarms phase (tasks 2.x, incl. 5.1/5.2 Linux) → Phase 5 polish. First release: tag v0.1.0 after PR #3 merges.
+- **Current task:** Alarms phase functionally complete on `main` (direct commits post-PR#3); v0.1.0 draft release built with 4 artifacts (publish = user action).
+- **State:** 131 tests. Schema v3 alarm fields, planAlarms + AlarmService + flutter_local_notifications scheduler (Android exact/boot/desugaring; Darwin categories; Linux in-app timers), opt-in toggle + editor alarm chips, dismissal sync by construction.
+- **Blocked on user:** Xcode install → 2.11 iOS/macOS manual alarm testing + 4.3/4.4 signing; MSIX cert → 2.6 closed-app Windows toasts; Play Console; publish the v0.1.0 draft release.
+- **Remaining work:** 2.10 DST suite + wall-clock storage, 2.11 manual matrix, 5.1 Linux tray/autostart, 5.2 background-at-login, then Phase 5 polish (import/export, a11y, l10n, perf, onboarding, camera QR, native folder pickers).
+- **Next action:** commit alarms phase → CI green (android is the risk: desugaring/receivers) → Phase 5 polish.
 
 ## Phase 0 — Foundations
 
@@ -98,17 +98,24 @@ numbers; the **order we execute** is:
 
 ## Phase 2 — Alarms (executed LAST-BUT-ONE — after Phases 3 & 4)
 
-- [ ] 2.1 Alarm scheduler abstraction: platform-agnostic interface, per-platform implementations behind it
-- [ ] 2.2 Integrate flutter_local_notifications; notification tap → open todo
-- [ ] 2.3 Android: exact alarms (AlarmManager), `SCHEDULE_EXACT_ALARM`/`USE_EXACT_ALARM` permission UX, BOOT_COMPLETED rescheduling, notification channels
-- [ ] 2.4 iOS: UNUserNotificationCenter; 64-pending cap — schedule nearest N, refill on foreground + BGAppRefreshTask
-- [ ] 2.5 Desktop opt-in: "Enable alarms on this device" toggle (default off) + OS permission request on enable; toggle off cancels all scheduled OS notifications
-- [ ] 2.6 Windows: MSIX package identity; ScheduledToastNotification with `scenario="alarm"`, looping audio, snooze/dismiss buttons
-- [ ] 2.7 macOS: UNUserNotificationCenter scheduled notifications; schedule-nearest-N + refill on launch
-- [ ] 2.8 Snooze/dismiss actions from the notification itself (all enabled platforms)
-- [ ] 2.9 Recurring todo → reschedule next alarm on completion/dismissal
-- [ ] 2.10 Timezone & DST correctness: store alarms as local-time + zone id, recompute on zone change; test suite around DST transitions
-- [ ] 2.11 Manual alarm test matrix executed per platform (see docs/testing.md)
+**Design change (2026-07-06):** alarms are LWW fields on the todo (offset
+minutes + lastDismissedMs + snoozeUntilMs, schema v3) — dismissals sync via
+the ordinary merge engine; todo_alarms/alarm_dismissals tables unused.
+
+- [x] 2.1 AlarmScheduler interface + pure `planAlarms` (`lib/core/alarm_planner.dart`); Noop/fake for tests
+- [x] 2.2 flutter_local_notifications scheduler (`notification_scheduler.dart`); payload carries todoId+occurrence; foreground action handling (background-isolate handler → polish)
+- [x] 2.3 Android: exactAllowWhileIdle, POST_NOTIFICATIONS + SCHEDULE_EXACT_ALARM permission flow, boot receiver, alarm channel, gradle desugaring
+- [x] 2.4 iOS: planner cap 50 (<64 limit); every replan (mutation/sync/foreground) is the refill. BGAppRefreshTask → polish
+- [x] 2.5 Opt-in toggle (mobile default-on, desktop off) + permission request on enable; off = cancelAll
+- [ ] 2.6 Windows: plugin schedules toasts, but firing while the app is closed needs MSIX identity — verify once MSIX packaging lands (blocked on cert, docs/packaging.md)
+- [x] 2.7 macOS: UNUserNotificationCenter via plugin, same cap/refill
+- [x] 2.8 Snooze (10 min) / dismiss actions on the notification (Android actions + Darwin categories)
+- [x] 2.9 Recurring: planner expands occurrences; dismissal only silences ≤ dismissed occurrence
+- [ ] 2.10 TZ/DST: zonedSchedule in local tz done; wall-clock storage + recompute-on-zone-change and the DST suite still open
+- [ ] 2.11 Manual alarm matrix — needs real devices (user; iOS also needs Xcode)
+- [x] 3.15 (moved here) Alarm dismissal sync — by construction: dismissal is a synced field write; test in sync_engine_test
+- [ ] 5.1 (moved here) Linux resident process — in-app timers while running done; tray/autostart still open
+- [ ] 5.2 (moved here) "Run in background at login" toggle — open
 
 ## Phase 3 — Sync engine (executed SECOND — right after Phase 1)
 

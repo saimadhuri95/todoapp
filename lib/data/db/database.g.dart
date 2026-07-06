@@ -457,6 +457,40 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
     requiredDuringInsert: false,
     defaultValue: const Constant('[]'),
   );
+  static const VerificationMeta _alarmOffsetsJsonMeta = const VerificationMeta(
+    'alarmOffsetsJson',
+  );
+  @override
+  late final GeneratedColumn<String> alarmOffsetsJson = GeneratedColumn<String>(
+    'alarm_offsets_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _lastDismissedMsMeta = const VerificationMeta(
+    'lastDismissedMs',
+  );
+  @override
+  late final GeneratedColumn<int> lastDismissedMs = GeneratedColumn<int>(
+    'last_dismissed_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _snoozeUntilMsMeta = const VerificationMeta(
+    'snoozeUntilMs',
+  );
+  @override
+  late final GeneratedColumn<int> snoozeUntilMs = GeneratedColumn<int>(
+    'snooze_until_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _deletedMeta = const VerificationMeta(
     'deleted',
   );
@@ -483,6 +517,9 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
     completedAtMs,
     priority,
     tagsJson,
+    alarmOffsetsJson,
+    lastDismissedMs,
+    snoozeUntilMs,
     deleted,
   ];
   @override
@@ -558,6 +595,33 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
         tagsJson.isAcceptableOrUnknown(data['tags_json']!, _tagsJsonMeta),
       );
     }
+    if (data.containsKey('alarm_offsets_json')) {
+      context.handle(
+        _alarmOffsetsJsonMeta,
+        alarmOffsetsJson.isAcceptableOrUnknown(
+          data['alarm_offsets_json']!,
+          _alarmOffsetsJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_dismissed_ms')) {
+      context.handle(
+        _lastDismissedMsMeta,
+        lastDismissedMs.isAcceptableOrUnknown(
+          data['last_dismissed_ms']!,
+          _lastDismissedMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snooze_until_ms')) {
+      context.handle(
+        _snoozeUntilMsMeta,
+        snoozeUntilMs.isAcceptableOrUnknown(
+          data['snooze_until_ms']!,
+          _snoozeUntilMsMeta,
+        ),
+      );
+    }
     if (data.containsKey('deleted')) {
       context.handle(
         _deletedMeta,
@@ -609,6 +673,18 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
         DriftSqlType.string,
         data['${effectivePrefix}tags_json'],
       )!,
+      alarmOffsetsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}alarm_offsets_json'],
+      )!,
+      lastDismissedMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_dismissed_ms'],
+      ),
+      snoozeUntilMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}snooze_until_ms'],
+      ),
       deleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}deleted'],
@@ -632,6 +708,18 @@ class Todo extends DataClass implements Insertable<Todo> {
   final int? completedAtMs;
   final int priority;
   final String tagsJson;
+
+  /// Alarms (schema v3): JSON array of minute-offsets before [dueAtMs]
+  /// (0 = at due time). LWW fields on the todo so they sync like
+  /// everything else — the todo_alarms table is unused (see docs/alarms.md).
+  final String alarmOffsetsJson;
+
+  /// Last dismissed occurrence (epoch ms). Dismissal *is* a synced field
+  /// write: every device suppresses alarms for occurrences ≤ this.
+  final int? lastDismissedMs;
+
+  /// Snoozed-until moment (epoch ms); one extra fire at this time.
+  final int? snoozeUntilMs;
   final bool deleted;
   const Todo({
     required this.id,
@@ -643,6 +731,9 @@ class Todo extends DataClass implements Insertable<Todo> {
     this.completedAtMs,
     required this.priority,
     required this.tagsJson,
+    required this.alarmOffsetsJson,
+    this.lastDismissedMs,
+    this.snoozeUntilMs,
     required this.deleted,
   });
   @override
@@ -665,6 +756,13 @@ class Todo extends DataClass implements Insertable<Todo> {
     }
     map['priority'] = Variable<int>(priority);
     map['tags_json'] = Variable<String>(tagsJson);
+    map['alarm_offsets_json'] = Variable<String>(alarmOffsetsJson);
+    if (!nullToAbsent || lastDismissedMs != null) {
+      map['last_dismissed_ms'] = Variable<int>(lastDismissedMs);
+    }
+    if (!nullToAbsent || snoozeUntilMs != null) {
+      map['snooze_until_ms'] = Variable<int>(snoozeUntilMs);
+    }
     map['deleted'] = Variable<bool>(deleted);
     return map;
   }
@@ -688,6 +786,13 @@ class Todo extends DataClass implements Insertable<Todo> {
           : Value(completedAtMs),
       priority: Value(priority),
       tagsJson: Value(tagsJson),
+      alarmOffsetsJson: Value(alarmOffsetsJson),
+      lastDismissedMs: lastDismissedMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastDismissedMs),
+      snoozeUntilMs: snoozeUntilMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snoozeUntilMs),
       deleted: Value(deleted),
     );
   }
@@ -707,6 +812,9 @@ class Todo extends DataClass implements Insertable<Todo> {
       completedAtMs: serializer.fromJson<int?>(json['completedAtMs']),
       priority: serializer.fromJson<int>(json['priority']),
       tagsJson: serializer.fromJson<String>(json['tagsJson']),
+      alarmOffsetsJson: serializer.fromJson<String>(json['alarmOffsetsJson']),
+      lastDismissedMs: serializer.fromJson<int?>(json['lastDismissedMs']),
+      snoozeUntilMs: serializer.fromJson<int?>(json['snoozeUntilMs']),
       deleted: serializer.fromJson<bool>(json['deleted']),
     );
   }
@@ -723,6 +831,9 @@ class Todo extends DataClass implements Insertable<Todo> {
       'completedAtMs': serializer.toJson<int?>(completedAtMs),
       'priority': serializer.toJson<int>(priority),
       'tagsJson': serializer.toJson<String>(tagsJson),
+      'alarmOffsetsJson': serializer.toJson<String>(alarmOffsetsJson),
+      'lastDismissedMs': serializer.toJson<int?>(lastDismissedMs),
+      'snoozeUntilMs': serializer.toJson<int?>(snoozeUntilMs),
       'deleted': serializer.toJson<bool>(deleted),
     };
   }
@@ -737,6 +848,9 @@ class Todo extends DataClass implements Insertable<Todo> {
     Value<int?> completedAtMs = const Value.absent(),
     int? priority,
     String? tagsJson,
+    String? alarmOffsetsJson,
+    Value<int?> lastDismissedMs = const Value.absent(),
+    Value<int?> snoozeUntilMs = const Value.absent(),
     bool? deleted,
   }) => Todo(
     id: id ?? this.id,
@@ -752,6 +866,13 @@ class Todo extends DataClass implements Insertable<Todo> {
         : this.completedAtMs,
     priority: priority ?? this.priority,
     tagsJson: tagsJson ?? this.tagsJson,
+    alarmOffsetsJson: alarmOffsetsJson ?? this.alarmOffsetsJson,
+    lastDismissedMs: lastDismissedMs.present
+        ? lastDismissedMs.value
+        : this.lastDismissedMs,
+    snoozeUntilMs: snoozeUntilMs.present
+        ? snoozeUntilMs.value
+        : this.snoozeUntilMs,
     deleted: deleted ?? this.deleted,
   );
   Todo copyWithCompanion(TodosCompanion data) {
@@ -769,6 +890,15 @@ class Todo extends DataClass implements Insertable<Todo> {
           : this.completedAtMs,
       priority: data.priority.present ? data.priority.value : this.priority,
       tagsJson: data.tagsJson.present ? data.tagsJson.value : this.tagsJson,
+      alarmOffsetsJson: data.alarmOffsetsJson.present
+          ? data.alarmOffsetsJson.value
+          : this.alarmOffsetsJson,
+      lastDismissedMs: data.lastDismissedMs.present
+          ? data.lastDismissedMs.value
+          : this.lastDismissedMs,
+      snoozeUntilMs: data.snoozeUntilMs.present
+          ? data.snoozeUntilMs.value
+          : this.snoozeUntilMs,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
     );
   }
@@ -785,6 +915,9 @@ class Todo extends DataClass implements Insertable<Todo> {
           ..write('completedAtMs: $completedAtMs, ')
           ..write('priority: $priority, ')
           ..write('tagsJson: $tagsJson, ')
+          ..write('alarmOffsetsJson: $alarmOffsetsJson, ')
+          ..write('lastDismissedMs: $lastDismissedMs, ')
+          ..write('snoozeUntilMs: $snoozeUntilMs, ')
           ..write('deleted: $deleted')
           ..write(')'))
         .toString();
@@ -801,6 +934,9 @@ class Todo extends DataClass implements Insertable<Todo> {
     completedAtMs,
     priority,
     tagsJson,
+    alarmOffsetsJson,
+    lastDismissedMs,
+    snoozeUntilMs,
     deleted,
   );
   @override
@@ -816,6 +952,9 @@ class Todo extends DataClass implements Insertable<Todo> {
           other.completedAtMs == this.completedAtMs &&
           other.priority == this.priority &&
           other.tagsJson == this.tagsJson &&
+          other.alarmOffsetsJson == this.alarmOffsetsJson &&
+          other.lastDismissedMs == this.lastDismissedMs &&
+          other.snoozeUntilMs == this.snoozeUntilMs &&
           other.deleted == this.deleted);
 }
 
@@ -829,6 +968,9 @@ class TodosCompanion extends UpdateCompanion<Todo> {
   final Value<int?> completedAtMs;
   final Value<int> priority;
   final Value<String> tagsJson;
+  final Value<String> alarmOffsetsJson;
+  final Value<int?> lastDismissedMs;
+  final Value<int?> snoozeUntilMs;
   final Value<bool> deleted;
   final Value<int> rowid;
   const TodosCompanion({
@@ -841,6 +983,9 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     this.completedAtMs = const Value.absent(),
     this.priority = const Value.absent(),
     this.tagsJson = const Value.absent(),
+    this.alarmOffsetsJson = const Value.absent(),
+    this.lastDismissedMs = const Value.absent(),
+    this.snoozeUntilMs = const Value.absent(),
     this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -854,6 +999,9 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     this.completedAtMs = const Value.absent(),
     this.priority = const Value.absent(),
     this.tagsJson = const Value.absent(),
+    this.alarmOffsetsJson = const Value.absent(),
+    this.lastDismissedMs = const Value.absent(),
+    this.snoozeUntilMs = const Value.absent(),
     this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -868,6 +1016,9 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     Expression<int>? completedAtMs,
     Expression<int>? priority,
     Expression<String>? tagsJson,
+    Expression<String>? alarmOffsetsJson,
+    Expression<int>? lastDismissedMs,
+    Expression<int>? snoozeUntilMs,
     Expression<bool>? deleted,
     Expression<int>? rowid,
   }) {
@@ -881,6 +1032,9 @@ class TodosCompanion extends UpdateCompanion<Todo> {
       if (completedAtMs != null) 'completed_at_ms': completedAtMs,
       if (priority != null) 'priority': priority,
       if (tagsJson != null) 'tags_json': tagsJson,
+      if (alarmOffsetsJson != null) 'alarm_offsets_json': alarmOffsetsJson,
+      if (lastDismissedMs != null) 'last_dismissed_ms': lastDismissedMs,
+      if (snoozeUntilMs != null) 'snooze_until_ms': snoozeUntilMs,
       if (deleted != null) 'deleted': deleted,
       if (rowid != null) 'rowid': rowid,
     });
@@ -896,6 +1050,9 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     Value<int?>? completedAtMs,
     Value<int>? priority,
     Value<String>? tagsJson,
+    Value<String>? alarmOffsetsJson,
+    Value<int?>? lastDismissedMs,
+    Value<int?>? snoozeUntilMs,
     Value<bool>? deleted,
     Value<int>? rowid,
   }) {
@@ -909,6 +1066,9 @@ class TodosCompanion extends UpdateCompanion<Todo> {
       completedAtMs: completedAtMs ?? this.completedAtMs,
       priority: priority ?? this.priority,
       tagsJson: tagsJson ?? this.tagsJson,
+      alarmOffsetsJson: alarmOffsetsJson ?? this.alarmOffsetsJson,
+      lastDismissedMs: lastDismissedMs ?? this.lastDismissedMs,
+      snoozeUntilMs: snoozeUntilMs ?? this.snoozeUntilMs,
       deleted: deleted ?? this.deleted,
       rowid: rowid ?? this.rowid,
     );
@@ -944,6 +1104,15 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     if (tagsJson.present) {
       map['tags_json'] = Variable<String>(tagsJson.value);
     }
+    if (alarmOffsetsJson.present) {
+      map['alarm_offsets_json'] = Variable<String>(alarmOffsetsJson.value);
+    }
+    if (lastDismissedMs.present) {
+      map['last_dismissed_ms'] = Variable<int>(lastDismissedMs.value);
+    }
+    if (snoozeUntilMs.present) {
+      map['snooze_until_ms'] = Variable<int>(snoozeUntilMs.value);
+    }
     if (deleted.present) {
       map['deleted'] = Variable<bool>(deleted.value);
     }
@@ -965,6 +1134,9 @@ class TodosCompanion extends UpdateCompanion<Todo> {
           ..write('completedAtMs: $completedAtMs, ')
           ..write('priority: $priority, ')
           ..write('tagsJson: $tagsJson, ')
+          ..write('alarmOffsetsJson: $alarmOffsetsJson, ')
+          ..write('lastDismissedMs: $lastDismissedMs, ')
+          ..write('snoozeUntilMs: $snoozeUntilMs, ')
           ..write('deleted: $deleted, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3115,6 +3287,9 @@ typedef $$TodosTableCreateCompanionBuilder =
       Value<int?> completedAtMs,
       Value<int> priority,
       Value<String> tagsJson,
+      Value<String> alarmOffsetsJson,
+      Value<int?> lastDismissedMs,
+      Value<int?> snoozeUntilMs,
       Value<bool> deleted,
       Value<int> rowid,
     });
@@ -3129,6 +3304,9 @@ typedef $$TodosTableUpdateCompanionBuilder =
       Value<int?> completedAtMs,
       Value<int> priority,
       Value<String> tagsJson,
+      Value<String> alarmOffsetsJson,
+      Value<int?> lastDismissedMs,
+      Value<int?> snoozeUntilMs,
       Value<bool> deleted,
       Value<int> rowid,
     });
@@ -3218,6 +3396,21 @@ class $$TodosTableFilterComposer extends Composer<_$AppDatabase, $TodosTable> {
 
   ColumnFilters<String> get tagsJson => $composableBuilder(
     column: $table.tagsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get alarmOffsetsJson => $composableBuilder(
+    column: $table.alarmOffsetsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastDismissedMs => $composableBuilder(
+    column: $table.lastDismissedMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get snoozeUntilMs => $composableBuilder(
+    column: $table.snoozeUntilMs,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3324,6 +3517,21 @@ class $$TodosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get alarmOffsetsJson => $composableBuilder(
+    column: $table.alarmOffsetsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastDismissedMs => $composableBuilder(
+    column: $table.lastDismissedMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get snoozeUntilMs => $composableBuilder(
+    column: $table.snoozeUntilMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get deleted => $composableBuilder(
     column: $table.deleted,
     builder: (column) => ColumnOrderings(column),
@@ -3389,6 +3597,21 @@ class $$TodosTableAnnotationComposer
 
   GeneratedColumn<String> get tagsJson =>
       $composableBuilder(column: $table.tagsJson, builder: (column) => column);
+
+  GeneratedColumn<String> get alarmOffsetsJson => $composableBuilder(
+    column: $table.alarmOffsetsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastDismissedMs => $composableBuilder(
+    column: $table.lastDismissedMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get snoozeUntilMs => $composableBuilder(
+    column: $table.snoozeUntilMs,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<bool> get deleted =>
       $composableBuilder(column: $table.deleted, builder: (column) => column);
@@ -3479,6 +3702,9 @@ class $$TodosTableTableManager
                 Value<int?> completedAtMs = const Value.absent(),
                 Value<int> priority = const Value.absent(),
                 Value<String> tagsJson = const Value.absent(),
+                Value<String> alarmOffsetsJson = const Value.absent(),
+                Value<int?> lastDismissedMs = const Value.absent(),
+                Value<int?> snoozeUntilMs = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TodosCompanion(
@@ -3491,6 +3717,9 @@ class $$TodosTableTableManager
                 completedAtMs: completedAtMs,
                 priority: priority,
                 tagsJson: tagsJson,
+                alarmOffsetsJson: alarmOffsetsJson,
+                lastDismissedMs: lastDismissedMs,
+                snoozeUntilMs: snoozeUntilMs,
                 deleted: deleted,
                 rowid: rowid,
               ),
@@ -3505,6 +3734,9 @@ class $$TodosTableTableManager
                 Value<int?> completedAtMs = const Value.absent(),
                 Value<int> priority = const Value.absent(),
                 Value<String> tagsJson = const Value.absent(),
+                Value<String> alarmOffsetsJson = const Value.absent(),
+                Value<int?> lastDismissedMs = const Value.absent(),
+                Value<int?> snoozeUntilMs = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TodosCompanion.insert(
@@ -3517,6 +3749,9 @@ class $$TodosTableTableManager
                 completedAtMs: completedAtMs,
                 priority: priority,
                 tagsJson: tagsJson,
+                alarmOffsetsJson: alarmOffsetsJson,
+                lastDismissedMs: lastDismissedMs,
+                snoozeUntilMs: snoozeUntilMs,
                 deleted: deleted,
                 rowid: rowid,
               ),

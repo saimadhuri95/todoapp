@@ -40,6 +40,14 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
   late String? _recurrence = widget.todo.recurrenceRule;
   late int _priority = widget.todo.priority;
   late String? _listId = widget.todo.listId;
+  late final Set<int> _alarmOffsets = widget.todo.alarmOffsetsMinutes.toSet();
+
+  static const _alarmOptions = {
+    0: 'At due time',
+    10: '10 min before',
+    60: '1 hour before',
+    1440: '1 day before',
+  };
 
   static const _recurrenceOptions = {
     null: 'Does not repeat',
@@ -100,6 +108,9 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
           recurrenceRule: Value(_recurrence),
           priority: Value(_priority),
           tags: Value(tags),
+          alarmOffsetsMinutes: Value(
+            _dueAt == null ? const [] : (_alarmOffsets.toList()..sort()),
+          ),
         );
     if (widget.popOnSave && mounted) Navigator.of(context).pop();
   }
@@ -137,6 +148,27 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
                   onPressed: () => setState(() => _dueAt = null),
                 ),
         ),
+        if (_dueAt != null) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 4),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final option in _alarmOptions.entries)
+                  FilterChip(
+                    label: Text(option.value),
+                    avatar: const Icon(Icons.alarm, size: 16),
+                    selected: _alarmOffsets.contains(option.key),
+                    onSelected: (selected) => setState(() {
+                      selected
+                          ? _alarmOffsets.add(option.key)
+                          : _alarmOffsets.remove(option.key);
+                    }),
+                  ),
+              ],
+            ),
+          ),
+        ],
         DropdownButtonFormField<String?>(
           initialValue: _recurrence,
           decoration: const InputDecoration(labelText: 'Repeat'),

@@ -17,6 +17,9 @@ const Map<String, Map<String, String>> syncColumns = {
     'completedAtMs': 'completed_at_ms',
     'priority': 'priority',
     'tagsJson': 'tags_json',
+    'alarmOffsetsJson': 'alarm_offsets_json',
+    'lastDismissedMs': 'last_dismissed_ms',
+    'snoozeUntilMs': 'snooze_until_ms',
     'deleted': 'deleted',
   },
   'todo_lists': {

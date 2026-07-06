@@ -1,5 +1,16 @@
 # Alarms
 
+## Implementation model (revised 2026-07-06)
+
+Alarms are **LWW fields on the todo row** (schema v3), not separate tables:
+`alarmOffsetsJson` (minute-offsets before the due time), `lastDismissedMs`,
+`snoozeUntilMs`. This makes dismissal/snooze ordinary synced field writes —
+no FK headaches in the CRDT, no extra changeset types. The pure
+`planAlarms()` expands recurrences and emits the next ≤50 concrete fire
+times; `AlarmService` replans on any todos change (local or synced) and the
+platform scheduler replaces its whole schedule. The original todo_alarms /
+alarm_dismissals tables are unused.
+
 ## Policy
 
 - Alarms fire on every device where alarms are **enabled**.
