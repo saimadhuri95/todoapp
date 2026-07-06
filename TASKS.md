@@ -24,6 +24,17 @@ that comfortably fits inside a window (roughly 15–30 substantial prompts).
    context and usually cost more than they save.
 5. Long command output (flutter build/test) gets tailed, not dumped.
 
+### Execution order (changed 2026-07-05, user decision)
+
+Alarms are deprioritized to last-but-one. Task IDs keep their original phase
+numbers; the **order we execute** is:
+
+1. Phase 0 ✓ → Phase 1 (core app)
+2. **Phase 3 — Sync engine** (next after Phase 1)
+3. **Phase 4 — Packaging**
+4. **Phase 2 — Alarms** (last-but-one; includes Linux alarms 5.1/5.2)
+5. Phase 5 — Polish & hardening
+
 ### Phase cost estimates
 
 | Phase | Est. sessions | Token-heavy spots |
@@ -48,10 +59,10 @@ that comfortably fits inside a window (roughly 15–30 substantial prompts).
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Current task:** **Phase 1 data layer complete** (1.1–1.6). UI tasks (1.7–1.14) remain.
-- **State:** Repositories with HLC stamping, recurrence engine (RFC 5545 skip semantics), 56 tests green, CI green. Repo: github.com/saimadhuri95/todoapp.
-- **Blockers for user:** install Xcode + Android Studio (needed for Phase 2 device testing); pick a LICENSE
-- **Next action (S7):** UI slice — 1.13 settings scaffold is trivial, but start with 1.7 list screen + Riverpod wiring (add flutter_riverpod dep, providers for AppDatabase/HlcClock/repos, replace counter main.dart), then 1.8 editor. Suggest `flutter run -d macos` needs Xcode — until installed, test UI via widget tests only.
+- **Current task:** PR open for Phase 1 + sync core (branch `phase-1-and-sync-core`) — merge when CI green
+- **State:** 83 tests green. Phase 1 done (1.9 deferred); sync core 3.1–3.4 done (version vectors). Widget-test deadlock fixed via `testApp` wrapper (drift keep-alive Timer in fake-async zone — advance fake time after unmount before db.close()).
+- **Blockers for user:** install Xcode + Android Studio (packaging phase); pick a LICENSE
+- **Next action:** after PR merge → Phase 3 continued: 3.5 device identity keypair, 3.6 pairing, 3.7 encryption (add `cryptography` dep), then 3.9 LAN transport / 3.10 mailbox transport. Then Phase 4 packaging.
 
 ## Phase 0 — Foundations
 
@@ -75,16 +86,16 @@ that comfortably fits inside a window (roughly 15–30 substantial prompts).
 - [x] 1.6 Unit tests: repository CRUD/tombstones (11) + recurrence edge cases (16: Jan-31 monthly, Feb-29 yearly, interval jumps, anchor floor)
 
 ### UI
-- [ ] 1.7 Todo list screen: grouped views — Today, Upcoming, Overdue, Completed, per-list
-- [ ] 1.8 Todo editor: title, notes, due date/time pickers, alarm times, recurrence, list, tags, priority
-- [ ] 1.9 Quick-add bar with natural date parsing ("tomorrow 5pm") — nice-to-have, can slip
-- [ ] 1.10 Search and filter
-- [ ] 1.11 Responsive layout: single-pane phone, dual-pane desktop/tablet
-- [ ] 1.12 Desktop keyboard shortcuts (new todo, complete, search, navigate)
-- [ ] 1.13 Settings screen scaffold (theme, per-device alarm toggle placeholder, sync placeholder)
-- [ ] 1.14 Widget tests for list screen, editor, quick-add
+- [x] 1.7 List screen: Overdue/Today/Upcoming/Someday sections (pure `todo_sections.dart`), Completed expansion tile, per-list via drawer filter
+- [x] 1.8 Todo editor: title, notes, due date/time pickers, recurrence dropdown, list, tags, priority. **Alarm times deferred to Phase 2** (needs scheduler + alarm repo)
+- [ ] 1.9 Quick-add natural date parsing — deferred (nice-to-have; revisit in Phase 5 polish)
+- [x] 1.10 Search bar filtering title/notes/tags (client-side)
+- [x] 1.11 Responsive: master-detail split ≥840px, editor route below
+- [x] 1.12 Keyboard shortcut Ctrl/Cmd+N for new todo (more shortcuts with Phase 5 accessibility pass)
+- [x] 1.13 Settings scaffold (theme/alarm/sync placeholders wired to later phases)
+- [x] 1.14 Widget tests: add/complete/delete/cancel flows, sections, editor save, search, completed section, wide layout, drawer list filter (12 tests)
 
-## Phase 2 — Alarms (Android, iOS, Windows, macOS)
+## Phase 2 — Alarms (executed LAST-BUT-ONE — after Phases 3 & 4)
 
 - [ ] 2.1 Alarm scheduler abstraction: platform-agnostic interface, per-platform implementations behind it
 - [ ] 2.2 Integrate flutter_local_notifications; notification tap → open todo
@@ -98,13 +109,13 @@ that comfortably fits inside a window (roughly 15–30 substantial prompts).
 - [ ] 2.10 Timezone & DST correctness: store alarms as local-time + zone id, recompute on zone change; test suite around DST transitions
 - [ ] 2.11 Manual alarm test matrix executed per platform (see docs/testing.md)
 
-## Phase 3 — Sync engine
+## Phase 3 — Sync engine (executed SECOND — right after Phase 1)
 
 ### Core
-- [ ] 3.1 Changeset format: per-field ops with HLC stamps, tombstones, schema-versioned
-- [ ] 3.2 Merge engine: idempotent, commutative apply; LWW per field
-- [ ] 3.3 Property-based convergence tests: N simulated devices, random op sequences, arbitrary delivery order/duplication → identical final state
-- [ ] 3.4 Per-device vector clock / cursor tracking in sync_log
+- [x] 3.1 Changeset format (`changeset.dart`): versioned JSON envelope of HLC-stamped field writes; encryption/transport wrap this later
+- [x] 3.2 Merge engine: LwwApplier + LWW-map row springing (incl. FK-referenced rows); idempotent + commutative
+- [x] 3.3 Convergence tests: 3 devices × 3 seeds, random ops, clock skew, partial connectivity, shuffled delivery → byte-identical dumps
+- [x] 3.4 Version vectors (max HLC per origin, derived from field_clocks) — replaced scalar cursors, which can lose relayed writes; sync_log kept as last-exchange info for the status UI
 
 ### Identity & crypto
 - [ ] 3.5 Device identity: X25519 keypair generated on first run, stored in platform keychain/keystore
@@ -124,7 +135,7 @@ that comfortably fits inside a window (roughly 15–30 substantial prompts).
 - [ ] 3.15 Alarm dismissal sync: dismissal records propagate; receiving device cancels matching scheduled notification
 - [ ] 3.16 Integration tests: 3-device simulation — offline edits, delete-vs-edit races, clock skew, pairing/revocation
 
-## Phase 4 — Packaging & distribution
+## Phase 4 — Packaging & distribution (executed THIRD — before alarms)
 
 - [ ] 4.1 App icon, name, bundle ids
 - [ ] 4.2 Android: signing config, Play internal track
@@ -135,10 +146,10 @@ that comfortably fits inside a window (roughly 15–30 substantial prompts).
 - [ ] 4.7 Release pipeline: tag → CI builds + uploads all artifacts
 - [ ] 4.8 Auto-update strategy per platform (stores handle mobile/mac; Sparkle-style or winget/Flathub for desktop)
 
-## Phase 5 — Polish, hardening & Linux alarms
+## Phase 5 — Polish & hardening (executed LAST)
 
-- [ ] 5.1 Linux alarms (opt-in, same toggle): resident background/tray process at login (autostart + XDG Background portal under Flatpak) posting libnotify notifications; systemd user timers as fallback. Until this lands, Linux shows in-app reminders only while the app is open
-- [ ] 5.2 Optional "run in background at login" toggle on all desktops (live sync + cross-device dismissal while window closed)
+- [ ] 5.1 *(moved into the alarms phase)* Linux alarms (opt-in, same toggle): resident background/tray process at login (autostart + XDG Background portal under Flatpak) posting libnotify notifications; systemd user timers as fallback
+- [ ] 5.2 *(moved into the alarms phase)* Optional "run in background at login" toggle on all desktops (live sync + cross-device dismissal while window closed)
 - [ ] 5.3 Import/export JSON; full local backup/restore
 - [ ] 5.4 Dark mode + theming
 - [ ] 5.5 Accessibility pass: screen readers, contrast, font scaling, full keyboard nav

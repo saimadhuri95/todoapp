@@ -48,8 +48,10 @@ The user is on a $20/mo Pro subscription. Treat tokens as a scarce resource:
    pass before any release.
 3. Nothing leaves a device unencrypted; the cloud-mailbox folder holds
    ciphertext only.
-4. Alarms fire only where enabled: mobile default-on, Windows/macOS opt-in
-   toggle (default off), Linux deferred to Phase 5.
+4. Alarms fire only where enabled: mobile default-on, desktop opt-in toggle
+   (default off). The whole alarms phase runs last-but-one (user decision
+   2026-07-05): execution order is Phase 1 → sync → packaging → alarms →
+   polish. See "Execution order" in TASKS.md.
 5. Deletes are tombstones; never hard-delete synced rows.
 
 ## Conventions (once code exists)

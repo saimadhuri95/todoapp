@@ -7,8 +7,10 @@
 - Desktop (Windows/macOS): **opt-in** via Settings → "Enable alarms on this
   device" (default off). Enabling triggers the OS permission flow; disabling
   cancels everything scheduled with the OS.
-- Linux: deferred to Phase 5. Until then, in-app reminders only while the app
-  window is open.
+- Linux: last item within the alarms phase. Until then, in-app reminders only
+  while the app window is open.
+- The entire alarms phase executes last-but-one (after sync and packaging) —
+  see "Execution order" in TASKS.md.
 - Dismissing/snoozing an alarm on one device writes an `AlarmDismissal` record
   that syncs; other devices cancel their matching scheduled notification.
   Caveat: a closed desktop app can't receive the dismissal, so its pre-scheduled
