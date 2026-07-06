@@ -68,7 +68,7 @@ numbers; the **order we execute** is:
 
 - [x] 0.1 Scaffold Flutter project with all five platform targets enabled (Flutter 3.44.4, org `com.sai`)
 - [x] 0.2 Verify builds: all 5 platforms green on CI **and** local toolchain complete (Xcode 26.6 + Android SDK 36): Knot.app built & launched on macOS, iOS Runner.app built --no-codesign
-- [x] 0.3 Repo hygiene: strict `analysis_options.yaml`, .gitignore, MIT LICENSE (user decision 2026-07-06)
+- [x] 0.3 Repo hygiene: strict `analysis_options.yaml`, .gitignore, PolyForm Noncommercial LICENSE (updated user decision 2026-07-06)
 - [x] 0.4 State management: **Riverpod** (dependency added when first used); feature-first folders
 - [x] 0.5 CI: GitHub Actions (.github/workflows/ci.yml) — format/analyze/test gate + 5-target debug-build matrix; repo public (free Actions)
 - [x] 0.6 CRDT spike → **hand-rolled per-field LWW** (docs/decisions/0001-crdt-choice.md); LwwApplier + 7 convergence tests landed as proof
@@ -144,7 +144,7 @@ the ordinary merge engine; todo_alarms/alarm_dismissals tables unused.
 
 ## Phase 4 — Packaging & distribution (executed THIRD — before alarms)
 
-- [x] 4.1 Name **Knot**, bundle id `com.sai.knot`, MIT LICENSE, generated icon (`tool/gen_icon.dart` → all platforms via flutter_launcher_icons)
+- [x] 4.1 Name **Knot**, bundle id `com.sai.knot`, PolyForm Noncommercial LICENSE, generated icon (`tool/gen_icon.dart` → all platforms via flutter_launcher_icons)
 - [x] 4.2 Android signing: gradle reads `android/key.properties` (gitignored) else debug key. **User steps** (keystore + Play Console) in docs/packaging.md
 - [ ] 4.3 iOS TestFlight — **blocked on user**: Xcode install + Apple Developer Program; steps in docs/packaging.md
 - [ ] 4.4 macOS notarized dmg — **blocked on user**: Apple Developer ID cert; steps in docs/packaging.md

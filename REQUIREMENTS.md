@@ -193,10 +193,11 @@ Priority legend: **P1** core usability · **P2** strong differentiator ·
 
 ## R12. Positioning (non-functional)
 
-- **R12.1 ✅ 100% free, no account, no subscription, MIT.** Inherent to the
+- **R12.1 ✅ Free for noncommercial use, no account, no subscription.** Inherent to the
   design; no feature may add a paid dependency or mandatory sign-in. Every
   compared competitor gates core features (recurring tasks, reminders,
   calendar) behind $3–4/month — free-with-privacy is the positioning.
+  Commercial use requires a separate written license from `saimadhuri95`.
 - **R12.2 ✅ All five platforms, one codebase.** Windows, macOS, Linux, iOS,
   Android; each requirement above must state per-platform behavior where
   platforms differ.
