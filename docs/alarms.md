@@ -22,11 +22,13 @@ alarm_dismissals tables are unused.
   while the app window is open.
 - The entire alarms phase executes last-but-one (after sync and packaging) —
   see "Execution order" in TASKS.md.
-- Dismissing/snoozing an alarm on one device writes an `AlarmDismissal` record
-  that syncs; other devices cancel their matching scheduled notification.
+- Dismissing/snoozing an alarm on one device writes the todo's
+  `lastDismissedMs` / `snoozeUntilMs` fields (see implementation model above),
+  which sync; other devices replan and cancel their matching notification.
   Caveat: a closed desktop app can't receive the dismissal, so its pre-scheduled
   OS notification may still fire — acceptable for opt-in users; mitigated later
-  by the "run in background at login" option (Phase 5).
+  by the "run in background at login" option (task 5.2, now part of the
+  alarms phase).
 
 ## Per-platform mechanics
 

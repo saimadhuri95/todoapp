@@ -9,8 +9,11 @@ one, not even "just for sync" or push notifications.
 
 ## Current status
 
-**Planning stage — no code yet.** The Flutter project has not been scaffolded
-(Phase 0). Start there before any feature work.
+**v0.1 implemented and locally verified** — core app, sync engine, alarms,
+and release pipeline are in place with the full test suite green in CI.
+Remaining work: store distribution (blocked on developer accounts),
+real-device testing, and the optional feature tail. The authoritative
+current state is the `RESUME` section in TASKS.md — read that, not this.
 
 ## Where things live
 
@@ -54,10 +57,9 @@ The user is on a $20/mo Pro subscription. Treat tokens as a scarce resource:
    polish. See "Execution order" in TASKS.md.
 5. Deletes are tombstones; never hard-delete synced rows.
 
-## Conventions (once code exists)
+## Conventions
 
-- Flutter/Dart, feature-first folder structure, Riverpod (pending Phase 0
-  confirmation), drift for SQLite.
+- Flutter/Dart, feature-first folder structure, Riverpod, drift for SQLite.
 - No `DateTime.now()` outside the injected clock provider — everything
   time-related must be testable with a fake clock.
 - Per-field HLC stamping happens in the repository layer on every mutation;
@@ -70,8 +72,8 @@ The user is on a $20/mo Pro subscription. Treat tokens as a scarce resource:
 ## Things already decided (don't re-litigate without an ADR)
 
 - Flutter over React Native/KMP/Tauri (only option covering all 5 targets well)
-- LWW-per-field CRDT with HLC timestamps (cr-sqlite vs hand-rolled: Phase 0
-  spike decides the implementation, not the semantics)
+- LWW-per-field CRDT with HLC timestamps, **hand-rolled** (Phase 0 spike →
+  docs/decisions/0001-crdt-choice.md)
 - Two transports: LAN P2P (mDNS+TCP) and encrypted cloud-drive mailbox
 - QR-code device pairing, X25519 + XChaCha20-Poly1305
 - Desktop alarms opt-in; cron rejected for Linux (see docs/alarms.md)

@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart' show TableOrViewStatements;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../core/clock.dart';
+import '../core/cloud_folder.dart';
 import '../core/hlc.dart';
 import '../data/db/database.dart';
 import '../data/repositories/list_repository.dart';
@@ -9,6 +11,7 @@ import '../data/repositories/todo_repository.dart';
 import '../data/sync/device_identity.dart';
 import '../data/sync/pairing_service.dart';
 import '../data/sync/sync_engine.dart';
+import 'cloud_folder_channel.dart';
 
 /// Bound in main() (and overridden in tests): the real database and the
 /// persistent device id have async setup, so they're injected, not built.
@@ -64,7 +67,14 @@ final listsProvider = StreamProvider<List<TodoList>>(
 
 // --- Sync & pairing ---
 
-final keyStoreProvider = Provider<KeyStore>((_) => const SecureKeyStore());
+/// Keychain first; file fallback for ad-hoc-signed builds where the
+/// keychain entitlement is unavailable (TASKS.md 4.17).
+final keyStoreProvider = Provider<KeyStore>(
+  (_) => FallbackKeyStore(
+    primary: const SecureKeyStore(),
+    fallback: FileKeyStore(getApplicationSupportDirectory),
+  ),
+);
 
 final deviceIdentityProvider = FutureProvider<DeviceIdentity>(
   (ref) => DeviceIdentity.loadOrCreate(
@@ -110,3 +120,9 @@ final syncLogProvider = StreamProvider<Map<String, SyncLogData>>(
 
 /// Mailbox folder path; seeded from prefs in main(), persisted on change.
 final mailboxPathProvider = StateProvider<String?>((_) => null);
+
+/// Managed cloud folder + folder bookmarks (iCloud Drive / security-scoped
+/// bookmarks on Apple platforms); unsupported elsewhere.
+final cloudFolderProvider = Provider<CloudFolderLocator>(
+  (_) => platformCloudFolder(),
+);

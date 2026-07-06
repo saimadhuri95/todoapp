@@ -15,25 +15,42 @@ control. MIT licensed.
   encrypted — the cloud provider only ever sees ciphertext.
 - **No accounts.** Devices pair with a QR code, like a password manager.
 - **Real alarms.** Exact alarms on Android, local notifications on iOS,
-  opt-in OS-scheduled alarms on Windows/macOS that fire even with the app
-  closed (Linux alarms planned).
+  opt-in OS-scheduled alarms on macOS. Windows alarms fire in-app today
+  (firing with the app closed needs MSIX packaging, pending); Linux alarms
+  planned.
 
 ## Status
 
-🚧 **Planning stage — no code yet.** See [PLAN.md](PLAN.md) for the plan,
-[TASKS.md](TASKS.md) for the task breakdown, and [docs/](docs/) for design docs:
+**v0.1 — feature-complete, locally verified.** Core app, sync engine
+(LAN P2P + encrypted cloud-drive mailbox), alarms, and the release pipeline
+are implemented, with 175 tests green in CI. Built and launched on macOS;
+iOS builds clean (unsigned). Remaining: store distribution (needs developer
+accounts), real-device testing, and a small polish tail — current state
+lives in the `RESUME` section of [TASKS.md](TASKS.md).
+
+See [PLAN.md](PLAN.md) for the plan and [docs/](docs/) for design docs:
 
 - [docs/architecture.md](docs/architecture.md) — stack, data model, invariants
 - [docs/sync.md](docs/sync.md) — CRDT merge, pairing, encryption, transports
 - [docs/alarms.md](docs/alarms.md) — per-platform alarm behavior
 - [docs/testing.md](docs/testing.md) — testing strategy
+- [docs/packaging.md](docs/packaging.md) — signing, stores, release pipeline
 
 ## Stack
 
-Flutter · SQLite (drift) · CRDT sync (cr-sqlite or LWW/HLC, spike pending) ·
+Flutter · Riverpod · SQLite (drift) · hand-rolled per-field LWW CRDT with
+hybrid logical clocks ([ADR 0001](docs/decisions/0001-crdt-choice.md)) ·
 X25519 + XChaCha20-Poly1305 for device pairing and payload encryption.
 
 ## Building
 
-Not yet — Phase 0 scaffolding hasn't started. This section will gain real
-instructions once `flutter create` lands.
+```sh
+flutter pub get
+flutter run     # -d macos / windows / linux, or a connected mobile device
+flutter test    # full suite (175 tests)
+```
+
+Generated drift code is checked in; after schema changes run
+`dart run build_runner build`. Release artifacts are produced by the
+[release workflow](.github/workflows/release.yml) on `v*` tags; per-platform
+signing and store steps are in [docs/packaging.md](docs/packaging.md).

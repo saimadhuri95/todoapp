@@ -13,8 +13,9 @@ devices over pluggable transports, merged with CRDT semantics.
   resolve deterministically; a later edit resurrects the todo).
 - Changesets are idempotent and commutative — any delivery order, any
   duplication, same converged state. This is the property-based test gate.
-- Alternative under evaluation (Phase 0 spike): **cr-sqlite**, which provides
-  this machinery at the SQLite layer. Decision recorded in docs/decisions/.
+- Implementation: **hand-rolled** (`LwwApplier` + per-field `field_clocks`);
+  cr-sqlite was evaluated and rejected in the Phase 0 spike —
+  [ADR 0001](decisions/0001-crdt-choice.md).
 
 ## Device identity & pairing
 
