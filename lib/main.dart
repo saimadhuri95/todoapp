@@ -15,11 +15,14 @@ Future<void> main() async {
     deviceId = const Uuid().v7();
     await prefs.setString('deviceId', deviceId);
   }
+  final mailboxPath = prefs.getString('mailboxPath');
   runApp(
     ProviderScope(
       overrides: [
         databaseProvider.overrideWithValue(AppDatabase.open()),
         deviceIdProvider.overrideWithValue(deviceId),
+        if (mailboxPath != null)
+          mailboxPathProvider.overrideWith((_) => mailboxPath),
       ],
       child: const TodoApp(),
     ),

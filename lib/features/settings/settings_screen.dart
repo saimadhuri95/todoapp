@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
-/// Scaffold only (TASKS.md 1.13): real controls arrive with their features —
-/// the per-device alarm toggle in Phase 2 (2.5), sync/devices in Phase 3.
+import 'sync_settings_screen.dart';
+
+/// Scaffold (TASKS.md 1.13): controls arrive with their features — the
+/// per-device alarm toggle lands with the alarms phase.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -9,27 +11,29 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Settings')),
     body: ListView(
-      children: const [
-        ListTile(
+      children: [
+        const ListTile(
           leading: Icon(Icons.palette_outlined),
           title: Text('Theme'),
           subtitle: Text('Follows system'),
           enabled: false,
         ),
-        SwitchListTile(
+        const SwitchListTile(
           secondary: Icon(Icons.alarm),
           title: Text('Enable alarms on this device'),
-          subtitle: Text('Coming with Phase 2'),
+          subtitle: Text('Coming with the alarms phase'),
           value: false,
           onChanged: null,
         ),
         ListTile(
-          leading: Icon(Icons.sync),
-          title: Text('Sync & devices'),
-          subtitle: Text('Coming with Phase 3'),
-          enabled: false,
+          leading: const Icon(Icons.sync),
+          title: const Text('Sync & devices'),
+          subtitle: const Text('Pair devices, pick a sync folder'),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const SyncSettingsScreen()),
+          ),
         ),
-        AboutListTile(
+        const AboutListTile(
           icon: Icon(Icons.info_outline),
           applicationName: 'TodoApp',
           applicationVersion: '0.1.0-dev',

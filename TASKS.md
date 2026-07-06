@@ -119,7 +119,7 @@ numbers; the **order we execute** is:
 
 ### Identity & crypto
 - [x] 3.5 Device identity: X25519 keypair, `KeyStore` abstraction (SecureKeyStore → platform keychain; InMemoryKeyStore in tests), load-or-create in `device_identity.dart`
-- [ ] 3.6 Pairing flow UI: QR display/scan of `PairingPayload` (format + fingerprint done in `pairing_crypto.dart`); short-code fallback; **group-key distribution** (sealed with pair session key) — transport already consumes a group key
+- [x] 3.6 Pairing flow: invitation = QR/pasteable JSON carrying inviter payload + group key (Syncthing-style trust model, `pairing_service.dart`); accept via paste works on all 5 platforms; fingerprint confirmation dialog; device rows replicate through sync itself. **Camera QR scanning pending** (mobile polish)
 - [x] 3.7 Encryption: X25519 ECDH + HKDF session keys; XChaCha20-Poly1305 seal/open (`pairing_crypto.dart`); key rotation on revoke still pending (part of 3.8)
 - [ ] 3.8 Device management UI: list paired devices, rename, revoke (+ group-key rotation on revoke)
 
@@ -127,11 +127,11 @@ numbers; the **order we execute** is:
 - [x] 3.9 LAN P2P protocol (`lan_transport.dart`): sealed length-framed TCP, one session syncs both directions; group key = authentication; 5 loopback tests. **mDNS advertise/browse still pending** (needs `bonsoir` platform plugin — wire with pairing UI)
 - [x] 3.10 Cloud-drive mailbox (`mailbox_transport.dart`): sealed delta files `{deviceId}/{hlc}.bin` + encrypted vector marker; local cursors in sync_log; torn-upload retry; 6 tests incl. ciphertext-only check
 - [ ] 3.11 Mailbox compaction: periodic snapshot + prune of applied changesets
-- [ ] 3.12 Platform folder access: iCloud Drive container (iOS/macOS native channel), SAF folder picker (Android), plain directory picker (desktop — works with any synced folder incl. Dropbox/Syncthing)
+- [ ] 3.12 Platform folder access: desktop directory picker done (`file_selector` in sync settings); **pending:** iCloud Drive container (iOS/macOS native channel), SAF verification on Android
 - [x] 3.13 SyncOrchestrator: syncNow (consume→publish→LAN peers), reentry guard, periodic timer, per-transport error reporting; foreground/mutation triggers hook in at UI wiring
 
 ### Product
-- [ ] 3.14 Sync status UI: per-device last-synced, pending changes indicator
+- [ ] 3.14 Sync status UI: first cut done (device list, Sync now with report snackbar in `sync_settings_screen.dart`); pending: per-device last-synced timestamps, auto-sync triggers (foreground/mutation debounce), background orchestrator start
 - [ ] 3.15 Alarm dismissal sync: dismissal records propagate; receiving device cancels matching scheduled notification
 - [ ] 3.16 Integration tests: 3-device simulation — offline edits, delete-vs-edit races, clock skew, pairing/revocation
 

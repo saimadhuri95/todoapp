@@ -37,6 +37,9 @@ class LwwApplier {
   static const _ensureRowSql = {
     'todos': "INSERT OR IGNORE INTO todos (id, title) VALUES (?, '')",
     'todo_lists': "INSERT OR IGNORE INTO todo_lists (id, name) VALUES (?, '')",
+    'devices':
+        'INSERT OR IGNORE INTO devices (id, name, platform, public_key) '
+        "VALUES (?, '', '', '')",
   };
 
   /// Returns true if the write was applied, false if it lost LWW (or was a

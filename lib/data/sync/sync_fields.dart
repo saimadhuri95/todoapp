@@ -25,6 +25,14 @@ const Map<String, Map<String, String>> syncColumns = {
     'sortOrder': 'sort_order',
     'deleted': 'deleted',
   },
+  // Devices announce themselves through sync: accepting a pairing writes
+  // your own device row, which replicates to every peer.
+  'devices': {
+    'name': 'name',
+    'platform': 'platform',
+    'publicKey': 'public_key',
+    'lastSeenAtMs': 'last_seen_at_ms',
+  },
 };
 
 /// Records [hlc] as the current clock for each field of a row. Callers must
