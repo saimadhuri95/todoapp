@@ -59,10 +59,7 @@ void main() {
     });
 
     test('weekday with time', () {
-      expect(
-        parse('lunch sat at 12:30').dueAt,
-        DateTime(2026, 7, 11, 12, 30),
-      );
+      expect(parse('lunch sat at 12:30').dueAt, DateTime(2026, 7, 11, 12, 30));
     });
 
     test('embedded weekday letters do not match', () {
@@ -168,10 +165,7 @@ void main() {
     });
 
     test('date and time combine', () {
-      expect(
-        parse('demo tomorrow at 5pm').dueAt,
-        DateTime(2026, 7, 7, 17),
-      );
+      expect(parse('demo tomorrow at 5pm').dueAt, DateTime(2026, 7, 7, 17));
     });
 
     test('bare number without am/pm is not a time', () {
