@@ -111,7 +111,7 @@ the ordinary merge engine; todo_alarms/alarm_dismissals tables unused.
 - [x] 2.7 macOS: UNUserNotificationCenter via plugin, same cap/refill
 - [x] 2.8 Snooze (10 min) / dismiss actions on the notification (Android actions + Darwin categories)
 - [x] 2.9 Recurring: planner expands occurrences; dismissal only silences ≤ dismissed occurrence
-- [ ] 2.10 TZ/DST: zonedSchedule in local tz done; wall-clock storage + recompute-on-zone-change and the DST suite still open
+- [x] 2.10 TZ/DST: expansion runs in local calendar space; DST suite green under TZ=America/New_York (CI step). Cross-zone wall-clock storage documented as v1 limitation (docs/alarms.md), deferred
 - [ ] 2.11 Manual alarm matrix — needs real devices (user; iOS also needs Xcode)
 - [x] 3.15 (moved here) Alarm dismissal sync — by construction: dismissal is a synced field write; test in sync_engine_test
 - [ ] 5.1 (moved here) Linux resident process — in-app timers while running done; tray/autostart still open
