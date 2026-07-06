@@ -160,9 +160,9 @@ index weight; the hidden keyword field fills the rest; velocity + conversion
 do the ranking after that. Drafting (4.9–4.12) is automatable now; entering
 metadata in App Store Connect is blocked on the Apple Developer account (4.3).
 
-- [ ] 4.9 App Store name with keyword modifier (30-char cap; highest search weight — bare "Knot" won't index for "todo"). Candidates: "Knot – Todo List & Sync" (23) or "Knot: Shared Todo List" (22). Decide + record in docs/packaging.md
-- [ ] 4.10 Subtitle (30-char cap, second-highest weight; must not repeat any word from the name). Candidates: "Collaborative Task Manager" (26) or "Shared Tasks, Private Sync" (only if name drops "Sync")
-- [ ] 4.11 Hidden 100-char keyword field: comma-separated, no spaces, no words already in name/subtitle (Apple auto-combines singles into phrases). Draft (93 chars): `shared,checklist,organizer,p2p,private,group,team,cooperative,planning,reminders,productivity` — re-prune against final 4.9/4.10 word choices
+- [x] 4.9 App Store name: **"Knot – Todo List & Sync"** (user pick 2026-07-06); recorded in docs/packaging.md
+- [x] 4.10 Subtitle: **"Collaborative Task Manager"** (26 chars, no name-word repeats); recorded in docs/packaging.md
+- [x] 4.11 Keyword field pruned against final name/subtitle (95 chars, docs/packaging.md): `shared,checklist,organizer,p2p,private,group,team,family,planner,grocery,reminders,productivity` — enter in App Store Connect with 4.3
 - [ ] 4.12 Screenshot set for conversion: first 3 shots show the sync/pairing UI with a value-prop caption overlay ("Instant Sync, Zero Cloud Accounts"); produce required iPhone/iPad/Mac sizes (can stage from simulators before the dev account exists)
 - [ ] 4.13 Google Play counterpart: title (30), short description (80, indexed), full description written for keyword coverage — Play indexes the description, unlike Apple, so the no-repeat rule doesn't apply there
 - [ ] 4.14 Launch-velocity plan: time the store release with a Product Hunt / Hacker News / r/selfhosted post so the download spike lands while the listing is fresh (velocity drives rank for competitive terms)

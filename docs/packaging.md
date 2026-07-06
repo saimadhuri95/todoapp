@@ -85,6 +85,20 @@ Flatpak manifest in `packaging/flatpak/` (build steps in the manifest
 header). Flathub submission: fork flathub/flathub, add the manifest,
 open PR — needs the repo owner's GitHub account.
 
+## App Store metadata (4.9–4.11, user decision 2026-07-06)
+
+- **Name (30-char cap, highest search weight):** `Knot – Todo List & Sync`
+  (23 chars). Covers "todo list" + "sync"; bare "Knot" wouldn't index.
+- **Subtitle (30-char cap, second-highest; must not repeat name words):**
+  `Collaborative Task Manager` (26 chars) — adds task/manager/collaborative.
+- **Hidden keyword field (100-char cap, comma-separated, no spaces, no words
+  already in name/subtitle; Apple auto-combines singles into phrases):**
+  `shared,checklist,organizer,p2p,private,group,team,family,planner,grocery,reminders,productivity`
+  (95 chars). Re-pruned against the final name/subtitle — no overlaps.
+- Enter all three in App Store Connect once the account exists (4.3). The
+  keyword field is updatable per release without review, but only alongside
+  a new build (4.15).
+
 ## Auto-update strategy (4.8)
 
 - **Android/iOS/Mac App Store**: stores handle updates.
