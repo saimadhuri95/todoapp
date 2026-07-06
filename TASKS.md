@@ -48,10 +48,10 @@ that comfortably fits inside a window (roughly 15–30 substantial prompts).
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Current task:** Phase 0 complete; Phase 1 data layer done except recurrence (1.4, half of 1.6)
-- **State:** Repositories (todo/list) with in-transaction HLC stamping; shared syncColumns map; 40 tests green; CI green. Repo: github.com/saimadhuri95/todoapp.
+- **Current task:** **Phase 1 data layer complete** (1.1–1.6). UI tasks (1.7–1.14) remain.
+- **State:** Repositories with HLC stamping, recurrence engine (RFC 5545 skip semantics), 56 tests green, CI green. Repo: github.com/saimadhuri95/todoapp.
 - **Blockers for user:** install Xcode + Android Studio (needed for Phase 2 device testing); pick a LICENSE
-- **Next action (S6):** 1.4 recurrence engine (RRULE subset: daily/weekly+mask/monthly/yearly, next-occurrence expansion; edge cases Jan-31-monthly, leap years) + finish 1.6 tests. Then UI slice 1.7–1.8.
+- **Next action (S7):** UI slice — 1.13 settings scaffold is trivial, but start with 1.7 list screen + Riverpod wiring (add flutter_riverpod dep, providers for AppDatabase/HlcClock/repos, replace counter main.dart), then 1.8 editor. Suggest `flutter run -d macos` needs Xcode — until installed, test UI via widget tests only.
 
 ## Phase 0 — Foundations
 
@@ -70,9 +70,9 @@ that comfortably fits inside a window (roughly 15–30 substantial prompts).
 - [x] 1.1 TodoRepository: create/edit/complete/uncomplete/softDelete/restore + watchActive/watchCompleted (`lib/data/repositories/`)
 - [x] 1.2 ListRepository: create/rename/setColor/setSortOrder/archive; move todo via edit(listId)
 - [x] 1.3 Tags (JSON column + typed extension) + priority
-- [ ] 1.4 Recurrence: RRULE subset (daily, weekly with weekday mask, monthly, yearly); next-occurrence expansion
+- [x] 1.4 Recurrence engine (`lib/core/recurrence.dart`): RRULE subset (FREQ/INTERVAL/BYDAY), RFC 5545 skip semantics for invalid dates, anchor-based series
 - [x] 1.5 Every mutation stamps per-field HLC in-transaction (shared `sync_fields.dart`, also used by LwwApplier)
-- [ ] 1.6 Unit tests: repository CRUD/tombstones done (11 tests); recurrence edge cases pending 1.4
+- [x] 1.6 Unit tests: repository CRUD/tombstones (11) + recurrence edge cases (16: Jan-31 monthly, Feb-29 yearly, interval jumps, anchor floor)
 
 ### UI
 - [ ] 1.7 Todo list screen: grouped views — Today, Upcoming, Overdue, Completed, per-list
