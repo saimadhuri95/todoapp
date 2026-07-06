@@ -89,9 +89,23 @@ final syncEngineProvider = Provider<SyncEngine>(
   ),
 );
 
-/// Paired devices (this one included once registered).
+/// Paired devices (this one included once registered); revoked devices
+/// are tombstoned and hidden.
 final devicesProvider = StreamProvider<List<Device>>(
-  (ref) => ref.watch(databaseProvider).devices.select().watch(),
+  (ref) =>
+      (ref.watch(databaseProvider).devices.select()
+            ..where((d) => d.deleted.equals(false)))
+          .watch(),
+);
+
+/// peerId → sync_log row, for "last synced" display.
+final syncLogProvider = StreamProvider<Map<String, SyncLogData>>(
+  (ref) => ref
+      .watch(databaseProvider)
+      .syncLog
+      .select()
+      .watch()
+      .map((rows) => {for (final r in rows) r.peerId: r}),
 );
 
 /// Mailbox folder path; seeded from prefs in main(), persisted on change.

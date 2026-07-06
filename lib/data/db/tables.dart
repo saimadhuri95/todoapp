@@ -57,6 +57,10 @@ class Devices extends Table {
   TextColumn get publicKey => text()();
   IntColumn get lastSeenAtMs => integer().nullable()();
 
+  /// Tombstone (schema v2): revoked devices stay as rows so the revocation
+  /// itself replicates.
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -66,6 +70,10 @@ class Devices extends Table {
 class SyncLog extends Table {
   TextColumn get peerId => text()();
   TextColumn get lastAppliedHlc => text().withDefault(const Constant(''))();
+
+  /// Wall-clock time of the last exchange (schema v2) — for the
+  /// "last synced" display only, never for merge decisions.
+  IntColumn get lastSyncedAtMs => integer().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {peerId};

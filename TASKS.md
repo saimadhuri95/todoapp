@@ -59,11 +59,11 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Current task:** Phase 3 functionally complete end-to-end; main green on all 5 platforms; 116 tests.
-- **State:** Done: 3.1–3.7 (camera QR scan pending), 3.9 (protocol; mDNS pending), 3.10, 3.13, partial 3.12/3.14. The core promise works: pair via invitation → shared folder → Sync now → encrypted todos flow, serverless. Merged via PRs #1–#2; pairing chunk landed direct on main (gh pr merge --delete-branch switches local checkout to main — create the next branch BEFORE committing).
-- **Phase 3 oddments (non-blocking):** 3.8 device revoke + key rotation, 3.11 mailbox compaction, mDNS discovery, camera QR scan, iCloud/SAF folder access, auto-sync triggers, per-device last-synced display.
-- **Blockers for user:** install Xcode + Android Studio (needed NOW for Phase 4 packaging); pick a LICENSE; app name (PLAN.md open question 5)
-- **Next action (Phase 4):** 4.1 app identity (name/icon/bundle ids — ask user for app name first), 4.7 release pipeline (tag → CI builds artifacts), then per-platform store/packaging configs (4.2–4.6; signing needs user accounts/certs).
+- **Current task:** Phases 3 & 4 complete (except items blocked on user accounts). App is **Knot**, MIT, icons generated, release pipeline ready.
+- **State:** Branch `app-identity-knot` (PR #3 grew to include everything). Schema v2 (devices.deleted, sync_log.lastSyncedAtMs). SyncService auto-triggers + mDNS + LAN server boot. Compaction, rename/revoke + key rotation. Android toolchain ✓ (SDK 36, Studio installed).
+- **Blocked on user:** Xcode install (App Store, needs their password) → then 4.3/4.4 signing (needs Apple Developer $99/yr); Play Console ($25) for 4.2 upload; code-signing cert for MSIX. All steps in docs/packaging.md.
+- **Deferred to polish:** camera QR scanning, iCloud-container/SAF native folder access (desktop picker works now), Flathub submission.
+- **Next action:** merge PR #3 on green CI → alarms phase (tasks 2.x, incl. 5.1/5.2 Linux) → Phase 5 polish. First release: tag v0.1.0 after PR #3 merges.
 
 ## Phase 0 — Foundations
 
@@ -122,30 +122,30 @@ numbers; the **order we execute** is:
 - [x] 3.5 Device identity: X25519 keypair, `KeyStore` abstraction (SecureKeyStore → platform keychain; InMemoryKeyStore in tests), load-or-create in `device_identity.dart`
 - [x] 3.6 Pairing flow: invitation = QR/pasteable JSON carrying inviter payload + group key (Syncthing-style trust model, `pairing_service.dart`); accept via paste works on all 5 platforms; fingerprint confirmation dialog; device rows replicate through sync itself. **Camera QR scanning pending** (mobile polish)
 - [x] 3.7 Encryption: X25519 ECDH + HKDF session keys; XChaCha20-Poly1305 seal/open (`pairing_crypto.dart`); key rotation on revoke still pending (part of 3.8)
-- [ ] 3.8 Device management UI: list paired devices, rename, revoke (+ group-key rotation on revoke)
+- [x] 3.8 Device management: rename + revoke (tombstone replicates, group key rotates, mailbox wiped, re-pair flow); devices.deleted via schema v2 migration
 
 ### Transports
-- [x] 3.9 LAN P2P protocol (`lan_transport.dart`): sealed length-framed TCP, one session syncs both directions; group key = authentication; 5 loopback tests. **mDNS advertise/browse still pending** (needs `bonsoir` platform plugin — wire with pairing UI)
+- [x] 3.9 LAN P2P: sealed length-framed TCP protocol (5 loopback tests) + mDNS advertise/browse via bonsoir (`lan_discovery.dart` — CI-untestable, in manual matrix)
 - [x] 3.10 Cloud-drive mailbox (`mailbox_transport.dart`): sealed delta files `{deviceId}/{hlc}.bin` + encrypted vector marker; local cursors in sync_log; torn-upload retry; 6 tests incl. ciphertext-only check
-- [ ] 3.11 Mailbox compaction: periodic snapshot + prune of applied changesets
+- [x] 3.11 Mailbox compaction: outbox >20 deltas → single snapshot (idempotent for late peers); runs inside orchestrator pass
 - [ ] 3.12 Platform folder access: desktop directory picker done (`file_selector` in sync settings); **pending:** iCloud Drive container (iOS/macOS native channel), SAF verification on Android
 - [x] 3.13 SyncOrchestrator: syncNow (consume→publish→LAN peers), reentry guard, periodic timer, per-transport error reporting; foreground/mutation triggers hook in at UI wiring
 
 ### Product
-- [ ] 3.14 Sync status UI: first cut done (device list, Sync now with report snackbar in `sync_settings_screen.dart`); pending: per-device last-synced timestamps, auto-sync triggers (foreground/mutation debounce), background orchestrator start
+- [x] 3.14 Sync status + triggers: per-device last-synced (sync_log.lastSyncedAtMs, schema v2), SyncService (foreground resume, 5s mutation debounce, 5min periodic, LAN server + mDNS start) via SyncBootstrap in main()
 - [ ] 3.15 Alarm dismissal sync: dismissal records propagate; receiving device cancels matching scheduled notification
-- [ ] 3.16 Integration tests: 3-device simulation — offline edits, delete-vs-edit races, clock skew, pairing/revocation
+- [x] 3.16 Integration tests: 3-device convergence (3 seeds), delete-vs-edit races, clock skew, pairing + revocation, transport relays — spread across convergence/sync_engine/mailbox/pairing suites
 
 ## Phase 4 — Packaging & distribution (executed THIRD — before alarms)
 
-- [x] 4.1 Name **Knot**, bundle id `com.sai.knot`, display name on all 5 platforms, MIT LICENSE. App icon still pending (needs artwork)
-- [ ] 4.2 Android: signing config, Play internal track
-- [ ] 4.3 iOS: provisioning, notification entitlements, TestFlight
-- [ ] 4.4 macOS: hardened runtime, notarized .dmg
-- [ ] 4.5 Windows: MSIX + code signing cert
-- [ ] 4.6 Linux: Flatpak manifest (primary); AppImage secondary
-- [ ] 4.7 Release pipeline: tag → CI builds + uploads all artifacts
-- [ ] 4.8 Auto-update strategy per platform (stores handle mobile/mac; Sparkle-style or winget/Flathub for desktop)
+- [x] 4.1 Name **Knot**, bundle id `com.sai.knot`, MIT LICENSE, generated icon (`tool/gen_icon.dart` → all platforms via flutter_launcher_icons)
+- [x] 4.2 Android signing: gradle reads `android/key.properties` (gitignored) else debug key. **User steps** (keystore + Play Console) in docs/packaging.md
+- [ ] 4.3 iOS TestFlight — **blocked on user**: Xcode install + Apple Developer Program; steps in docs/packaging.md
+- [ ] 4.4 macOS notarized dmg — **blocked on user**: Apple Developer ID cert; steps in docs/packaging.md
+- [x] 4.5 Windows: release zip in pipeline; MSIX deferred until a code-signing cert exists (docs/packaging.md)
+- [x] 4.6 Linux: Flatpak manifest + desktop + metainfo in packaging/flatpak/; Flathub submission is a user step
+- [x] 4.7 Release pipeline (.github/workflows/release.yml): tag v* → draft GitHub Release with linux/windows/macos/android artifacts
+- [x] 4.8 Auto-update strategy documented (docs/packaging.md): stores for mobile; GitHub Releases v1 for desktop; winget/Flathub/Sparkle post-v1
 
 ## Phase 5 — Polish & hardening (executed LAST)
 

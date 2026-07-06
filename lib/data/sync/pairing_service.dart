@@ -103,6 +103,56 @@ class PairingService {
     return PairingResult(peer: peer, fingerprint: fingerprint);
   }
 
+  /// Renames a device (own or peer); replicates like any field write.
+  Future<void> rename(String deviceId, String newName) async {
+    final stamp = hlc.send();
+    await db.transaction(() async {
+      await (db.devices.update()..where((d) => d.id.equals(deviceId))).write(
+        DevicesCompanion(name: Value(newName)),
+      );
+      await stampFields(
+        db: db,
+        entity: 'devices',
+        rowId: deviceId,
+        fields: const ['name'],
+        hlc: stamp,
+      );
+    });
+  }
+
+  /// Revokes a device (TASKS.md 3.8): tombstones its row (replicates) and
+  /// **rotates the group key** so the revoked device cannot read anything
+  /// sealed from now on. Remaining devices no longer share our key, so the
+  /// user must re-pair them with fresh invitations — and the caller should
+  /// wipe the mailbox folder (old files are sealed with the burned key).
+  Future<void> revoke(String deviceId) async {
+    final stamp = hlc.send();
+    await db.transaction(() async {
+      // The row may not have synced to us yet; tombstone must still land.
+      await db.devices.insertOne(
+        DevicesCompanion.insert(
+          id: deviceId,
+          name: '',
+          platform: '',
+          publicKey: '',
+        ),
+        mode: InsertMode.insertOrIgnore,
+      );
+      await (db.devices.update()..where((d) => d.id.equals(deviceId))).write(
+        const DevicesCompanion(deleted: Value(true)),
+      );
+      await stampFields(
+        db: db,
+        entity: 'devices',
+        rowId: deviceId,
+        fields: const ['deleted'],
+        hlc: stamp,
+      );
+    });
+    final newKey = SecretKeyData.random(length: 32);
+    await keyStore.write(_groupKeyKey, base64Encode(newKey.bytes));
+  }
+
   /// Upserts this device's own row with HLC stamps so it replicates.
   Future<void> registerSelf({
     required DeviceIdentity identity,

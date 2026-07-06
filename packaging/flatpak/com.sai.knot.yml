@@ -1,0 +1,40 @@
+# Flatpak manifest for Knot. Build (on Linux, with flatpak-builder):
+#   flutter build linux --release
+#   flatpak-builder --user --install --force-clean build-flatpak \
+#     packaging/flatpak/com.sai.knot.yml
+# Flathub submission is tracked in docs/packaging.md.
+app-id: com.sai.knot
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: knot
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  # Sync: LAN P2P + mDNS, and the user-chosen mailbox folder.
+  - --share=network
+  - --filesystem=home
+  # Secret Service for flutter_secure_storage.
+  - --talk-name=org.freedesktop.secrets
+modules:
+  - name: knot
+    buildsystem: simple
+    build-commands:
+      - cp -r bundle /app/knot
+      - mkdir -p /app/bin
+      - ln -s /app/knot/knot /app/bin/knot
+      - install -Dm644 com.sai.knot.desktop /app/share/applications/com.sai.knot.desktop
+      - install -Dm644 com.sai.knot.metainfo.xml /app/share/metainfo/com.sai.knot.metainfo.xml
+      - install -Dm644 icon.png /app/share/icons/hicolor/1024x1024/apps/com.sai.knot.png
+    sources:
+      - type: dir
+        path: ../../build/linux/x64/release/bundle
+        dest: bundle
+      - type: file
+        path: com.sai.knot.desktop
+      - type: file
+        path: com.sai.knot.metainfo.xml
+      - type: file
+        path: ../../assets/icon/icon.png
+        dest-filename: icon.png

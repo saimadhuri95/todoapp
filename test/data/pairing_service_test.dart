@@ -105,6 +105,59 @@ void main() {
     expect(await serviceB.hasGroupKey(), isFalse);
   });
 
+  test('rename replicates through sync', () async {
+    final identityA = await DeviceIdentity.loadOrCreate(storeA, a.id);
+    final identityB = await DeviceIdentity.loadOrCreate(storeB, b.id);
+    final invitation = await serviceA.createInvitation(
+      identity: identityA,
+      name: 'Laptop',
+      platform: 'macos',
+    );
+    await serviceB.accept(
+      invitation,
+      identity: identityB,
+      name: 'Phone',
+      platform: 'android',
+    );
+
+    await serviceB.rename(b.id, 'Renamed Phone');
+    await a.engine.pullFrom(b.engine);
+
+    final row = await (a.db.devices.select()..where((d) => d.id.equals(b.id)))
+        .getSingle();
+    expect(row.name, 'Renamed Phone');
+  });
+
+  test('revoke tombstones the device and rotates the group key', () async {
+    final identityA = await DeviceIdentity.loadOrCreate(storeA, a.id);
+    final invitation = await serviceA.createInvitation(
+      identity: identityA,
+      name: 'Laptop',
+      platform: 'macos',
+    );
+    await serviceB.accept(
+      invitation,
+      identity: await DeviceIdentity.loadOrCreate(storeB, b.id),
+      name: 'Phone',
+      platform: 'android',
+    );
+    final keyBefore = await serviceA.loadOrCreateGroupKey();
+    await a.engine.pullFrom(b.engine); // learn B's device row first
+
+    await serviceA.revoke(b.id);
+
+    final keyAfter = await serviceA.loadOrCreateGroupKey();
+    expect(
+      await keyAfter.extractBytes(),
+      isNot(await keyBefore.extractBytes()),
+    );
+    // Tombstoned, not removed — the revocation itself replicates.
+    final row = await (a.db.devices.select()..where((d) => d.id.equals(b.id)))
+        .getSingleOrNull();
+    expect(row, isNotNull);
+    expect(row!.deleted, isTrue);
+  });
+
   test('inviter keeps one stable group key across invitations', () async {
     final identityA = await DeviceIdentity.loadOrCreate(storeA, a.id);
     final one = await serviceA.createInvitation(

@@ -95,6 +95,7 @@ class SyncEngine {
       SyncLogCompanion.insert(
         peerId: changeset.deviceId,
         lastAppliedHlc: Value(writes.last.hlc.encode()),
+        lastSyncedAtMs: Value(_hlc.clock.now().millisecondsSinceEpoch),
       ),
       mode: InsertMode.insertOrReplace,
     );

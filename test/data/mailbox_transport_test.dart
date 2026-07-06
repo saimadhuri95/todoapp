@@ -111,6 +111,26 @@ void main() {
     expect(await c.dump(), await b.dump());
   });
 
+  test('compaction collapses many deltas into one snapshot; late peer '
+      'still converges', () async {
+    final ta = transportFor(a);
+    // Many separate publishes → many delta files.
+    for (var i = 0; i < 6; i++) {
+      await a.todos.create(title: 'todo $i');
+      await ta.publish();
+    }
+    final outbox = Directory('${root.path}/aa');
+    expect(outbox.listSync().length, greaterThan(5));
+
+    expect(await ta.compactIfNeeded(threshold: 5), isTrue);
+    // One snapshot + vector marker.
+    expect(outbox.listSync(), hasLength(2));
+
+    // A peer that saw nothing yet gets everything from the snapshot.
+    expect(await transportFor(b).consume(), greaterThan(0));
+    expect(await b.dump(), await a.dump());
+  });
+
   test('corrupt/torn file is skipped and retried without crashing', () async {
     await a.todos.create(title: 'good');
     await transportFor(a).publish();
