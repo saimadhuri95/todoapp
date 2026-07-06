@@ -31,15 +31,32 @@ class LwwApplier {
 
   final AppDatabase _db;
 
+  /// Rows spring into existence when the first write for them arrives
+  /// (LWW-map semantics): required NOT NULL columns get placeholder values
+  /// that the accompanying field writes overwrite. Allowlisted SQL only.
+  static const _ensureRowSql = {
+    'todos': "INSERT OR IGNORE INTO todos (id, title) VALUES (?, '')",
+    'todo_lists': "INSERT OR IGNORE INTO todo_lists (id, name) VALUES (?, '')",
+  };
+
   /// Returns true if the write was applied, false if it lost LWW (or was a
   /// duplicate). Ties (identical HLC) are duplicates by definition — HLCs
   /// embed the writer's nodeId, so two devices can never mint the same one.
   Future<bool> apply(FieldWrite w) {
     final column = syncColumns[w.entity]?[w.field];
-    if (column == null) {
+    final ensureRow = _ensureRowSql[w.entity];
+    if (column == null || ensureRow == null) {
       throw ArgumentError('Unknown entity/field: ${w.entity}.${w.field}');
     }
     return _db.transaction(() async {
+      await _db.customStatement(ensureRow, [w.rowId]);
+      // Referenced rows spring into existence too, else a reordered
+      // listId write would hit the FK before the list's writes arrive.
+      if (w.entity == 'todos' && w.field == 'listId' && w.value != null) {
+        await _db.customStatement(_ensureRowSql['todo_lists']!, [
+          w.value as String,
+        ]);
+      }
       final existing =
           await (_db.fieldClocks.select()..where(
                 (c) =>

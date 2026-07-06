@@ -34,10 +34,20 @@ devices over pluggable transports, merged with CRDT semantics.
 
 ## Transports
 
+### Delta protocol (implemented, `sync_engine.dart`)
+- **Version vectors, not scalar cursors** (changed 2026-07-05): each device
+  derives "max HLC per origin device" from its own `field_clocks`; a peer
+  answers with exactly the writes newer than that vector. Scalar cursors were
+  rejected — they lose writes that arrive via an intermediary with stamps
+  older than the cursor high-water mark.
+- Rows use LWW-map semantics: a row (and any row it references) springs into
+  existence when its first field write arrives, so foreign keys hold under
+  arbitrary delivery order.
+
 ### 1. LAN peer-to-peer
 - mDNS/Bonjour advertise + browse (service type `_todosync._tcp`).
-- Direct TCP session: hello (device ids, protocol version) → exchange cursors →
-  stream missing changesets both ways → ack → both advance cursors.
+- Direct TCP session: hello (device ids, protocol version) → exchange version
+  vectors → stream missing changesets both ways.
 - Used when devices are on the same network with the app running/foregrounded.
 
 ### 2. Cloud-drive mailbox

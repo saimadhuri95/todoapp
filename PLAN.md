@@ -32,6 +32,11 @@ reminding.
 
 Task-level detail for every phase lives in [TASKS.md](TASKS.md).
 
+> **Execution order (revised 2026-07-05):** Phase 1 → **Phase 3 (sync)** →
+> **Phase 4 (packaging)** → **Phase 2 (alarms, incl. Linux)** → Phase 5
+> (polish). Alarms deprioritized to last-but-one; phase numbers kept stable
+> because task IDs reference them.
+
 - **Phase 0 — Foundations:** Flutter scaffold for all 5 platforms, CI matrix,
   CRDT spike (cr-sqlite vs hand-rolled → ADR), schema v1, HLC implementation.
 - **Phase 1 — Core app (local-only):** todo/list CRUD, tags, recurrence,
