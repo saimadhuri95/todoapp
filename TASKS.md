@@ -118,14 +118,14 @@ numbers; the **order we execute** is:
 - [x] 3.4 Version vectors (max HLC per origin, derived from field_clocks) — replaced scalar cursors, which can lose relayed writes; sync_log kept as last-exchange info for the status UI
 
 ### Identity & crypto
-- [ ] 3.5 Device identity: X25519 keypair generated on first run, stored in platform keychain/keystore
-- [ ] 3.6 Pairing flow: QR code (mobile↔any) + 6-digit short code fallback (desktop↔desktop); mutual key exchange + fingerprint confirmation
-- [ ] 3.7 Payload encryption: XChaCha20-Poly1305, per-pairing shared secret; key rotation on device removal
-- [ ] 3.8 Device management UI: list paired devices, rename, revoke
+- [x] 3.5 Device identity: X25519 keypair, `KeyStore` abstraction (SecureKeyStore → platform keychain; InMemoryKeyStore in tests), load-or-create in `device_identity.dart`
+- [ ] 3.6 Pairing flow UI: QR display/scan of `PairingPayload` (format + fingerprint done in `pairing_crypto.dart`); short-code fallback; **group-key distribution** (sealed with pair session key) — transport already consumes a group key
+- [x] 3.7 Encryption: X25519 ECDH + HKDF session keys; XChaCha20-Poly1305 seal/open (`pairing_crypto.dart`); key rotation on revoke still pending (part of 3.8)
+- [ ] 3.8 Device management UI: list paired devices, rename, revoke (+ group-key rotation on revoke)
 
 ### Transports
 - [ ] 3.9 LAN P2P: mDNS advertise/browse, TCP exchange protocol (hello → cursors → deltas → acks)
-- [ ] 3.10 Cloud-drive mailbox: encrypted changeset files in user-chosen folder; naming scheme `{deviceId}/{hlc}.bin`; read others' outboxes, apply, advance cursor
+- [x] 3.10 Cloud-drive mailbox (`mailbox_transport.dart`): sealed delta files `{deviceId}/{hlc}.bin` + encrypted vector marker; local cursors in sync_log; torn-upload retry; 6 tests incl. ciphertext-only check
 - [ ] 3.11 Mailbox compaction: periodic snapshot + prune of applied changesets
 - [ ] 3.12 Platform folder access: iCloud Drive container (iOS/macOS native channel), SAF folder picker (Android), plain directory picker (desktop — works with any synced folder incl. Dropbox/Syncthing)
 - [ ] 3.13 Sync orchestrator: triggers (app foreground, local mutation debounce, periodic), transport selection, retry/backoff
