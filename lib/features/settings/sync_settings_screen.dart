@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../app/providers.dart';
 import '../../app/sync_service.dart';
 import '../../data/db/database.dart';
+import 'scan_invitation_screen.dart';
 
 /// Sync & devices (TASKS.md 3.6 UI, 3.12, 3.14 first cut).
 class SyncSettingsScreen extends ConsumerWidget {
@@ -58,6 +59,15 @@ class SyncSettingsScreen extends ConsumerWidget {
             subtitle: const Text('Scan or paste it on your other device'),
             onTap: () => _showInvitation(context, ref),
           ),
+          // mobile_scanner covers iOS/Android/macOS (webcam scans the
+          // phone's QR); Windows/Linux keep paste-only.
+          if (Platform.isIOS || Platform.isAndroid || Platform.isMacOS)
+            ListTile(
+              leading: const Icon(Icons.qr_code_scanner),
+              title: const Text('Scan invitation'),
+              subtitle: const Text('Point the camera at the other device'),
+              onTap: () => _scanInvitation(context, ref),
+            ),
           ListTile(
             leading: const Icon(Icons.input),
             title: const Text('Enter invitation'),
@@ -309,8 +319,24 @@ class SyncSettingsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => const _EnterInvitationDialog(),
     );
-    if (invitation == null || invitation.trim().isEmpty) return;
     if (!context.mounted) return;
+    await _acceptInvitation(context, ref, invitation);
+  }
+
+  Future<void> _scanInvitation(BuildContext context, WidgetRef ref) async {
+    final invitation = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const ScanInvitationScreen()),
+    );
+    if (!context.mounted) return;
+    await _acceptInvitation(context, ref, invitation);
+  }
+
+  Future<void> _acceptInvitation(
+    BuildContext context,
+    WidgetRef ref,
+    String? invitation,
+  ) async {
+    if (invitation == null || invitation.trim().isEmpty) return;
 
     try {
       final identity = await ref.read(deviceIdentityProvider.future);
