@@ -124,11 +124,11 @@ numbers; the **order we execute** is:
 - [ ] 3.8 Device management UI: list paired devices, rename, revoke (+ group-key rotation on revoke)
 
 ### Transports
-- [ ] 3.9 LAN P2P: mDNS advertise/browse, TCP exchange protocol (hello → cursors → deltas → acks)
+- [x] 3.9 LAN P2P protocol (`lan_transport.dart`): sealed length-framed TCP, one session syncs both directions; group key = authentication; 5 loopback tests. **mDNS advertise/browse still pending** (needs `bonsoir` platform plugin — wire with pairing UI)
 - [x] 3.10 Cloud-drive mailbox (`mailbox_transport.dart`): sealed delta files `{deviceId}/{hlc}.bin` + encrypted vector marker; local cursors in sync_log; torn-upload retry; 6 tests incl. ciphertext-only check
 - [ ] 3.11 Mailbox compaction: periodic snapshot + prune of applied changesets
 - [ ] 3.12 Platform folder access: iCloud Drive container (iOS/macOS native channel), SAF folder picker (Android), plain directory picker (desktop — works with any synced folder incl. Dropbox/Syncthing)
-- [ ] 3.13 Sync orchestrator: triggers (app foreground, local mutation debounce, periodic), transport selection, retry/backoff
+- [x] 3.13 SyncOrchestrator: syncNow (consume→publish→LAN peers), reentry guard, periodic timer, per-transport error reporting; foreground/mutation triggers hook in at UI wiring
 
 ### Product
 - [ ] 3.14 Sync status UI: per-device last-synced, pending changes indicator
