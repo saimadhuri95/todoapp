@@ -59,16 +59,15 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Current task:** All automatable work through Phase 5 is merged (PRs #1–#6, all green). 139 tests.
-- **State:** Knot is feature-complete for v0.1: local-first todos, encrypted serverless sync (LAN + cloud-folder), alarms with cross-device dismissal, export/import, l10n scaffold, packaging + release pipeline. Draft v0.1.0 release awaits user publish.
-- **Blocked on user:** run `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer` + `sudo xcodebuild -license accept` → then local macOS run + iOS build + manual alarm testing (2.11); Apple Developer/Play Console/MSIX cert for store distribution; publish draft release.
-- **Remaining feature tail (automatable, lower priority):** 5.1/5.2 Linux tray + background-at-login, camera QR scan, 1.9 natural-date quick-add, native iCloud/SAF folder pickers, ongoing string extraction into ARB.
-- **Next action:** after Xcode activation → flutter doctor green, `flutter run -d macos` first live run, `flutter build ios --no-codesign`. Then pick from the feature tail or device-dependent polish.
+- **Current task:** v0.1 complete and locally verified. PRs #1–#6 merged green; Knot.app built AND launched live on macOS; iOS builds --no-codesign; 139 tests.
+- **Blocked on user:** publish the draft v0.1.0 GitHub release; Apple Developer/Play Console/MSIX cert for store distribution; real-device testing (2.11 manual alarm matrix, 5.5 a11y, 5.8 battery, 5.10 beta).
+- **Feature tail (optional, automatable):** 5.1/5.2 Linux tray + background-at-login, camera QR scan, 1.9 natural-date quick-add, native iCloud/SAF folder pickers, ongoing ARB string extraction.
+- **Next action:** fresh session recommended; pick from feature tail or store distribution once accounts exist.
 
 ## Phase 0 — Foundations
 
 - [x] 0.1 Scaffold Flutter project with all five platform targets enabled (Flutter 3.44.4, org `com.sai`)
-- [x] 0.2 Verify builds: **all 5 platforms build green on CI** (run 28763958480). Local iOS/macOS/Android builds still need user to install Xcode + Android Studio (required for Phase 2 device testing, not for CI)
+- [x] 0.2 Verify builds: all 5 platforms green on CI **and** local toolchain complete (Xcode 26.6 + Android SDK 36): Knot.app built & launched on macOS, iOS Runner.app built --no-codesign
 - [x] 0.3 Repo hygiene: strict `analysis_options.yaml`, .gitignore, MIT LICENSE (user decision 2026-07-06)
 - [x] 0.4 State management: **Riverpod** (dependency added when first used); feature-first folders
 - [x] 0.5 CI: GitHub Actions (.github/workflows/ci.yml) — format/analyze/test gate + 5-target debug-build matrix; repo public (free Actions)
