@@ -59,10 +59,10 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Current task:** v0.1 complete and locally verified. PRs #1–#6 merged green; Knot.app built AND launched live on macOS; iOS builds --no-codesign; 139 tests.
+- **Current task:** 1.9 natural-date quick-add done (PR #7, `quick-add-natural-dates` branch): parser + 36 tests + dialog preview; 175 tests total.
 - **Blocked on user:** publish the draft v0.1.0 GitHub release; Apple Developer/Play Console/MSIX cert for store distribution; real-device testing (2.11 manual alarm matrix, 5.5 a11y, 5.8 battery, 5.10 beta).
-- **Feature tail (optional, automatable):** 5.1/5.2 Linux tray + background-at-login, camera QR scan, 1.9 natural-date quick-add, native iCloud/SAF folder pickers, ongoing ARB string extraction.
-- **Next action:** fresh session recommended; pick from feature tail or store distribution once accounts exist.
+- **Feature tail (optional, automatable):** 5.1/5.2 Linux tray + background-at-login, camera QR scan, native iCloud/SAF folder pickers, ongoing ARB string extraction, ASO metadata drafting (4.9–4.13).
+- **Next action:** confirm PR #7 merged green, then pick next feature-tail item (or store distribution once accounts exist).
 
 ## Phase 0 — Foundations
 
@@ -88,7 +88,7 @@ numbers; the **order we execute** is:
 ### UI
 - [x] 1.7 List screen: Overdue/Today/Upcoming/Someday sections (pure `todo_sections.dart`), Completed expansion tile, per-list via drawer filter
 - [x] 1.8 Todo editor: title, notes, due date/time pickers, recurrence dropdown, list, tags, priority. **Alarm times deferred to Phase 2** (needs scheduler + alarm repo)
-- [ ] 1.9 Quick-add natural date parsing — deferred (nice-to-have; revisit in Phase 5 polish)
+- [x] 1.9 Quick-add natural date parsing (`lib/core/natural_date.dart`, pure Dart, caller passes injected now): today/tonight/tomorrow, weekdays±next, "in N units", month-day, times; live "Due …" preview in add dialog; 36 tests
 - [x] 1.10 Search bar filtering title/notes/tags (client-side)
 - [x] 1.11 Responsive: master-detail split ≥840px, editor route below
 - [x] 1.12 Keyboard shortcut Ctrl/Cmd+N for new todo (more shortcuts with Phase 5 accessibility pass)
@@ -152,6 +152,21 @@ the ordinary merge engine; todo_alarms/alarm_dismissals tables unused.
 - [x] 4.6 Linux: Flatpak manifest + desktop + metainfo in packaging/flatpak/; Flathub submission is a user step
 - [x] 4.7 Release pipeline (.github/workflows/release.yml): tag v* → draft GitHub Release with linux/windows/macos/android artifacts
 - [x] 4.8 Auto-update strategy documented (docs/packaging.md): stores for mobile; GitHub Releases v1 for desktop; winget/Flathub/Sparkle post-v1
+
+### ASO — App Store search ranking (added 2026-07-06)
+
+Goal: rank for "todo app"-style searches. Name + subtitle carry the highest
+index weight; the hidden keyword field fills the rest; velocity + conversion
+do the ranking after that. Drafting (4.9–4.12) is automatable now; entering
+metadata in App Store Connect is blocked on the Apple Developer account (4.3).
+
+- [ ] 4.9 App Store name with keyword modifier (30-char cap; highest search weight — bare "Knot" won't index for "todo"). Candidates: "Knot – Todo List & Sync" (23) or "Knot: Shared Todo List" (22). Decide + record in docs/packaging.md
+- [ ] 4.10 Subtitle (30-char cap, second-highest weight; must not repeat any word from the name). Candidates: "Collaborative Task Manager" (26) or "Shared Tasks, Private Sync" (only if name drops "Sync")
+- [ ] 4.11 Hidden 100-char keyword field: comma-separated, no spaces, no words already in name/subtitle (Apple auto-combines singles into phrases). Draft (93 chars): `shared,checklist,organizer,p2p,private,group,team,cooperative,planning,reminders,productivity` — re-prune against final 4.9/4.10 word choices
+- [ ] 4.12 Screenshot set for conversion: first 3 shots show the sync/pairing UI with a value-prop caption overlay ("Instant Sync, Zero Cloud Accounts"); produce required iPhone/iPad/Mac sizes (can stage from simulators before the dev account exists)
+- [ ] 4.13 Google Play counterpart: title (30), short description (80, indexed), full description written for keyword coverage — Play indexes the description, unlike Apple, so the no-repeat rule doesn't apply there
+- [ ] 4.14 Launch-velocity plan: time the store release with a Product Hunt / Hacker News / r/selfhosted post so the download spike lands while the listing is fresh (velocity drives rank for competitive terms)
+- [ ] 4.15 Post-launch ASO loop: watch search rank for "todo app"/"shared todo list" + impression→download conversion in App Store Connect analytics; iterate keyword field each release (it's updatable without an app review... but only alongside a new build)
 
 ## Phase 5 — Polish & hardening (executed LAST)
 
