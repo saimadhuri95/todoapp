@@ -62,7 +62,7 @@ numbers; the **order we execute** is:
 - **Current task:** Apple-focus session (user direction 2026-07-06: Apple ecosystem first). Done: PR #7 quick-add merged; PR #8 = macOS bug fixes 4.16–4.20 (entitlements, FileKeyStore fallback for QR, bookmarks, Bonjour keys, error SnackBars) + 3.12 iCloud channel; 188 tests; macOS launched OK, iOS builds.
 - **Blocked on user:** 4.21 re-verify on a fresh installed release build (pick folder → relaunch → still syncs; QR renders; LAN discovery prompts). Apple Developer account for: iCloud entitlement flip + Keychain Sharing capability (steps in docs/packaging.md), TestFlight 4.3, notarized dmg 4.4. Also Play Console/MSIX cert; real-device testing (2.11, 5.5, 5.8, 5.10).
 - **Apple tail (next per user direction):** camera QR scan for pairing (iOS), ASO metadata 4.9–4.12, screenshot staging from simulators. Then: Linux tray 5.1/5.2, Android SAF verification, ARB extraction.
-- **Next action:** REQUIREMENTS.md triaged into Phase 6 (6.1–6.11). Now: 6.1 camera QR scan (Apple pairing completeness), then 6.2 remote-change notification; ASO 4.9–4.12 needs the user's name pick. User: re-verify per 4.21.
+- **Next action:** 6.1 camera QR done (PR #9). Next per Apple-first: 6.2 remote-change notification (driver scenario, reuses AlarmScheduler), then 6.4 tappable links / 6.6 theme override (small), 6.8 calendar view (big — own session). ASO 4.9–4.12 needs the user's name pick. User: re-verify per 4.21 (now incl. camera scan).
 
 ## Phase 0 — Foundations
 
@@ -202,10 +202,11 @@ Only the 🆕/🔶 items become tasks; ✅ ones map to existing work (R1.3→0.6
 R2.2→1.9, R5.1/R5.2→project premise). Ordering favors the driver/dispatcher
 scenario and Apple-first direction.
 
-- [ ] 6.1 (R1.4 + pairing UX) Camera QR scan for pairing: scan the invitation
-  QR instead of pasting text — mobile_scanner screen on iOS/Android + macOS
-  (webcam scans the phone's QR); NSCameraUsageDescription + macOS camera
-  entitlement; feeds the existing `accept` flow
+- [x] 6.1 (R1.4 + pairing UX) Camera QR scan for pairing: mobile_scanner 7.2
+  screen (`scan_invitation_screen.dart`) on iOS/Android/macOS feeding the
+  shared `_acceptInvitation` flow; NSCameraUsageDescription both platforms +
+  macOS camera entitlement; camera-unavailable fallback points to paste.
+  Real-camera verify on devices = part of 4.21/2.11 manual pass
 - [ ] 6.2 (R1.2) Remote-change notification: when a merge changes visible
   todos, post one local "List updated" notification via the existing
   AlarmScheduler abstraction; desktop obeys the notifications opt-in; batch

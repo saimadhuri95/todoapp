@@ -137,6 +137,9 @@ void main() {
     await tester.pumpWidget(screen());
     await tester.pumpAndSettle();
 
+    // The scan-invitation tile (6.1) can push the button below the fold.
+    await tester.drag(find.byType(ListView), const Offset(0, -200));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Sync now'));
     await tester.pumpAndSettle();
 
