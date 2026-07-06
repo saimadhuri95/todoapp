@@ -48,15 +48,15 @@ that comfortably fits inside a window (roughly 15–30 substantial prompts).
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Current task:** Phase 0 complete except 0.2 local iOS/macOS/Android builds (user blockers below)
-- **State:** Git repo live at github.com/saimadhuri95/todoapp (public); identity saimadhuri95 <saimadhuri95@gmail.com> (repo-local config). CI pushed — first run: analyze/test gate + 5-target build matrix; **verify first run went green before building on it**. 29 tests green locally. drift schema v1, HLC/Clock, LwwApplier, ADR 0001 all landed.
+- **Current task:** **Phase 0 complete.** CI green on all 5 platform builds.
+- **State:** Repo public at github.com/saimadhuri95/todoapp, 3 commits on main, CI green (gate + linux/android/windows/macos/ios debug builds). 29 tests. drift schema v1, HLC/Clock, LwwApplier, ADR 0001 landed.
 - **Blockers for user:** install Xcode + Android Studio (needed for local platform builds, Phase 2); pick a LICENSE
 - **Next action (S5):** Phase 1 data layer — 1.1–1.3 (todo/list/tag repositories over schema v1, HLC stamping on every mutation via task 1.5 pattern), then 1.6 tests. Pure Dart, no blockers.
 
 ## Phase 0 — Foundations
 
 - [x] 0.1 Scaffold Flutter project with all five platform targets enabled (Flutter 3.44.4, org `com.sai`)
-- [ ] 0.2 Verify debug build runs on each platform — `flutter analyze` + `flutter test` pass; native builds **blocked**: user must install Xcode (App Store) and Android Studio; Windows/Linux via CI
+- [x] 0.2 Verify builds: **all 5 platforms build green on CI** (run 28763958480). Local iOS/macOS/Android builds still need user to install Xcode + Android Studio (required for Phase 2 device testing, not for CI)
 - [x] 0.3 Repo hygiene: strict `analysis_options.yaml` done; .gitignore from scaffold; LICENSE pending (ask user which license)
 - [x] 0.4 State management: **Riverpod** (dependency added when first used); feature-first folders
 - [x] 0.5 CI: GitHub Actions (.github/workflows/ci.yml) — format/analyze/test gate + 5-target debug-build matrix; repo public (free Actions)
