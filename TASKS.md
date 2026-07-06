@@ -62,7 +62,7 @@ numbers; the **order we execute** is:
 - **Current task:** Apple-focus session (user direction 2026-07-06: Apple ecosystem first). Done: PR #7 quick-add merged; PR #8 = macOS bug fixes 4.16–4.20 (entitlements, FileKeyStore fallback for QR, bookmarks, Bonjour keys, error SnackBars) + 3.12 iCloud channel; 188 tests; macOS launched OK, iOS builds.
 - **Blocked on user:** 4.21 re-verify on a fresh installed release build (pick folder → relaunch → still syncs; QR renders; LAN discovery prompts). Apple Developer account for: iCloud entitlement flip + Keychain Sharing capability (steps in docs/packaging.md), TestFlight 4.3, notarized dmg 4.4. Also Play Console/MSIX cert; real-device testing (2.11, 5.5, 5.8, 5.10).
 - **Apple tail (next per user direction):** camera QR scan for pairing (iOS), ASO metadata 4.9–4.12, screenshot staging from simulators. Then: Linux tray 5.1/5.2, Android SAF verification, ARB extraction.
-- **Next action:** merge PR #8 when CI green (was pending at session end if limits hit), then camera QR scan or ASO drafting.
+- **Next action:** PR #8 merged (all 6 checks green). Fresh session: camera QR scan for pairing (iOS first, per Apple-first direction) or ASO metadata 4.9–4.12. User: re-verify per 4.21.
 
 ## Phase 0 — Foundations
 
