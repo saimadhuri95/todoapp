@@ -26,19 +26,24 @@ folder acting as an encrypted mailbox.
 
 - **Flutter/Dart** — single codebase for Windows, macOS, Linux, iOS, Android
 - **SQLite via drift** — local store, typed queries, migrations
-- **Riverpod** — state management (pending confirmation in Phase 0)
-- **CRDT layer** — cr-sqlite or hand-rolled LWW-per-field; decided by Phase 0 spike
-  (see docs/decisions/ once written)
+- **Riverpod** — state management
+- **CRDT layer** — hand-rolled LWW-per-field with HLC stamps; decided by the
+  Phase 0 spike ([ADR 0001](decisions/0001-crdt-choice.md))
 
 ## Data model
 
-- `Todo` — uuid, title, notes, dueAt, alarms[], recurrenceRule, completedAt,
-  listId, tags[], priority, per-field HLC timestamps, deleted (tombstone)
+- `Todo` — uuid, title, notes, dueAt, alarm fields (offset minutes,
+  lastDismissedMs, snoozeUntilMs — plain LWW fields since schema v3),
+  recurrenceRule, completedAt, listId, tags[], priority, per-field HLC
+  timestamps, deleted (tombstone)
 - `TodoList` — uuid, name, color, sortOrder
 - `Device` — deviceId, publicKey, name, platform, lastSeenAt
-- `SyncLog` — per-peer cursor / vector clock
-- `AlarmDismissal` — todoId, alarmAt, dismissedBy, hlc (syncs so other devices
-  cancel the same alarm)
+- `SyncLog` — per-peer last-exchange info (status UI); sync cursors are
+  version vectors derived from the `field_clocks` table
+
+Alarm dismissal/snooze state lives on the todo itself (design change
+2026-07-06), so dismissals replicate through the ordinary merge engine — the
+schema-v1 `todo_alarms` / `alarm_dismissals` tables are unused.
 
 All ids are UUIDv7. Deletes are tombstones (never hard-delete synced rows);
 tombstones are pruned only after all paired devices have acknowledged them.

@@ -12,20 +12,21 @@ Detailed task checklist: [TASKS.md](TASKS.md). Design details: [docs/](docs/).
 | Framework | Flutter | Only mainstream option with first-class support for all 5 target platforms from one codebase |
 | Local storage | SQLite via drift | Reliable, queryable, works everywhere |
 | Sync model | Local-first + CRDTs | Every device holds full data; edits merge without conflicts; no server needed |
-| CRDT approach | LWW-per-field with hybrid logical clocks + tombstones; cr-sqlite vs hand-rolled decided by Phase 0 spike | Todo data is simple; semantics fixed, implementation open |
+| CRDT approach | LWW-per-field with hybrid logical clocks + tombstones; **hand-rolled** (Phase 0 spike → [ADR 0001](docs/decisions/0001-crdt-choice.md)) | Todo data is simple; a small audited merge core beat taking on cr-sqlite as a dependency |
 | Sync transports | 1) LAN P2P (mDNS + TCP), 2) user's cloud-drive folder as encrypted mailbox | LAN when devices are together; mailbox for cross-network async; both serverless from our perspective ([docs/sync.md](docs/sync.md)) |
 | Security | QR-code device pairing; E2E encryption (X25519 + XChaCha20-Poly1305) | Mailbox never contains plaintext |
-| Alarms | OS-scheduled notifications; mobile default-on, Windows/macOS **opt-in**, Linux deferred to Phase 5 | Details in [docs/alarms.md](docs/alarms.md) |
+| Alarms | OS-scheduled notifications; mobile default-on, desktop **opt-in**; Linux tray-process alarms moved into the alarms phase | Details in [docs/alarms.md](docs/alarms.md) |
 
-## Data model (first cut)
+## Data model
 
-`Todo`, `TodoList`, `Device`, `SyncLog`, `AlarmDismissal` — full field lists and
-invariants in [docs/architecture.md](docs/architecture.md). All ids UUIDv7,
-per-field HLC timestamps, deletes are tombstones.
+`Todo`, `TodoList`, `Device`, `SyncLog` — full field lists and invariants in
+[docs/architecture.md](docs/architecture.md). All ids UUIDv7, per-field HLC
+timestamps, deletes are tombstones.
 
 Alarm policy: alarms fire on every device where alarms are **enabled** — on by
-default on Android/iOS, opt-in via settings toggle on Windows/macOS, Linux in
-Phase 5. Dismissing on one device syncs a dismissal record so others stop
+default on Android/iOS, opt-in via settings toggle on desktop. Dismissal and
+snooze state are LWW fields on the todo itself (design change 2026-07-06), so
+dismissing on one device replicates through the normal merge and others stop
 reminding.
 
 ## Phases
@@ -70,9 +71,13 @@ Full strategy in [docs/testing.md](docs/testing.md). Highlights:
 
 ## Open questions
 
-1. cr-sqlite maturity on Flutter across all 5 platforms — resolved by Phase 0 spike
-2. iCloud Drive access from Flutter on iOS/macOS (native channel work likely)
+1. ~~cr-sqlite maturity~~ → **hand-rolled LWW** won the Phase 0 spike
+   ([ADR 0001](docs/decisions/0001-crdt-choice.md))
+2. iCloud Drive access from Flutter on iOS/macOS — still open: desktop folder
+   picker shipped; iCloud container needs a native channel, SAF verification
+   pending on Android (task 3.12)
 3. LAN sync while mobile app backgrounded — iOS will mostly say no; mailbox is
    the reliable cross-network path there
-4. Recurrence scope for v1 — daily/weekly/monthly/yearly subset of RRULE
+4. ~~Recurrence scope for v1~~ → RRULE subset shipped: FREQ/INTERVAL/BYDAY with
+   RFC 5545 skip semantics (task 1.4)
 5. ~~App name~~ → **Knot** (decided 2026-07-06; bundle id `com.sai.knot`, MIT license)

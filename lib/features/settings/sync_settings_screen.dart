@@ -26,16 +26,31 @@ class SyncSettingsScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Sync & devices')),
       body: ListView(
         children: [
-          ListTile(
-            leading: const Icon(Icons.folder_outlined),
-            title: const Text('Sync folder'),
-            subtitle: Text(
-              mailboxPath ??
-                  'Not set — pick a folder your cloud drive syncs '
-                      '(iCloud Drive, Google Drive, Dropbox…)',
+          // file_selector has no directory picker on iOS; iCloud Drive is
+          // the folder story there. macOS gets both (picker for third-party
+          // drives, iCloud for the managed container).
+          if (!Platform.isIOS)
+            ListTile(
+              leading: const Icon(Icons.folder_outlined),
+              title: const Text('Sync folder'),
+              subtitle: Text(
+                mailboxPath ??
+                    'Not set — pick a folder your cloud drive syncs '
+                        '(iCloud Drive, Google Drive, Dropbox…)',
+              ),
+              onTap: () => _pickMailboxFolder(context, ref),
             ),
-            onTap: () => _pickMailboxFolder(ref),
-          ),
+          if (ref.watch(cloudFolderProvider).isSupported)
+            ListTile(
+              leading: const Icon(Icons.cloud_outlined),
+              title: const Text('Use iCloud Drive'),
+              subtitle: Text(
+                Platform.isIOS && mailboxPath != null
+                    ? mailboxPath
+                    : 'Sync through this app’s iCloud Drive folder',
+              ),
+              onTap: () => _useIcloudFolder(context, ref),
+            ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.qr_code),
@@ -169,24 +184,91 @@ class SyncSettingsScreen extends ConsumerWidget {
     _ => Icons.devices,
   };
 
-  Future<void> _pickMailboxFolder(WidgetRef ref) async {
-    final path = await getDirectoryPath();
-    if (path == null) return;
+  /// 4.20: entitlement/keychain failures used to vanish silently — every
+  /// platform call in this screen reports through an error SnackBar so the
+  /// next sandbox bug is diagnosable from the UI.
+  Future<void> _guarded(
+    BuildContext context,
+    String what,
+    Future<void> Function() body,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await body();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$what failed: $e')));
+    }
+  }
+
+  Future<void> _pickMailboxFolder(BuildContext context, WidgetRef ref) =>
+      _guarded(context, 'Folder picker', () async {
+        final path = await getDirectoryPath();
+        if (path == null) return;
+        // Security-scoped bookmark keeps the grant across relaunches on
+        // sandboxed macOS (4.18); null elsewhere — the plain path suffices.
+        final bookmark = await ref
+            .read(cloudFolderProvider)
+            .createBookmark(path);
+        await _setMailboxPath(ref, path, bookmark: bookmark);
+      });
+
+  Future<void> _useIcloudFolder(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final path = await ref.read(cloudFolderProvider).documentsPath();
+    if (path == null) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'iCloud Drive is not available — check that you are signed in '
+            'to iCloud and that iCloud Drive is enabled for this app.',
+          ),
+        ),
+      );
+      return;
+    }
+    await _setMailboxPath(ref, path);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Syncing through iCloud Drive.')),
+    );
+  }
+
+  Future<void> _setMailboxPath(
+    WidgetRef ref,
+    String path, {
+    String? bookmark,
+  }) async {
     ref.read(mailboxPathProvider.notifier).state = path;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('mailboxPath', path);
+    // iCloud container paths need no bookmark; a stale one must not
+    // shadow the new choice at next startup.
+    if (bookmark == null) {
+      await prefs.remove('mailboxBookmark');
+    } else {
+      await prefs.setString('mailboxBookmark', bookmark);
+    }
   }
 
-  Future<void> _showInvitation(BuildContext context, WidgetRef ref) async {
-    final identity = await ref.read(deviceIdentityProvider.future);
-    final invitation = await ref
-        .read(pairingServiceProvider)
-        .createInvitation(
-          identity: identity,
-          name: _deviceName,
-          platform: _platformName,
-        );
-    if (!context.mounted) return;
+  Future<void> _showInvitation(BuildContext context, WidgetRef ref) =>
+      // The keychain read inside deviceIdentityProvider is what breaks when
+      // the keychain capability is missing — exactly "QR not working" (4.17).
+      _guarded(context, 'Pairing invitation', () async {
+        final identity = await ref.read(deviceIdentityProvider.future);
+        final invitation = await ref
+            .read(pairingServiceProvider)
+            .createInvitation(
+              identity: identity,
+              name: _deviceName,
+              platform: _platformName,
+            );
+        if (!context.mounted) return;
+        await _showInvitationDialog(context, invitation);
+      });
+
+  Future<void> _showInvitationDialog(
+    BuildContext context,
+    String invitation,
+  ) async {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -263,6 +345,12 @@ class SyncSettingsScreen extends ConsumerWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      // Keychain/entitlement failures must be visible, not silent (4.20).
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Pairing failed: $e')));
     }
   }
 

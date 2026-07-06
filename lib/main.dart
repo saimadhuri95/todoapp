@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import 'app/alarm_service.dart';
+import 'app/cloud_folder_channel.dart';
 import 'app/notification_scheduler.dart';
 import 'app/providers.dart';
 import 'app/sync_service.dart';
@@ -21,7 +22,19 @@ Future<void> main() async {
     deviceId = const Uuid().v7();
     await prefs.setString('deviceId', deviceId);
   }
-  final mailboxPath = prefs.getString('mailboxPath');
+  var mailboxPath = prefs.getString('mailboxPath');
+  // Sandboxed macOS forgets picker grants between launches; the bookmark
+  // restores access (and tracks the folder if it moved) — TASKS.md 4.18.
+  final mailboxBookmark = prefs.getString('mailboxBookmark');
+  if (mailboxBookmark != null) {
+    final resolved = await platformCloudFolder().resolveBookmark(
+      mailboxBookmark,
+    );
+    if (resolved != null && resolved != mailboxPath) {
+      mailboxPath = resolved;
+      await prefs.setString('mailboxPath', resolved);
+    }
+  }
   final alarmsEnabled =
       prefs.getBool('alarmsEnabled') ?? (Platform.isAndroid || Platform.isIOS);
 

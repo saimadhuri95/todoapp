@@ -59,10 +59,10 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Current task:** 1.9 natural-date quick-add merged (PR #7, all 6 CI checks green): parser + 36 tests + dialog preview; 175 tests total.
-- **Blocked on user:** publish the draft v0.1.0 GitHub release; Apple Developer/Play Console/MSIX cert for store distribution; real-device testing (2.11 manual alarm matrix, 5.5 a11y, 5.8 battery, 5.10 beta).
-- **Feature tail (optional, automatable):** 5.1/5.2 Linux tray + background-at-login, camera QR scan, native iCloud/SAF folder pickers, ongoing ARB string extraction, ASO metadata drafting (4.9–4.13).
-- **Next action:** fresh session; pick next feature-tail item (or store distribution once accounts exist).
+- **Current task:** Apple-focus session (user direction 2026-07-06: Apple ecosystem first). Done: PR #7 quick-add merged; PR #8 = macOS bug fixes 4.16–4.20 (entitlements, FileKeyStore fallback for QR, bookmarks, Bonjour keys, error SnackBars) + 3.12 iCloud channel; 188 tests; macOS launched OK, iOS builds.
+- **Blocked on user:** 4.21 re-verify on a fresh installed release build (pick folder → relaunch → still syncs; QR renders; LAN discovery prompts). Apple Developer account for: iCloud entitlement flip + Keychain Sharing capability (steps in docs/packaging.md), TestFlight 4.3, notarized dmg 4.4. Also Play Console/MSIX cert; real-device testing (2.11, 5.5, 5.8, 5.10).
+- **Apple tail (next per user direction):** camera QR scan for pairing (iOS), ASO metadata 4.9–4.12, screenshot staging from simulators. Then: Linux tray 5.1/5.2, Android SAF verification, ARB extraction.
+- **Next action:** merge PR #8 when CI green (was pending at session end if limits hit), then camera QR scan or ASO drafting.
 
 ## Phase 0 — Foundations
 
@@ -134,7 +134,7 @@ the ordinary merge engine; todo_alarms/alarm_dismissals tables unused.
 - [x] 3.9 LAN P2P: sealed length-framed TCP protocol (5 loopback tests) + mDNS advertise/browse via bonsoir (`lan_discovery.dart` — CI-untestable, in manual matrix)
 - [x] 3.10 Cloud-drive mailbox (`mailbox_transport.dart`): sealed delta files `{deviceId}/{hlc}.bin` + encrypted vector marker; local cursors in sync_log; torn-upload retry; 6 tests incl. ciphertext-only check
 - [x] 3.11 Mailbox compaction: outbox >20 deltas → single snapshot (idempotent for late peers); runs inside orchestrator pass
-- [ ] 3.12 Platform folder access: desktop directory picker done (`file_selector` in sync settings); **pending:** iCloud Drive container (iOS/macOS native channel), SAF verification on Android
+- [ ] 3.12 Platform folder access: desktop picker done; iCloud Drive container done (`cloud_folder.dart` interface + `com.sai.knot/cloud_folder` channel on iOS/macOS, "Use iCloud Drive" in sync settings — returns nil until the iCloud entitlement lands with real signing, docs/packaging.md); **pending:** SAF verification on Android
 - [x] 3.13 SyncOrchestrator: syncNow (consume→publish→LAN peers), reentry guard, periodic timer, per-transport error reporting; foreground/mutation triggers hook in at UI wiring
 
 ### Product
@@ -167,6 +167,21 @@ metadata in App Store Connect is blocked on the Apple Developer account (4.3).
 - [ ] 4.13 Google Play counterpart: title (30), short description (80, indexed), full description written for keyword coverage — Play indexes the description, unlike Apple, so the no-repeat rule doesn't apply there
 - [ ] 4.14 Launch-velocity plan: time the store release with a Product Hunt / Hacker News / r/selfhosted post so the download spike lands while the listing is fresh (velocity drives rank for competitive terms)
 - [ ] 4.15 Post-launch ASO loop: watch search rank for "todo app"/"shared todo list" + impression→download conversion in App Store Connect analytics; iterate keyword field each release (it's updatable without an app review... but only alongside a new build)
+
+### macOS sandbox fixes (manual-test findings 2026-07-06)
+
+User-reported on the installed macOS app: sync-folder picker missing/broken +
+pairing QR dialog never appears. Root cause: `Release.entitlements` contains
+**only** `app-sandbox` — no user-selected-files, no network, no keychain —
+and errors are swallowed silently by the UI. 4.16/4.17/4.19/4.20 are direct
+fixes; 4.18 is the follow-on persistence bug the picker fix will expose.
+
+- [x] 4.16 Entitlements: user-selected.read-write, network.client+server, bookmarks.app-scope in both Release and DebugProfile. NOTE: keychain-access-groups deliberately excluded — restricted entitlement, breaks ad-hoc signing (Xcode refuses to build); see 4.17
+- [x] 4.17 Keychain failure fixed the buildable way: `FallbackKeyStore` (keychain → `FileKeyStore` JSON in app container) in device_identity.dart — the capability itself needs real signing, so QR now works on ad-hoc builds via the file store and auto-upgrades to keychain once signing lands (add Keychain Sharing capability then, docs/packaging.md)
+- [x] 4.18 Security-scoped bookmarks: createBookmark/resolveBookmark on the 3.12 interface (macOS Swift side in MainFlutterWindow), bookmark persisted as `mailboxBookmark` pref on pick, resolved + access-started in main() before the container is built; iCloud path clears it
+- [x] 4.19 Local-network privacy keys in macOS + iOS Info.plist: `NSLocalNetworkUsageDescription` + `NSBonjourServices` (`_todosync._tcp`)
+- [x] 4.20 Surface platform errors in sync settings UI: `_guarded` wrapper (error SnackBars) around invitation/picker/iCloud actions + generic catch in `_enterInvitation`
+- [ ] 4.21 Re-verify on a fresh installed (release) build: pick folder → relaunch → folder still syncs; QR dialog renders; LAN peer discovery works
 
 ## Phase 5 — Polish & hardening (executed LAST)
 

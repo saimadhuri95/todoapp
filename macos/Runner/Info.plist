@@ -28,5 +28,11 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Knot finds your other devices on this network to sync your todos directly, without any server.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_todosync._tcp</string>
+	</array>
 </dict>
 </plist>

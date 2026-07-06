@@ -39,6 +39,34 @@ Requires Xcode (installed locally) + Apple Developer Program ($99/yr).
 2. Add the notification entitlements when the alarms phase lands.
 3. `flutter build ipa` → upload with Xcode Organizer or `xcrun altool`.
 
+### iOS + macOS: enable the iCloud Drive sync container (3.12)
+
+The app already ships the `com.sai.knot/cloud_folder` method channel and a
+"Use iCloud Drive" option in Sync settings. Without the entitlement the
+channel returns nil and the UI explains iCloud is unavailable — nothing
+breaks. iCloud entitlements are *restricted*: they need a provisioning
+profile from the paid Apple Developer account, and adding them to an
+ad-hoc-signed local build stops the app launching. So flip them on only
+once signing is real:
+
+1. developer.apple.com → Certificates, IDs & Profiles → register iCloud
+   container `iCloud.com.sai.knot`; attach it to the `com.sai.knot` app id.
+2. Xcode → Runner target → Signing & Capabilities → **+ iCloud** →
+   check **iCloud Documents** → select `iCloud.com.sai.knot`. Do this in
+   BOTH `ios/Runner.xcworkspace` and `macos/Runner.xcworkspace` (macOS: add
+   to both DebugProfile.entitlements and Release.entitlements).
+3. Optional (makes the folder visible in the Files app / Finder iCloud
+   section): add `NSUbiquitousContainers` to Info.plist with
+   `NSUbiquitousContainerIsDocumentScopePublic = YES`; bump the build number
+   or the change is ignored.
+4. Verify on a signed build: Sync settings → Use iCloud Drive should set
+   the mailbox path to `…/Mobile Documents/iCloud~com~sai~knot/Documents`.
+
+While in there, also add **Keychain Sharing** (group `com.sai.knot`) to the
+macOS target: it's restricted like iCloud, so today's ad-hoc builds keep the
+device identity in a file store fallback instead (`FallbackKeyStore`,
+TASKS.md 4.17); with the capability the keychain takes over automatically.
+
 ### macOS (4.4)
 Same Apple account. Hardened runtime is already the Flutter default.
 1. Developer ID Application certificate in Xcode.
