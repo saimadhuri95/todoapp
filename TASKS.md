@@ -1,0 +1,160 @@
+# TASKS
+
+Detailed task breakdown. High-level plan and rationale live in [PLAN.md](PLAN.md);
+design details in [docs/](docs/). Check items off as they land.
+
+## Token budget & scheduling (Claude Pro, $20/mo)
+
+Constraints: usage limits reset per ~5-hour session window, plus a weekly cap.
+The planning unit below is one **work session** = one focused Claude Code sitting
+that comfortably fits inside a window (roughly 15–30 substantial prompts).
+
+### Budget rules
+
+1. **One task group per session.** Finish and check off before the window ends;
+   never open a big task with <30% of a window left.
+2. **Session start ritual:** read CLAUDE.md + the `RESUME` section below + the
+   current phase's tasks only. Do not re-read docs/ or old phases unless the
+   task touches them.
+3. **Session end ritual (or when limit warning appears):** check off finished
+   tasks, update `RESUME` with exact state + next action, stop cleanly. This is
+   what makes a token-limit interruption cost ~zero to restart from.
+4. Subagents only for broad codebase searches, and only on **Haiku/Sonnet**.
+   Main-line coding happens directly in the session — subagents re-derive
+   context and usually cost more than they save.
+5. Long command output (flutter build/test) gets tailed, not dumped.
+
+### Phase cost estimates
+
+| Phase | Est. sessions | Token-heavy spots |
+|---|---|---|
+| 0 — Foundations | 2–3 | CRDT spike (0.6) is half of it |
+| 1 — Core app | 4–6 | Editor UI, recurrence tests |
+| 2 — Alarms | 4–6 | Per-platform native glue, permission flows |
+| 3 — Sync | 6–8 | Biggest phase: merge engine + convergence tests, two transports |
+| 4 — Packaging | 2–3 | Mostly config, but CI debugging can eat a session |
+| 5 — Polish + Linux alarms | 4–6 | Linux background process, accessibility pass |
+| **Total** | **~22–32** | ≈ 6–10 weeks at Pro's weekly limits |
+
+### Near-term session schedule
+
+- **S1:** 0.1–0.4 — scaffold, verify local builds, repo hygiene, state-mgmt pick
+- **S2:** 0.7 + 0.8 — schema + HLC (pure Dart, cheap, high value)
+- **S3:** 0.6 — CRDT spike (isolated on purpose: it's exploratory and can burn a window)
+- **S4:** 0.5 — CI matrix (isolated: CI debugging is slow-feedback)
+- **S5+:** Phase 1 in slices: data layer → list screen → editor → tests
+
+## RESUME
+
+> Update this before ending every session. Next session starts by reading this.
+
+- **Current task:** S1–S3 complete (0.1, 0.3, 0.4, 0.6, 0.7, 0.8; 0.2 partial — see blockers)
+- **State:** Flutter 3.44.4; strict lints; drift schema v1 (`lib/data/db/`); HLC + Clock (`lib/core/`); LwwApplier (`lib/data/sync/`); ADR 0001 = hand-rolled per-field LWW. 29 tests green, analyzer clean. No git repo yet (user wants commit at the end).
+- **Blockers for user:** install Xcode (iOS/macOS builds) + Android Studio (Android SDK); pick a LICENSE
+- **Next action (S4):** task 0.5 — GitHub Actions CI matrix (analyze + test on PR; platform builds). Needs the repo on GitHub — ask user about git init/remote first. Alternative if deferring git: start Phase 1 data layer (1.1–1.3, repositories on top of schema v1).
+
+## Phase 0 — Foundations
+
+- [x] 0.1 Scaffold Flutter project with all five platform targets enabled (Flutter 3.44.4, org `com.sai`)
+- [ ] 0.2 Verify debug build runs on each platform — `flutter analyze` + `flutter test` pass; native builds **blocked**: user must install Xcode (App Store) and Android Studio; Windows/Linux via CI
+- [x] 0.3 Repo hygiene: strict `analysis_options.yaml` done; .gitignore from scaffold; LICENSE pending (ask user which license)
+- [x] 0.4 State management: **Riverpod** (dependency added when first used); feature-first folders
+- [ ] 0.5 CI: GitHub Actions matrix — analyze + unit tests on every PR; build android/ios/macos/windows/linux artifacts
+- [x] 0.6 CRDT spike → **hand-rolled per-field LWW** (docs/decisions/0001-crdt-choice.md); LwwApplier + 7 convergence tests landed as proof
+- [x] 0.7 SQLite schema v1 (drift): todo_lists, todos, todo_alarms, devices, sync_log, alarm_dismissals, field_clocks; FK enforcement + tombstones tested
+- [x] 0.8 HLC implementation (`lib/core/hlc.dart`) + injectable Clock (`lib/core/clock.dart`); 17 unit tests incl. clock-regression and lexical-sort properties
+
+## Phase 1 — Core app (local-only)
+
+### Data layer
+- [ ] 1.1 Todo repository: create / edit / complete / uncomplete / soft-delete (tombstone) / restore
+- [ ] 1.2 Lists: create / rename / recolor / archive; move todo between lists
+- [ ] 1.3 Tags + priority fields
+- [ ] 1.4 Recurrence: RRULE subset (daily, weekly with weekday mask, monthly, yearly); next-occurrence expansion
+- [ ] 1.5 Every mutation stamps per-field HLC timestamps (sync-ready from day one)
+- [ ] 1.6 Unit tests: repository CRUD, tombstones, recurrence expansion edge cases (Jan 31 monthly, leap years)
+
+### UI
+- [ ] 1.7 Todo list screen: grouped views — Today, Upcoming, Overdue, Completed, per-list
+- [ ] 1.8 Todo editor: title, notes, due date/time pickers, alarm times, recurrence, list, tags, priority
+- [ ] 1.9 Quick-add bar with natural date parsing ("tomorrow 5pm") — nice-to-have, can slip
+- [ ] 1.10 Search and filter
+- [ ] 1.11 Responsive layout: single-pane phone, dual-pane desktop/tablet
+- [ ] 1.12 Desktop keyboard shortcuts (new todo, complete, search, navigate)
+- [ ] 1.13 Settings screen scaffold (theme, per-device alarm toggle placeholder, sync placeholder)
+- [ ] 1.14 Widget tests for list screen, editor, quick-add
+
+## Phase 2 — Alarms (Android, iOS, Windows, macOS)
+
+- [ ] 2.1 Alarm scheduler abstraction: platform-agnostic interface, per-platform implementations behind it
+- [ ] 2.2 Integrate flutter_local_notifications; notification tap → open todo
+- [ ] 2.3 Android: exact alarms (AlarmManager), `SCHEDULE_EXACT_ALARM`/`USE_EXACT_ALARM` permission UX, BOOT_COMPLETED rescheduling, notification channels
+- [ ] 2.4 iOS: UNUserNotificationCenter; 64-pending cap — schedule nearest N, refill on foreground + BGAppRefreshTask
+- [ ] 2.5 Desktop opt-in: "Enable alarms on this device" toggle (default off) + OS permission request on enable; toggle off cancels all scheduled OS notifications
+- [ ] 2.6 Windows: MSIX package identity; ScheduledToastNotification with `scenario="alarm"`, looping audio, snooze/dismiss buttons
+- [ ] 2.7 macOS: UNUserNotificationCenter scheduled notifications; schedule-nearest-N + refill on launch
+- [ ] 2.8 Snooze/dismiss actions from the notification itself (all enabled platforms)
+- [ ] 2.9 Recurring todo → reschedule next alarm on completion/dismissal
+- [ ] 2.10 Timezone & DST correctness: store alarms as local-time + zone id, recompute on zone change; test suite around DST transitions
+- [ ] 2.11 Manual alarm test matrix executed per platform (see docs/testing.md)
+
+## Phase 3 — Sync engine
+
+### Core
+- [ ] 3.1 Changeset format: per-field ops with HLC stamps, tombstones, schema-versioned
+- [ ] 3.2 Merge engine: idempotent, commutative apply; LWW per field
+- [ ] 3.3 Property-based convergence tests: N simulated devices, random op sequences, arbitrary delivery order/duplication → identical final state
+- [ ] 3.4 Per-device vector clock / cursor tracking in sync_log
+
+### Identity & crypto
+- [ ] 3.5 Device identity: X25519 keypair generated on first run, stored in platform keychain/keystore
+- [ ] 3.6 Pairing flow: QR code (mobile↔any) + 6-digit short code fallback (desktop↔desktop); mutual key exchange + fingerprint confirmation
+- [ ] 3.7 Payload encryption: XChaCha20-Poly1305, per-pairing shared secret; key rotation on device removal
+- [ ] 3.8 Device management UI: list paired devices, rename, revoke
+
+### Transports
+- [ ] 3.9 LAN P2P: mDNS advertise/browse, TCP exchange protocol (hello → cursors → deltas → acks)
+- [ ] 3.10 Cloud-drive mailbox: encrypted changeset files in user-chosen folder; naming scheme `{deviceId}/{hlc}.bin`; read others' outboxes, apply, advance cursor
+- [ ] 3.11 Mailbox compaction: periodic snapshot + prune of applied changesets
+- [ ] 3.12 Platform folder access: iCloud Drive container (iOS/macOS native channel), SAF folder picker (Android), plain directory picker (desktop — works with any synced folder incl. Dropbox/Syncthing)
+- [ ] 3.13 Sync orchestrator: triggers (app foreground, local mutation debounce, periodic), transport selection, retry/backoff
+
+### Product
+- [ ] 3.14 Sync status UI: per-device last-synced, pending changes indicator
+- [ ] 3.15 Alarm dismissal sync: dismissal records propagate; receiving device cancels matching scheduled notification
+- [ ] 3.16 Integration tests: 3-device simulation — offline edits, delete-vs-edit races, clock skew, pairing/revocation
+
+## Phase 4 — Packaging & distribution
+
+- [ ] 4.1 App icon, name, bundle ids
+- [ ] 4.2 Android: signing config, Play internal track
+- [ ] 4.3 iOS: provisioning, notification entitlements, TestFlight
+- [ ] 4.4 macOS: hardened runtime, notarized .dmg
+- [ ] 4.5 Windows: MSIX + code signing cert
+- [ ] 4.6 Linux: Flatpak manifest (primary); AppImage secondary
+- [ ] 4.7 Release pipeline: tag → CI builds + uploads all artifacts
+- [ ] 4.8 Auto-update strategy per platform (stores handle mobile/mac; Sparkle-style or winget/Flathub for desktop)
+
+## Phase 5 — Polish, hardening & Linux alarms
+
+- [ ] 5.1 Linux alarms (opt-in, same toggle): resident background/tray process at login (autostart + XDG Background portal under Flatpak) posting libnotify notifications; systemd user timers as fallback. Until this lands, Linux shows in-app reminders only while the app is open
+- [ ] 5.2 Optional "run in background at login" toggle on all desktops (live sync + cross-device dismissal while window closed)
+- [ ] 5.3 Import/export JSON; full local backup/restore
+- [ ] 5.4 Dark mode + theming
+- [ ] 5.5 Accessibility pass: screen readers, contrast, font scaling, full keyboard nav
+- [ ] 5.6 Localization scaffold (intl), English strings extracted
+- [ ] 5.7 Performance: 10k-todo list scrolling, sync payload size, app start time budget
+- [ ] 5.8 Battery audit: sync frequency, wake locks, background refresh behavior
+- [ ] 5.9 Onboarding: first-run + "add your second device" flow
+- [ ] 5.10 Beta round on all five platforms; triage and fix
+
+## Testing (cross-cutting — details in docs/testing.md)
+
+- [ ] T.1 Unit test suites wired into CI from Phase 0 (HLC, repositories, recurrence, merge)
+- [ ] T.2 Widget tests for every screen as it's built
+- [ ] T.3 Property-based convergence harness (Phase 3 gate: no release with a failing convergence property)
+- [ ] T.4 Multi-device sync simulator (in-process fake transports; runs in CI)
+- [ ] T.5 integration_test smoke suite per platform in CI (launch, add todo, complete, restart-persists)
+- [ ] T.6 Timezone/DST regression suite
+- [ ] T.7 Manual test matrix doc per release: alarms, pairing, permission flows per platform
+- [ ] T.8 Coverage floor: 80% on data/sync layers, enforced in CI
