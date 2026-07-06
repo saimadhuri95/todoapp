@@ -59,10 +59,10 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Current task:** Apple-focus session (user direction 2026-07-06: Apple ecosystem first). Done: PR #7 quick-add merged; PR #8 = macOS bug fixes 4.16–4.20 (entitlements, FileKeyStore fallback for QR, bookmarks, Bonjour keys, error SnackBars) + 3.12 iCloud channel; 188 tests; macOS launched OK, iOS builds.
-- **Blocked on user:** 4.21 re-verify on a fresh installed release build (pick folder → relaunch → still syncs; QR renders; LAN discovery prompts). Apple Developer account for: iCloud entitlement flip + Keychain Sharing capability (steps in docs/packaging.md), TestFlight 4.3, notarized dmg 4.4. Also Play Console/MSIX cert; real-device testing (2.11, 5.5, 5.8, 5.10).
-- **Apple tail (next per user direction):** camera QR scan for pairing (iOS), ASO metadata 4.9–4.12, screenshot staging from simulators. Then: Linux tray 5.1/5.2, Android SAF verification, ARB extraction.
-- **Next action:** 6.1 camera QR done (PR #9). Next per Apple-first: 6.2 remote-change notification (driver scenario, reuses AlarmScheduler), then 6.4 tappable links / 6.6 theme override (small), 6.8 calendar view (big — own session). ASO 4.9–4.12 needs the user's name pick. User: re-verify per 4.21 (now incl. camera scan).
+- **Current task:** Apple-first push (user direction 2026-07-06) — session complete. Merged: PR #7 quick-add, PR #8 macOS fixes 4.16–4.20 + iCloud channel, PR #9 camera QR (6.1). REQUIREMENTS.md triaged → Phase 6. ASO 4.9–4.11 decided ("Knot – Todo List & Sync" / "Collaborative Task Manager", docs/packaging.md). 188 tests.
+- **Automatable Apple work is now exhausted** except 4.12 screenshot staging (simulators) and Phase 6 cross-platform features that also serve Apple (6.2 notifications, 6.4 links, 6.6 theme override, 6.8 calendar).
+- **Blocked on user:** 4.21 re-verify on a fresh installed release build (folder→relaunch→syncs; QR renders; camera scan; LAN prompt). Apple Developer account unlocks: iCloud entitlement + Keychain Sharing (steps in docs/packaging.md), TestFlight 4.3, notarized dmg 4.4, App Store Connect metadata entry (values ready in packaging.md). Also Play Console/MSIX cert; device testing (2.11, 5.5, 5.8, 5.10).
+- **Next action:** fresh session → 6.2 remote-change notification (driver scenario, reuses AlarmScheduler), then 6.4 tappable links / 6.6 theme override (small) or 6.8 calendar view (big — own session).
 
 ## Phase 0 — Foundations
 
