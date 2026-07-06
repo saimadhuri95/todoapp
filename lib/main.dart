@@ -11,6 +11,7 @@ import 'app/providers.dart';
 import 'app/sync_service.dart';
 import 'data/db/database.dart';
 import 'features/todos/todo_list_screen.dart';
+import 'l10n/generated/app_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -93,7 +94,9 @@ class TodoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'Knot',
+    onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal)),
     darkTheme: ThemeData(
       colorScheme: ColorScheme.fromSeed(
