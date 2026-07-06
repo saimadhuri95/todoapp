@@ -8,8 +8,8 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/providers.dart';
-import '../../data/sync/mailbox_transport.dart';
-import '../../data/sync/sync_orchestrator.dart';
+import '../../app/sync_service.dart';
+import '../../data/db/database.dart';
 
 /// Sync & devices (TASKS.md 3.6 UI, 3.12, 3.14 first cut).
 class SyncSettingsScreen extends ConsumerWidget {
@@ -63,10 +63,20 @@ class SyncSettingsScreen extends ConsumerWidget {
             ListTile(
               leading: Icon(_platformIcon(device.platform)),
               title: Text(device.name),
-              subtitle: Text(
-                device.id == ref.watch(deviceIdProvider)
-                    ? 'This device'
-                    : device.platform,
+              subtitle: Text(_deviceSubtitle(ref, device)),
+              trailing: PopupMenuButton<String>(
+                onSelected: (action) => switch (action) {
+                  'rename' => _renameDevice(context, ref, device),
+                  _ => _revokeDevice(context, ref, device),
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'rename', child: Text('Rename')),
+                  if (device.id != ref.read(deviceIdProvider))
+                    const PopupMenuItem(
+                      value: 'revoke',
+                      child: Text('Revoke access'),
+                    ),
+                ],
               ),
             ),
           const Divider(),
@@ -81,6 +91,76 @@ class SyncSettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  String _deviceSubtitle(WidgetRef ref, Device device) {
+    if (device.id == ref.watch(deviceIdProvider)) return 'This device';
+    final log = ref.watch(syncLogProvider).value?[device.id];
+    final ms = log?.lastSyncedAtMs;
+    if (ms == null) return device.platform;
+    final at = DateTime.fromMillisecondsSinceEpoch(ms);
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${device.platform} · last synced '
+        '${at.year}-${two(at.month)}-${two(at.day)} '
+        '${two(at.hour)}:${two(at.minute)}';
+  }
+
+  Future<void> _renameDevice(
+    BuildContext context,
+    WidgetRef ref,
+    Device device,
+  ) async {
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => _TextPromptDialog(
+        title: 'Rename device',
+        initial: device.name,
+        confirm: 'Rename',
+      ),
+    );
+    final trimmed = name?.trim() ?? '';
+    if (trimmed.isEmpty || trimmed == device.name) return;
+    await ref.read(pairingServiceProvider).rename(device.id, trimmed);
+  }
+
+  Future<void> _revokeDevice(
+    BuildContext context,
+    WidgetRef ref,
+    Device device,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Revoke ${device.name}?'),
+        content: const Text(
+          'This rotates the sync key: the revoked device stops receiving '
+          'anything new, the shared sync folder is cleared, and you must '
+          're-pair your remaining devices with fresh invitations.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Revoke'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(pairingServiceProvider).revoke(device.id);
+    final mailboxPath = ref.read(mailboxPathProvider);
+    if (mailboxPath != null && Directory(mailboxPath).existsSync()) {
+      await Directory(mailboxPath).delete(recursive: true);
+      await Directory(mailboxPath).create(recursive: true);
+    }
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Revoked. Re-pair your other devices.')),
+      );
+    }
   }
 
   static IconData _platformIcon(String platform) => switch (platform) {
@@ -188,32 +268,20 @@ class SyncSettingsScreen extends ConsumerWidget {
 
   Future<void> _syncNow(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
-    final service = ref.read(pairingServiceProvider);
-    if (!await service.hasGroupKey()) {
+    final container = ProviderScope.containerOf(context, listen: false);
+    final orchestrator = await buildOrchestrator(container);
+    if (orchestrator == null) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Pair a device first')),
       );
       return;
     }
-    final mailboxPath = ref.read(mailboxPathProvider);
-    if (mailboxPath == null) {
+    if (orchestrator.mailbox == null) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Pick a sync folder first')),
       );
       return;
     }
-    final engine = ref.read(syncEngineProvider);
-    final orchestrator = SyncOrchestrator(
-      engine: engine,
-      groupKey: await service.loadOrCreateGroupKey(),
-      mailbox: MailboxTransport(
-        root: Directory(mailboxPath),
-        engine: engine,
-        db: ref.read(databaseProvider),
-        deviceId: ref.read(deviceIdProvider),
-        groupKey: await service.loadOrCreateGroupKey(),
-      ),
-    );
     final report = await orchestrator.syncNow();
     messenger.showSnackBar(
       SnackBar(
@@ -226,6 +294,47 @@ class SyncSettingsScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _TextPromptDialog extends StatefulWidget {
+  const _TextPromptDialog({
+    required this.title,
+    required this.confirm,
+    this.initial = '',
+  });
+
+  final String title;
+  final String confirm;
+  final String initial;
+
+  @override
+  State<_TextPromptDialog> createState() => _TextPromptDialogState();
+}
+
+class _TextPromptDialogState extends State<_TextPromptDialog> {
+  late final _controller = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(widget.title),
+    content: TextField(controller: _controller, autofocus: true),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.of(context).pop(_controller.text),
+        child: Text(widget.confirm),
+      ),
+    ],
+  );
 }
 
 class _EnterInvitationDialog extends StatefulWidget {

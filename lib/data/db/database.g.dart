@@ -1385,6 +1385,21 @@ class $DevicesTable extends Devices with TableInfo<$DevicesTable, Device> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1392,6 +1407,7 @@ class $DevicesTable extends Devices with TableInfo<$DevicesTable, Device> {
     platform,
     publicKey,
     lastSeenAtMs,
+    deleted,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1443,6 +1459,12 @@ class $DevicesTable extends Devices with TableInfo<$DevicesTable, Device> {
         ),
       );
     }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
     return context;
   }
 
@@ -1472,6 +1494,10 @@ class $DevicesTable extends Devices with TableInfo<$DevicesTable, Device> {
         DriftSqlType.int,
         data['${effectivePrefix}last_seen_at_ms'],
       ),
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
     );
   }
 
@@ -1487,12 +1513,17 @@ class Device extends DataClass implements Insertable<Device> {
   final String platform;
   final String publicKey;
   final int? lastSeenAtMs;
+
+  /// Tombstone (schema v2): revoked devices stay as rows so the revocation
+  /// itself replicates.
+  final bool deleted;
   const Device({
     required this.id,
     required this.name,
     required this.platform,
     required this.publicKey,
     this.lastSeenAtMs,
+    required this.deleted,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1504,6 +1535,7 @@ class Device extends DataClass implements Insertable<Device> {
     if (!nullToAbsent || lastSeenAtMs != null) {
       map['last_seen_at_ms'] = Variable<int>(lastSeenAtMs);
     }
+    map['deleted'] = Variable<bool>(deleted);
     return map;
   }
 
@@ -1516,6 +1548,7 @@ class Device extends DataClass implements Insertable<Device> {
       lastSeenAtMs: lastSeenAtMs == null && nullToAbsent
           ? const Value.absent()
           : Value(lastSeenAtMs),
+      deleted: Value(deleted),
     );
   }
 
@@ -1530,6 +1563,7 @@ class Device extends DataClass implements Insertable<Device> {
       platform: serializer.fromJson<String>(json['platform']),
       publicKey: serializer.fromJson<String>(json['publicKey']),
       lastSeenAtMs: serializer.fromJson<int?>(json['lastSeenAtMs']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
     );
   }
   @override
@@ -1541,6 +1575,7 @@ class Device extends DataClass implements Insertable<Device> {
       'platform': serializer.toJson<String>(platform),
       'publicKey': serializer.toJson<String>(publicKey),
       'lastSeenAtMs': serializer.toJson<int?>(lastSeenAtMs),
+      'deleted': serializer.toJson<bool>(deleted),
     };
   }
 
@@ -1550,12 +1585,14 @@ class Device extends DataClass implements Insertable<Device> {
     String? platform,
     String? publicKey,
     Value<int?> lastSeenAtMs = const Value.absent(),
+    bool? deleted,
   }) => Device(
     id: id ?? this.id,
     name: name ?? this.name,
     platform: platform ?? this.platform,
     publicKey: publicKey ?? this.publicKey,
     lastSeenAtMs: lastSeenAtMs.present ? lastSeenAtMs.value : this.lastSeenAtMs,
+    deleted: deleted ?? this.deleted,
   );
   Device copyWithCompanion(DevicesCompanion data) {
     return Device(
@@ -1566,6 +1603,7 @@ class Device extends DataClass implements Insertable<Device> {
       lastSeenAtMs: data.lastSeenAtMs.present
           ? data.lastSeenAtMs.value
           : this.lastSeenAtMs,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
     );
   }
 
@@ -1576,13 +1614,15 @@ class Device extends DataClass implements Insertable<Device> {
           ..write('name: $name, ')
           ..write('platform: $platform, ')
           ..write('publicKey: $publicKey, ')
-          ..write('lastSeenAtMs: $lastSeenAtMs')
+          ..write('lastSeenAtMs: $lastSeenAtMs, ')
+          ..write('deleted: $deleted')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, platform, publicKey, lastSeenAtMs);
+  int get hashCode =>
+      Object.hash(id, name, platform, publicKey, lastSeenAtMs, deleted);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1591,7 +1631,8 @@ class Device extends DataClass implements Insertable<Device> {
           other.name == this.name &&
           other.platform == this.platform &&
           other.publicKey == this.publicKey &&
-          other.lastSeenAtMs == this.lastSeenAtMs);
+          other.lastSeenAtMs == this.lastSeenAtMs &&
+          other.deleted == this.deleted);
 }
 
 class DevicesCompanion extends UpdateCompanion<Device> {
@@ -1600,6 +1641,7 @@ class DevicesCompanion extends UpdateCompanion<Device> {
   final Value<String> platform;
   final Value<String> publicKey;
   final Value<int?> lastSeenAtMs;
+  final Value<bool> deleted;
   final Value<int> rowid;
   const DevicesCompanion({
     this.id = const Value.absent(),
@@ -1607,6 +1649,7 @@ class DevicesCompanion extends UpdateCompanion<Device> {
     this.platform = const Value.absent(),
     this.publicKey = const Value.absent(),
     this.lastSeenAtMs = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   DevicesCompanion.insert({
@@ -1615,6 +1658,7 @@ class DevicesCompanion extends UpdateCompanion<Device> {
     required String platform,
     required String publicKey,
     this.lastSeenAtMs = const Value.absent(),
+    this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -1626,6 +1670,7 @@ class DevicesCompanion extends UpdateCompanion<Device> {
     Expression<String>? platform,
     Expression<String>? publicKey,
     Expression<int>? lastSeenAtMs,
+    Expression<bool>? deleted,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1634,6 +1679,7 @@ class DevicesCompanion extends UpdateCompanion<Device> {
       if (platform != null) 'platform': platform,
       if (publicKey != null) 'public_key': publicKey,
       if (lastSeenAtMs != null) 'last_seen_at_ms': lastSeenAtMs,
+      if (deleted != null) 'deleted': deleted,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1644,6 +1690,7 @@ class DevicesCompanion extends UpdateCompanion<Device> {
     Value<String>? platform,
     Value<String>? publicKey,
     Value<int?>? lastSeenAtMs,
+    Value<bool>? deleted,
     Value<int>? rowid,
   }) {
     return DevicesCompanion(
@@ -1652,6 +1699,7 @@ class DevicesCompanion extends UpdateCompanion<Device> {
       platform: platform ?? this.platform,
       publicKey: publicKey ?? this.publicKey,
       lastSeenAtMs: lastSeenAtMs ?? this.lastSeenAtMs,
+      deleted: deleted ?? this.deleted,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1674,6 +1722,9 @@ class DevicesCompanion extends UpdateCompanion<Device> {
     if (lastSeenAtMs.present) {
       map['last_seen_at_ms'] = Variable<int>(lastSeenAtMs.value);
     }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1688,6 +1739,7 @@ class DevicesCompanion extends UpdateCompanion<Device> {
           ..write('platform: $platform, ')
           ..write('publicKey: $publicKey, ')
           ..write('lastSeenAtMs: $lastSeenAtMs, ')
+          ..write('deleted: $deleted, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1720,8 +1772,23 @@ class $SyncLogTable extends SyncLog with TableInfo<$SyncLogTable, SyncLogData> {
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _lastSyncedAtMsMeta = const VerificationMeta(
+    'lastSyncedAtMs',
+  );
   @override
-  List<GeneratedColumn> get $columns => [peerId, lastAppliedHlc];
+  late final GeneratedColumn<int> lastSyncedAtMs = GeneratedColumn<int>(
+    'last_synced_at_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    peerId,
+    lastAppliedHlc,
+    lastSyncedAtMs,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1751,6 +1818,15 @@ class $SyncLogTable extends SyncLog with TableInfo<$SyncLogTable, SyncLogData> {
         ),
       );
     }
+    if (data.containsKey('last_synced_at_ms')) {
+      context.handle(
+        _lastSyncedAtMsMeta,
+        lastSyncedAtMs.isAcceptableOrUnknown(
+          data['last_synced_at_ms']!,
+          _lastSyncedAtMsMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1768,6 +1844,10 @@ class $SyncLogTable extends SyncLog with TableInfo<$SyncLogTable, SyncLogData> {
         DriftSqlType.string,
         data['${effectivePrefix}last_applied_hlc'],
       )!,
+      lastSyncedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_synced_at_ms'],
+      ),
     );
   }
 
@@ -1780,12 +1860,23 @@ class $SyncLogTable extends SyncLog with TableInfo<$SyncLogTable, SyncLogData> {
 class SyncLogData extends DataClass implements Insertable<SyncLogData> {
   final String peerId;
   final String lastAppliedHlc;
-  const SyncLogData({required this.peerId, required this.lastAppliedHlc});
+
+  /// Wall-clock time of the last exchange (schema v2) — for the
+  /// "last synced" display only, never for merge decisions.
+  final int? lastSyncedAtMs;
+  const SyncLogData({
+    required this.peerId,
+    required this.lastAppliedHlc,
+    this.lastSyncedAtMs,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['peer_id'] = Variable<String>(peerId);
     map['last_applied_hlc'] = Variable<String>(lastAppliedHlc);
+    if (!nullToAbsent || lastSyncedAtMs != null) {
+      map['last_synced_at_ms'] = Variable<int>(lastSyncedAtMs);
+    }
     return map;
   }
 
@@ -1793,6 +1884,9 @@ class SyncLogData extends DataClass implements Insertable<SyncLogData> {
     return SyncLogCompanion(
       peerId: Value(peerId),
       lastAppliedHlc: Value(lastAppliedHlc),
+      lastSyncedAtMs: lastSyncedAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAtMs),
     );
   }
 
@@ -1804,6 +1898,7 @@ class SyncLogData extends DataClass implements Insertable<SyncLogData> {
     return SyncLogData(
       peerId: serializer.fromJson<String>(json['peerId']),
       lastAppliedHlc: serializer.fromJson<String>(json['lastAppliedHlc']),
+      lastSyncedAtMs: serializer.fromJson<int?>(json['lastSyncedAtMs']),
     );
   }
   @override
@@ -1812,12 +1907,20 @@ class SyncLogData extends DataClass implements Insertable<SyncLogData> {
     return <String, dynamic>{
       'peerId': serializer.toJson<String>(peerId),
       'lastAppliedHlc': serializer.toJson<String>(lastAppliedHlc),
+      'lastSyncedAtMs': serializer.toJson<int?>(lastSyncedAtMs),
     };
   }
 
-  SyncLogData copyWith({String? peerId, String? lastAppliedHlc}) => SyncLogData(
+  SyncLogData copyWith({
+    String? peerId,
+    String? lastAppliedHlc,
+    Value<int?> lastSyncedAtMs = const Value.absent(),
+  }) => SyncLogData(
     peerId: peerId ?? this.peerId,
     lastAppliedHlc: lastAppliedHlc ?? this.lastAppliedHlc,
+    lastSyncedAtMs: lastSyncedAtMs.present
+        ? lastSyncedAtMs.value
+        : this.lastSyncedAtMs,
   );
   SyncLogData copyWithCompanion(SyncLogCompanion data) {
     return SyncLogData(
@@ -1825,6 +1928,9 @@ class SyncLogData extends DataClass implements Insertable<SyncLogData> {
       lastAppliedHlc: data.lastAppliedHlc.present
           ? data.lastAppliedHlc.value
           : this.lastAppliedHlc,
+      lastSyncedAtMs: data.lastSyncedAtMs.present
+          ? data.lastSyncedAtMs.value
+          : this.lastSyncedAtMs,
     );
   }
 
@@ -1832,43 +1938,50 @@ class SyncLogData extends DataClass implements Insertable<SyncLogData> {
   String toString() {
     return (StringBuffer('SyncLogData(')
           ..write('peerId: $peerId, ')
-          ..write('lastAppliedHlc: $lastAppliedHlc')
+          ..write('lastAppliedHlc: $lastAppliedHlc, ')
+          ..write('lastSyncedAtMs: $lastSyncedAtMs')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(peerId, lastAppliedHlc);
+  int get hashCode => Object.hash(peerId, lastAppliedHlc, lastSyncedAtMs);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is SyncLogData &&
           other.peerId == this.peerId &&
-          other.lastAppliedHlc == this.lastAppliedHlc);
+          other.lastAppliedHlc == this.lastAppliedHlc &&
+          other.lastSyncedAtMs == this.lastSyncedAtMs);
 }
 
 class SyncLogCompanion extends UpdateCompanion<SyncLogData> {
   final Value<String> peerId;
   final Value<String> lastAppliedHlc;
+  final Value<int?> lastSyncedAtMs;
   final Value<int> rowid;
   const SyncLogCompanion({
     this.peerId = const Value.absent(),
     this.lastAppliedHlc = const Value.absent(),
+    this.lastSyncedAtMs = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SyncLogCompanion.insert({
     required String peerId,
     this.lastAppliedHlc = const Value.absent(),
+    this.lastSyncedAtMs = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : peerId = Value(peerId);
   static Insertable<SyncLogData> custom({
     Expression<String>? peerId,
     Expression<String>? lastAppliedHlc,
+    Expression<int>? lastSyncedAtMs,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (peerId != null) 'peer_id': peerId,
       if (lastAppliedHlc != null) 'last_applied_hlc': lastAppliedHlc,
+      if (lastSyncedAtMs != null) 'last_synced_at_ms': lastSyncedAtMs,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1876,11 +1989,13 @@ class SyncLogCompanion extends UpdateCompanion<SyncLogData> {
   SyncLogCompanion copyWith({
     Value<String>? peerId,
     Value<String>? lastAppliedHlc,
+    Value<int?>? lastSyncedAtMs,
     Value<int>? rowid,
   }) {
     return SyncLogCompanion(
       peerId: peerId ?? this.peerId,
       lastAppliedHlc: lastAppliedHlc ?? this.lastAppliedHlc,
+      lastSyncedAtMs: lastSyncedAtMs ?? this.lastSyncedAtMs,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1894,6 +2009,9 @@ class SyncLogCompanion extends UpdateCompanion<SyncLogData> {
     if (lastAppliedHlc.present) {
       map['last_applied_hlc'] = Variable<String>(lastAppliedHlc.value);
     }
+    if (lastSyncedAtMs.present) {
+      map['last_synced_at_ms'] = Variable<int>(lastSyncedAtMs.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1905,6 +2023,7 @@ class SyncLogCompanion extends UpdateCompanion<SyncLogData> {
     return (StringBuffer('SyncLogCompanion(')
           ..write('peerId: $peerId, ')
           ..write('lastAppliedHlc: $lastAppliedHlc, ')
+          ..write('lastSyncedAtMs: $lastSyncedAtMs, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3898,6 +4017,7 @@ typedef $$DevicesTableCreateCompanionBuilder =
       required String platform,
       required String publicKey,
       Value<int?> lastSeenAtMs,
+      Value<bool> deleted,
       Value<int> rowid,
     });
 typedef $$DevicesTableUpdateCompanionBuilder =
@@ -3907,6 +4027,7 @@ typedef $$DevicesTableUpdateCompanionBuilder =
       Value<String> platform,
       Value<String> publicKey,
       Value<int?> lastSeenAtMs,
+      Value<bool> deleted,
       Value<int> rowid,
     });
 
@@ -3941,6 +4062,11 @@ class $$DevicesTableFilterComposer
 
   ColumnFilters<int> get lastSeenAtMs => $composableBuilder(
     column: $table.lastSeenAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3978,6 +4104,11 @@ class $$DevicesTableOrderingComposer
     column: $table.lastSeenAtMs,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$DevicesTableAnnotationComposer
@@ -4005,6 +4136,9 @@ class $$DevicesTableAnnotationComposer
     column: $table.lastSeenAtMs,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
 }
 
 class $$DevicesTableTableManager
@@ -4040,6 +4174,7 @@ class $$DevicesTableTableManager
                 Value<String> platform = const Value.absent(),
                 Value<String> publicKey = const Value.absent(),
                 Value<int?> lastSeenAtMs = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DevicesCompanion(
                 id: id,
@@ -4047,6 +4182,7 @@ class $$DevicesTableTableManager
                 platform: platform,
                 publicKey: publicKey,
                 lastSeenAtMs: lastSeenAtMs,
+                deleted: deleted,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4056,6 +4192,7 @@ class $$DevicesTableTableManager
                 required String platform,
                 required String publicKey,
                 Value<int?> lastSeenAtMs = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DevicesCompanion.insert(
                 id: id,
@@ -4063,6 +4200,7 @@ class $$DevicesTableTableManager
                 platform: platform,
                 publicKey: publicKey,
                 lastSeenAtMs: lastSeenAtMs,
+                deleted: deleted,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -4091,12 +4229,14 @@ typedef $$SyncLogTableCreateCompanionBuilder =
     SyncLogCompanion Function({
       required String peerId,
       Value<String> lastAppliedHlc,
+      Value<int?> lastSyncedAtMs,
       Value<int> rowid,
     });
 typedef $$SyncLogTableUpdateCompanionBuilder =
     SyncLogCompanion Function({
       Value<String> peerId,
       Value<String> lastAppliedHlc,
+      Value<int?> lastSyncedAtMs,
       Value<int> rowid,
     });
 
@@ -4116,6 +4256,11 @@ class $$SyncLogTableFilterComposer
 
   ColumnFilters<String> get lastAppliedHlc => $composableBuilder(
     column: $table.lastAppliedHlc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastSyncedAtMs => $composableBuilder(
+    column: $table.lastSyncedAtMs,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4138,6 +4283,11 @@ class $$SyncLogTableOrderingComposer
     column: $table.lastAppliedHlc,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get lastSyncedAtMs => $composableBuilder(
+    column: $table.lastSyncedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SyncLogTableAnnotationComposer
@@ -4154,6 +4304,11 @@ class $$SyncLogTableAnnotationComposer
 
   GeneratedColumn<String> get lastAppliedHlc => $composableBuilder(
     column: $table.lastAppliedHlc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastSyncedAtMs => $composableBuilder(
+    column: $table.lastSyncedAtMs,
     builder: (column) => column,
   );
 }
@@ -4191,20 +4346,24 @@ class $$SyncLogTableTableManager
               ({
                 Value<String> peerId = const Value.absent(),
                 Value<String> lastAppliedHlc = const Value.absent(),
+                Value<int?> lastSyncedAtMs = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SyncLogCompanion(
                 peerId: peerId,
                 lastAppliedHlc: lastAppliedHlc,
+                lastSyncedAtMs: lastSyncedAtMs,
                 rowid: rowid,
               ),
           createCompanionCallback:
               ({
                 required String peerId,
                 Value<String> lastAppliedHlc = const Value.absent(),
+                Value<int?> lastSyncedAtMs = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SyncLogCompanion.insert(
                 peerId: peerId,
                 lastAppliedHlc: lastAppliedHlc,
+                lastSyncedAtMs: lastSyncedAtMs,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

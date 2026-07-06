@@ -108,6 +108,41 @@ class MailboxTransport {
     return applied;
   }
 
+  /// Compaction (TASKS.md 3.11): once the outbox accumulates [threshold]
+  /// delta files, replace them with one full-state snapshot. Peers behind
+  /// re-apply the snapshot idempotently; peers fully caught up skip it
+  /// (its name sorts ≤ their cursor).
+  Future<bool> compactIfNeeded({int threshold = 20}) async {
+    if (!_outbox.existsSync()) return false;
+    final deltas = _outbox
+        .listSync()
+        .whereType<File>()
+        .where((f) => _baseName(f).endsWith('.bin'))
+        .where((f) => _baseName(f) != _vectorFile)
+        .toList();
+    if (deltas.length < threshold) return false;
+
+    final snapshot = await engine.changesFor(const {});
+    if (snapshot.writes.isEmpty) return false;
+    final sealed = await PairingCrypto.seal(
+      utf8.encode(snapshot.encode()),
+      groupKey,
+    );
+    final name = _fileNameFor(snapshot);
+    await File('${_outbox.path}/$name').writeAsBytes(sealed, flush: true);
+    for (final f in deltas) {
+      if (_baseName(f) != name) await f.delete();
+    }
+    return true;
+  }
+
+  /// Deletes the whole shared mailbox. Used on device revocation: the
+  /// group key was rotated, so every file in here is sealed with a burned
+  /// key; devices republish after re-pairing.
+  Future<void> wipeAll() async {
+    if (root.existsSync()) await root.delete(recursive: true);
+  }
+
   /// Filenames sort in HLC order; ':' is not filename-safe on Windows.
   static String _fileNameFor(Changeset changeset) {
     final max = changeset.writes.last.hlc.encode().replaceAll(':', '_');

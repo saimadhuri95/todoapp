@@ -35,7 +35,7 @@ class SettingsScreen extends StatelessWidget {
         ),
         const AboutListTile(
           icon: Icon(Icons.info_outline),
-          applicationName: 'TodoApp',
+          applicationName: 'Knot',
           applicationVersion: '0.1.0-dev',
         ),
       ],

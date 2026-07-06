@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import 'app/providers.dart';
+import 'app/sync_service.dart';
 import 'data/db/database.dart';
 import 'features/todos/todo_list_screen.dart';
 
@@ -24,9 +25,37 @@ Future<void> main() async {
         if (mailboxPath != null)
           mailboxPathProvider.overrideWith((_) => mailboxPath),
       ],
-      child: const TodoApp(),
+      child: const SyncBootstrap(child: TodoApp()),
     ),
   );
+}
+
+/// Starts the background sync service (auto-triggers, LAN server, mDNS)
+/// for the real app. Widget tests pump [TodoApp] directly and skip it.
+class SyncBootstrap extends ConsumerStatefulWidget {
+  const SyncBootstrap({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  ConsumerState<SyncBootstrap> createState() => _SyncBootstrapState();
+}
+
+class _SyncBootstrapState extends ConsumerState<SyncBootstrap> {
+  @override
+  void initState() {
+    super.initState();
+    ref.read(syncServiceProvider).start();
+  }
+
+  @override
+  void dispose() {
+    ref.read(syncServiceProvider).stop();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class TodoApp extends StatelessWidget {
@@ -34,7 +63,7 @@ class TodoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'TodoApp',
+    title: 'Knot',
     theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal)),
     darkTheme: ThemeData(
       colorScheme: ColorScheme.fromSeed(

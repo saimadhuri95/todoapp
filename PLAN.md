@@ -75,4 +75,4 @@ Full strategy in [docs/testing.md](docs/testing.md). Highlights:
 3. LAN sync while mobile app backgrounded — iOS will mostly say no; mailbox is
    the reliable cross-network path there
 4. Recurrence scope for v1 — daily/weekly/monthly/yearly subset of RRULE
-5. App name
+5. ~~App name~~ → **Knot** (decided 2026-07-06; bundle id `com.sai.knot`, MIT license)

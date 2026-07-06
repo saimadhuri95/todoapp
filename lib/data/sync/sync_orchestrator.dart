@@ -72,6 +72,7 @@ class SyncOrchestrator {
         try {
           mailboxApplied = await box.consume();
           mailboxPublished = await box.publish();
+          await box.compactIfNeeded();
         } on FileSystemException catch (e) {
           errors.add('mailbox: ${e.message}');
         }

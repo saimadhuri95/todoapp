@@ -32,6 +32,7 @@ const Map<String, Map<String, String>> syncColumns = {
     'platform': 'platform',
     'publicKey': 'public_key',
     'lastSeenAtMs': 'last_seen_at_ms',
+    'deleted': 'deleted',
   },
 };
 

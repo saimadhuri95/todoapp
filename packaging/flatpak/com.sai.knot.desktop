@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Knot
+Comment=Local-first todos with serverless encrypted sync
+Exec=knot
+Icon=com.sai.knot
+Type=Application
+Categories=Office;ProjectManagement;
+Keywords=todo;tasks;sync;

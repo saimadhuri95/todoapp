@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.sai.knot</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Knot</name>
+  <summary>Local-first todos with serverless encrypted sync</summary>
+  <description>
+    <p>
+      Knot keeps your todos on your devices — no account, no server. Devices
+      pair with a QR invitation and sync end-to-end encrypted, either
+      directly over your Wi-Fi or through any folder your own cloud drive
+      already syncs.
+    </p>
+  </description>
+  <launchable type="desktop-id">com.sai.knot.desktop</launchable>
+  <url type="homepage">https://github.com/saimadhuri95/todoapp</url>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+</component>
