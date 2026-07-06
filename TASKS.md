@@ -59,10 +59,10 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Current task:** PR open for Phase 1 + sync core (branch `phase-1-and-sync-core`) — merge when CI green
-- **State:** 83 tests green. Phase 1 done (1.9 deferred); sync core 3.1–3.4 done (version vectors). Widget-test deadlock fixed via `testApp` wrapper (drift keep-alive Timer in fake-async zone — advance fake time after unmount before db.close()).
+- **Current task:** PR #1 merged into main (Phase 1 + sync core + crypto + mailbox transport). CI fix on main pending green (libsecret for flutter_secure_storage Linux build).
+- **State:** 98 tests green. Done: Phase 1 (1.9 deferred), 3.1–3.5, 3.7, 3.10. Caution: PR #1 was merged while Linux CI leg was red (missing apt dep, fixed on main) — check CI conclusion as a separate step before merging next time.
 - **Blockers for user:** install Xcode + Android Studio (packaging phase); pick a LICENSE
-- **Next action:** after PR merge → Phase 3 continued: 3.5 device identity keypair, 3.6 pairing, 3.7 encryption (add `cryptography` dep), then 3.9 LAN transport / 3.10 mailbox transport. Then Phase 4 packaging.
+- **Next action:** new branch → 3.9 LAN transport (mDNS + TCP; testable via loopback), 3.13 sync orchestrator, 3.14 sync status UI + 3.12 folder picker wiring for the mailbox. Then 3.6 pairing UI (QR + group-key distribution) and 3.8 device management. Then Phase 4 packaging.
 
 ## Phase 0 — Foundations
 
