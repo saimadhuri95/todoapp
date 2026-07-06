@@ -25,21 +25,21 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   factory AppDatabase.open() => AppDatabase(
-        LazyDatabase(() async {
-          final dir = await getApplicationSupportDirectory();
-          return NativeDatabase.createInBackground(
-            File(p.join(dir.path, 'todoapp.sqlite')),
-          );
-        }),
+    LazyDatabase(() async {
+      final dir = await getApplicationSupportDirectory();
+      return NativeDatabase.createInBackground(
+        File(p.join(dir.path, 'todoapp.sqlite')),
       );
+    }),
+  );
 
   @override
   int get schemaVersion => 1;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        beforeOpen: (details) async {
-          await customStatement('PRAGMA foreign_keys = ON');
-        },
-      );
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+    },
+  );
 }

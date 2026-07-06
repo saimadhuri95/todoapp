@@ -45,23 +45,26 @@ void main() {
   Future<String> title(AppDatabase db) async =>
       (await db.todos.all().getSingle()).title;
 
-  test('concurrent edits converge to the same winner in either order', () async {
-    final fromA = write('title', 'milk (A)', 1000, 'a');
-    final fromB = write('title', 'milk (B)', 2000, 'b');
+  test(
+    'concurrent edits converge to the same winner in either order',
+    () async {
+      final fromA = write('title', 'milk (A)', 1000, 'a');
+      final fromB = write('title', 'milk (B)', 2000, 'b');
 
-    final applierA = LwwApplier(dbA);
-    final applierB = LwwApplier(dbB);
+      final applierA = LwwApplier(dbA);
+      final applierB = LwwApplier(dbB);
 
-    // Device A: local write first, then receives B's.
-    await applierA.apply(fromA);
-    await applierA.apply(fromB);
-    // Device B: opposite order.
-    await applierB.apply(fromB);
-    expect(await applierB.apply(fromA), isFalse);
+      // Device A: local write first, then receives B's.
+      await applierA.apply(fromA);
+      await applierA.apply(fromB);
+      // Device B: opposite order.
+      await applierB.apply(fromB);
+      expect(await applierB.apply(fromA), isFalse);
 
-    expect(await title(dbA), 'milk (B)');
-    expect(await title(dbB), 'milk (B)');
-  });
+      expect(await title(dbA), 'milk (B)');
+      expect(await title(dbB), 'milk (B)');
+    },
+  );
 
   test('duplicate application is a no-op', () async {
     final applier = LwwApplier(dbA);

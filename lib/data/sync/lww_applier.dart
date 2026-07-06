@@ -61,14 +61,14 @@ class LwwApplier {
       throw ArgumentError('Unknown entity/field: ${w.entity}.${w.field}');
     }
     return _db.transaction(() async {
-      final existing = await (_db.fieldClocks.select()
-            ..where(
-              (c) =>
-                  c.entity.equals(w.entity) &
-                  c.rowId.equals(w.rowId) &
-                  c.fieldName.equals(w.field),
-            ))
-          .getSingleOrNull();
+      final existing =
+          await (_db.fieldClocks.select()..where(
+                (c) =>
+                    c.entity.equals(w.entity) &
+                    c.rowId.equals(w.rowId) &
+                    c.fieldName.equals(w.field),
+              ))
+              .getSingleOrNull();
       if (existing != null && !(w.hlc > Hlc.parse(existing.hlc))) {
         return false;
       }

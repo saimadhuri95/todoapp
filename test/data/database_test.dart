@@ -47,8 +47,9 @@ void main() {
     await db.todoLists.insertOne(
       TodoListsCompanion.insert(id: 'list-1', name: 'Old'),
     );
-    await (db.todoLists.update()..where((t) => t.id.equals('list-1')))
-        .write(const TodoListsCompanion(deleted: Value(true)));
+    await (db.todoLists.update()..where((t) => t.id.equals('list-1'))).write(
+      const TodoListsCompanion(deleted: Value(true)),
+    );
 
     final row = await db.todoLists.all().getSingle();
     expect(row.deleted, isTrue);
@@ -56,14 +57,14 @@ void main() {
 
   test('field clock upsert takes the newer stamp', () async {
     Future<void> stamp(String hlc) => db.fieldClocks.insertOne(
-          FieldClocksCompanion.insert(
-            entity: 'todos',
-            rowId: 'todo-1',
-            fieldName: 'title',
-            hlc: hlc,
-          ),
-          mode: InsertMode.insertOrReplace,
-        );
+      FieldClocksCompanion.insert(
+        entity: 'todos',
+        rowId: 'todo-1',
+        fieldName: 'title',
+        hlc: hlc,
+      ),
+      mode: InsertMode.insertOrReplace,
+    );
 
     await stamp('000000000001000:0000:a');
     await stamp('000000000002000:0000:b');
@@ -73,9 +74,7 @@ void main() {
   });
 
   test('alarm dismissal keyed per occurrence', () async {
-    await db.todoLists.insertOne(
-      TodoListsCompanion.insert(id: 'l', name: 'L'),
-    );
+    await db.todoLists.insertOne(TodoListsCompanion.insert(id: 'l', name: 'L'));
     await db.todos.insertOne(
       TodosCompanion.insert(id: 't', title: 'T', listId: const Value('l')),
     );

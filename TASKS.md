@@ -48,10 +48,10 @@ that comfortably fits inside a window (roughly 15–30 substantial prompts).
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Current task:** S1–S3 complete (0.1, 0.3, 0.4, 0.6, 0.7, 0.8; 0.2 partial — see blockers)
-- **State:** Flutter 3.44.4; strict lints; drift schema v1 (`lib/data/db/`); HLC + Clock (`lib/core/`); LwwApplier (`lib/data/sync/`); ADR 0001 = hand-rolled per-field LWW. 29 tests green, analyzer clean. No git repo yet (user wants commit at the end).
-- **Blockers for user:** install Xcode (iOS/macOS builds) + Android Studio (Android SDK); pick a LICENSE
-- **Next action (S4):** task 0.5 — GitHub Actions CI matrix (analyze + test on PR; platform builds). Needs the repo on GitHub — ask user about git init/remote first. Alternative if deferring git: start Phase 1 data layer (1.1–1.3, repositories on top of schema v1).
+- **Current task:** Phase 0 complete except 0.2 local iOS/macOS/Android builds (user blockers below)
+- **State:** Git repo live at github.com/saimadhuri95/todoapp (public); identity saimadhuri95 <saimadhuri95@gmail.com> (repo-local config). CI pushed — first run: analyze/test gate + 5-target build matrix; **verify first run went green before building on it**. 29 tests green locally. drift schema v1, HLC/Clock, LwwApplier, ADR 0001 all landed.
+- **Blockers for user:** install Xcode + Android Studio (needed for local platform builds, Phase 2); pick a LICENSE
+- **Next action (S5):** Phase 1 data layer — 1.1–1.3 (todo/list/tag repositories over schema v1, HLC stamping on every mutation via task 1.5 pattern), then 1.6 tests. Pure Dart, no blockers.
 
 ## Phase 0 — Foundations
 
@@ -59,7 +59,7 @@ that comfortably fits inside a window (roughly 15–30 substantial prompts).
 - [ ] 0.2 Verify debug build runs on each platform — `flutter analyze` + `flutter test` pass; native builds **blocked**: user must install Xcode (App Store) and Android Studio; Windows/Linux via CI
 - [x] 0.3 Repo hygiene: strict `analysis_options.yaml` done; .gitignore from scaffold; LICENSE pending (ask user which license)
 - [x] 0.4 State management: **Riverpod** (dependency added when first used); feature-first folders
-- [ ] 0.5 CI: GitHub Actions matrix — analyze + unit tests on every PR; build android/ios/macos/windows/linux artifacts
+- [x] 0.5 CI: GitHub Actions (.github/workflows/ci.yml) — format/analyze/test gate + 5-target debug-build matrix; repo public (free Actions)
 - [x] 0.6 CRDT spike → **hand-rolled per-field LWW** (docs/decisions/0001-crdt-choice.md); LwwApplier + 7 convergence tests landed as proof
 - [x] 0.7 SQLite schema v1 (drift): todo_lists, todos, todo_alarms, devices, sync_log, alarm_dismissals, field_clocks; FK enforcement + tombstones tested
 - [x] 0.8 HLC implementation (`lib/core/hlc.dart`) + injectable Clock (`lib/core/clock.dart`); 17 unit tests incl. clock-regression and lexical-sort properties

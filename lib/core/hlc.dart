@@ -10,8 +10,8 @@ import 'clock.dart';
 /// compared directly in SQL.
 class Hlc implements Comparable<Hlc> {
   const Hlc(this.millis, this.counter, this.nodeId)
-      : assert(millis >= 0),
-        assert(counter >= 0 && counter <= maxCounter);
+    : assert(millis >= 0),
+      assert(counter >= 0 && counter <= maxCounter);
 
   factory Hlc.zero(String nodeId) => Hlc(0, 0, nodeId);
 
@@ -35,8 +35,9 @@ class Hlc implements Comparable<Hlc> {
   final String nodeId;
 
   /// Timestamp for a local event. Monotonic even if the wall clock regressed.
-  Hlc send(int wallMs) =>
-      wallMs > millis ? Hlc(wallMs, 0, nodeId) : Hlc(millis, counter + 1, nodeId);
+  Hlc send(int wallMs) => wallMs > millis
+      ? Hlc(wallMs, 0, nodeId)
+      : Hlc(millis, counter + 1, nodeId);
 
   /// Merge a remote timestamp on receipt; result exceeds both local and
   /// remote regardless of wall-clock skew between devices.
@@ -85,7 +86,7 @@ class Hlc implements Comparable<Hlc> {
 /// local mutations and folds in remote timestamps during sync.
 class HlcClock {
   HlcClock({required String nodeId, required this.clock, Hlc? initial})
-      : _last = initial ?? Hlc.zero(nodeId);
+    : _last = initial ?? Hlc.zero(nodeId);
 
   final Clock clock;
   Hlc _last;
