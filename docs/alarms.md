@@ -63,6 +63,17 @@ alarm_dismissals tables are unused.
   timers (`systemd-run --user --on-calendar`, `Persistent=true`) are the viable
   non-resident fallback.
 
+## Timezones & DST (v1 semantics)
+
+Due times are stored as UTC epoch ms, but recurrence/alarm expansion runs
+in **local calendar space**, so wall-clock times survive DST transitions in
+the device's zone (verified by test/core/dst_test.dart, run under
+`TZ=America/New_York` in CI). Known v1 limitation: devices in *different*
+zones expand a recurring todo against their own wall clock, so their fire
+instants (and dismissal occurrence keys) can diverge after a DST shift that
+only one zone observes. Full wall-clock storage (local time + IANA zone id)
+is the eventual fix; deferred until real users travel with it.
+
 ## Scheduling rules
 
 - Alarms stored as local time + IANA zone id; recomputed when device zone

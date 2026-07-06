@@ -19,6 +19,8 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
       - run: flutter test
+      - name: DST correctness suite (needs a DST-observing zone)
+        run: TZ=America/New_York flutter test test/core/dst_test.dart
 
   build:
     name: Build ${{ matrix.target }}

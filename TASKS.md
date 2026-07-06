@@ -59,11 +59,11 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Current task:** Alarms phase functionally complete on `main` (direct commits post-PR#3); v0.1.0 draft release built with 4 artifacts (publish = user action).
-- **State:** 131 tests. Schema v3 alarm fields, planAlarms + AlarmService + flutter_local_notifications scheduler (Android exact/boot/desugaring; Darwin categories; Linux in-app timers), opt-in toggle + editor alarm chips, dismissal sync by construction.
-- **Blocked on user:** Xcode install → 2.11 iOS/macOS manual alarm testing + 4.3/4.4 signing; MSIX cert → 2.6 closed-app Windows toasts; Play Console; publish the v0.1.0 draft release.
-- **Remaining work:** 2.10 DST suite + wall-clock storage, 2.11 manual matrix, 5.1 Linux tray/autostart, 5.2 background-at-login, then Phase 5 polish (import/export, a11y, l10n, perf, onboarding, camera QR, native folder pickers).
-- **Next action:** commit alarms phase → CI green (android is the risk: desugaring/receivers) → Phase 5 polish.
+- **Current task:** Phase 5 polish in progress on branch `phase-5-polish` (PR #4 alarms merged green).
+- **State:** 135 tests. Done this chunk: 5.3 export/import + UI, 5.7 lazy list, 5.9 onboarding empty-state, permission allowlist in .claude/settings.json.
+- **Blocked on user/devices:** Xcode (→ iOS/macOS alarm testing, signing); MSIX cert; Play Console; publish v0.1.0 draft release; 5.5 a11y + 5.8 battery + 5.10 beta need real devices.
+- **Remaining automatable:** 5.6 l10n scaffold, 2.10 DST suite + wall-clock alarm storage, 5.1 Linux tray/autostart, 5.2 background-at-login toggle, 1.9 natural-date quick-add, camera QR scan, native folder pickers (iCloud/SAF).
+- **Next action:** merge this PR on green → pick next from remaining-automatable list (suggest 2.10 DST correctness first — it's the biggest correctness gap left).
 
 ## Phase 0 — Foundations
 
@@ -111,7 +111,7 @@ the ordinary merge engine; todo_alarms/alarm_dismissals tables unused.
 - [x] 2.7 macOS: UNUserNotificationCenter via plugin, same cap/refill
 - [x] 2.8 Snooze (10 min) / dismiss actions on the notification (Android actions + Darwin categories)
 - [x] 2.9 Recurring: planner expands occurrences; dismissal only silences ≤ dismissed occurrence
-- [ ] 2.10 TZ/DST: zonedSchedule in local tz done; wall-clock storage + recompute-on-zone-change and the DST suite still open
+- [x] 2.10 TZ/DST: expansion runs in local calendar space; DST suite green under TZ=America/New_York (CI step). Cross-zone wall-clock storage documented as v1 limitation (docs/alarms.md), deferred
 - [ ] 2.11 Manual alarm matrix — needs real devices (user; iOS also needs Xcode)
 - [x] 3.15 (moved here) Alarm dismissal sync — by construction: dismissal is a synced field write; test in sync_engine_test
 - [ ] 5.1 (moved here) Linux resident process — in-app timers while running done; tray/autostart still open
@@ -158,14 +158,14 @@ the ordinary merge engine; todo_alarms/alarm_dismissals tables unused.
 
 - [ ] 5.1 *(moved into the alarms phase)* Linux alarms (opt-in, same toggle): resident background/tray process at login (autostart + XDG Background portal under Flatpak) posting libnotify notifications; systemd user timers as fallback
 - [ ] 5.2 *(moved into the alarms phase)* Optional "run in background at login" toggle on all desktops (live sync + cross-device dismissal while window closed)
-- [ ] 5.3 Import/export JSON; full local backup/restore
-- [ ] 5.4 Dark mode + theming
-- [ ] 5.5 Accessibility pass: screen readers, contrast, font scaling, full keyboard nav
+- [x] 5.3 Export/import JSON (`export_service.dart` + settings UI): includes tombstones; import upserts with fresh HLC stamps so restores sync onward
+- [x] 5.4 Dark mode (light/dark themes since Phase 1, follows system)
+- [ ] 5.5 Accessibility pass: screen readers, contrast, font scaling, full keyboard nav (manual work, needs devices)
 - [ ] 5.6 Localization scaffold (intl), English strings extracted
-- [ ] 5.7 Performance: 10k-todo list scrolling, sync payload size, app start time budget
-- [ ] 5.8 Battery audit: sync frequency, wake locks, background refresh behavior
-- [ ] 5.9 Onboarding: first-run + "add your second device" flow
-- [ ] 5.10 Beta round on all five platforms; triage and fix
+- [x] 5.7 List perf: flattened rows + ListView.builder (lazy at 10k); sync payload/start-time budgets still to measure
+- [ ] 5.8 Battery audit: sync frequency, wake locks, background refresh behavior (needs devices)
+- [x] 5.9 Onboarding: guided empty state (add hint + shortcut + pair-device button); richer flow post-beta if needed
+- [ ] 5.10 Beta round on all five platforms; triage and fix (user + devices)
 
 ## Testing (cross-cutting — details in docs/testing.md)
 
