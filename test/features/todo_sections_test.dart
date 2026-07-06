@@ -15,6 +15,7 @@ Todo todo(
   dueAtMs: dueAtMs,
   priority: 0,
   tagsJson: tagsJson,
+  alarmOffsetsJson: '[]',
   deleted: false,
 );
 

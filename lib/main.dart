@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import 'app/alarm_service.dart';
+import 'app/notification_scheduler.dart';
 import 'app/providers.dart';
 import 'app/sync_service.dart';
 import 'data/db/database.dart';
@@ -17,14 +21,38 @@ Future<void> main() async {
     await prefs.setString('deviceId', deviceId);
   }
   final mailboxPath = prefs.getString('mailboxPath');
+  final alarmsEnabled =
+      prefs.getBool('alarmsEnabled') ?? (Platform.isAndroid || Platform.isIOS);
+
+  late final ProviderContainer container;
+  final scheduler = LocalNotificationsScheduler(
+    onAction: (todoId, occurrenceMs, action) {
+      final repo = container.read(todoRepositoryProvider);
+      if (action == 'snooze') {
+        final until = container
+            .read(clockProvider)
+            .now()
+            .add(const Duration(minutes: 10))
+            .millisecondsSinceEpoch;
+        repo.snoozeAlarm(todoId, until);
+      } else {
+        repo.dismissAlarm(todoId, occurrenceMs);
+      }
+    },
+  );
+  container = ProviderContainer(
+    overrides: [
+      databaseProvider.overrideWithValue(AppDatabase.open()),
+      deviceIdProvider.overrideWithValue(deviceId),
+      if (mailboxPath != null)
+        mailboxPathProvider.overrideWith((_) => mailboxPath),
+      alarmsEnabledProvider.overrideWith((_) => alarmsEnabled),
+      alarmSchedulerProvider.overrideWithValue(scheduler),
+    ],
+  );
   runApp(
-    ProviderScope(
-      overrides: [
-        databaseProvider.overrideWithValue(AppDatabase.open()),
-        deviceIdProvider.overrideWithValue(deviceId),
-        if (mailboxPath != null)
-          mailboxPathProvider.overrideWith((_) => mailboxPath),
-      ],
+    UncontrolledProviderScope(
+      container: container,
       child: const SyncBootstrap(child: TodoApp()),
     ),
   );
@@ -46,11 +74,13 @@ class _SyncBootstrapState extends ConsumerState<SyncBootstrap> {
   void initState() {
     super.initState();
     ref.read(syncServiceProvider).start();
+    ref.read(alarmServiceProvider).start();
   }
 
   @override
   void dispose() {
     ref.read(syncServiceProvider).stop();
+    ref.read(alarmServiceProvider).stop();
     super.dispose();
   }
 

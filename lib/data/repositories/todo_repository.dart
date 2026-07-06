@@ -64,6 +64,7 @@ class TodoRepository {
     Value<String?> recurrenceRule = const Value.absent(),
     Value<int> priority = const Value.absent(),
     Value<List<String>> tags = const Value.absent(),
+    Value<List<int>> alarmOffsetsMinutes = const Value.absent(),
   }) {
     final companion = TodosCompanion(
       title: title,
@@ -75,6 +76,9 @@ class TodoRepository {
       tagsJson: tags.present
           ? Value(jsonEncode(tags.value))
           : const Value.absent(),
+      alarmOffsetsJson: alarmOffsetsMinutes.present
+          ? Value(jsonEncode(alarmOffsetsMinutes.value))
+          : const Value.absent(),
     );
     final changed = [
       if (title.present) 'title',
@@ -84,9 +88,30 @@ class TodoRepository {
       if (recurrenceRule.present) 'recurrenceRule',
       if (priority.present) 'priority',
       if (tags.present) 'tagsJson',
+      if (alarmOffsetsMinutes.present) 'alarmOffsetsJson',
     ];
     return _write(id, companion, changed);
   }
+
+  /// Dismisses the alarm for [occurrenceMs]. This is a synced field write
+  /// (TASKS.md 3.15): peers suppress the same occurrence and cancel any
+  /// scheduled notification for it. Also clears a pending snooze.
+  Future<void> dismissAlarm(String id, int occurrenceMs) => _write(
+    id,
+    TodosCompanion(
+      lastDismissedMs: Value(occurrenceMs),
+      snoozeUntilMs: const Value(null),
+    ),
+    const ['lastDismissedMs', 'snoozeUntilMs'],
+  );
+
+  /// Snoozes the current alarm until [untilMs]; the planner emits one
+  /// extra fire at that moment.
+  Future<void> snoozeAlarm(String id, int untilMs) => _write(
+    id,
+    TodosCompanion(snoozeUntilMs: Value(untilMs)),
+    const ['snoozeUntilMs'],
+  );
 
   Future<void> complete(String id) => _write(
     id,
@@ -171,4 +196,8 @@ class TodoRepository {
 extension TodoTags on Todo {
   List<String> get tags =>
       (jsonDecode(tagsJson) as List<dynamic>).cast<String>();
+
+  /// Minutes before [Todo.dueAtMs] to ring (0 = at due time).
+  List<int> get alarmOffsetsMinutes =>
+      (jsonDecode(alarmOffsetsJson) as List<dynamic>).cast<int>();
 }

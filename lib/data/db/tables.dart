@@ -28,6 +28,19 @@ class Todos extends Table {
   IntColumn get completedAtMs => integer().nullable()();
   IntColumn get priority => integer().withDefault(const Constant(0))();
   TextColumn get tagsJson => text().withDefault(const Constant('[]'))();
+
+  /// Alarms (schema v3): JSON array of minute-offsets before [dueAtMs]
+  /// (0 = at due time). LWW fields on the todo so they sync like
+  /// everything else — the todo_alarms table is unused (see docs/alarms.md).
+  TextColumn get alarmOffsetsJson => text().withDefault(const Constant('[]'))();
+
+  /// Last dismissed occurrence (epoch ms). Dismissal *is* a synced field
+  /// write: every device suppresses alarms for occurrences ≤ this.
+  IntColumn get lastDismissedMs => integer().nullable()();
+
+  /// Snoozed-until moment (epoch ms); one extra fire at this time.
+  IntColumn get snoozeUntilMs => integer().nullable()();
+
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
   @override

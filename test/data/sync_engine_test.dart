@@ -168,6 +168,21 @@ void main() {
       expect(await c.dump(), await a.dump());
     });
 
+    test('alarm dismissal syncs as a field write (3.15)', () async {
+      final due = start.add(const Duration(hours: 1)).millisecondsSinceEpoch;
+      final todo = await a.todos.create(title: 'ring', dueAtMs: due);
+      await a.todos.edit(todo.id, alarmOffsetsMinutes: const Value([0]));
+      await b.engine.pullFrom(a.engine);
+
+      // B dismisses; A learns of it and would cancel its notification.
+      await b.todos.dismissAlarm(todo.id, due);
+      await a.engine.pullFrom(b.engine);
+
+      final onA = await a.db.todos.all().getSingle();
+      expect(onA.lastDismissedMs, due);
+      expect(await a.dump(), await b.dump());
+    });
+
     test('tombstone propagates and wins over older concurrent edit', () async {
       await a.todos.create(title: 'doomed');
       await b.engine.pullFrom(a.engine);
