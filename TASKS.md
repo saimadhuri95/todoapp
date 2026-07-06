@@ -59,10 +59,10 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Current task:** 1.9 natural-date quick-add done (PR #7, `quick-add-natural-dates` branch): parser + 36 tests + dialog preview; 175 tests total.
+- **Current task:** 1.9 natural-date quick-add merged (PR #7, all 6 CI checks green): parser + 36 tests + dialog preview; 175 tests total.
 - **Blocked on user:** publish the draft v0.1.0 GitHub release; Apple Developer/Play Console/MSIX cert for store distribution; real-device testing (2.11 manual alarm matrix, 5.5 a11y, 5.8 battery, 5.10 beta).
 - **Feature tail (optional, automatable):** 5.1/5.2 Linux tray + background-at-login, camera QR scan, native iCloud/SAF folder pickers, ongoing ARB string extraction, ASO metadata drafting (4.9–4.13).
-- **Next action:** confirm PR #7 merged green, then pick next feature-tail item (or store distribution once accounts exist).
+- **Next action:** fresh session; pick next feature-tail item (or store distribution once accounts exist).
 
 ## Phase 0 — Foundations
 
