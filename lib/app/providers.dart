@@ -47,7 +47,13 @@ final listRepositoryProvider = Provider<ListRepository>(
 /// `themeMode` pref in main(), persisted on change in settings.
 final themeModeProvider = StateProvider<ThemeMode>((_) => ThemeMode.system);
 
-/// Currently selected list filter (null = all lists).
+/// Sentinel [listFilterProvider] value for the Inbox view: unfiled todos
+/// (listId == null). The Inbox is deliberately *not* a synced list row —
+/// devices auto-creating one each would duplicate on merge, while a null
+/// listId can't diverge (TASKS.md 6.15).
+const kInboxFilter = '';
+
+/// Currently selected list filter (null = all lists, [kInboxFilter] = Inbox).
 final listFilterProvider = StateProvider<String?>((_) => null);
 
 /// Search text applied to the active list (client-side filter).
@@ -56,11 +62,15 @@ final searchQueryProvider = StateProvider<String>((_) => '');
 /// Selected todo id for the wide-layout detail pane.
 final selectedTodoIdProvider = StateProvider<String?>((_) => null);
 
-final activeTodosProvider = StreamProvider<List<Todo>>(
-  (ref) => ref
+final activeTodosProvider = StreamProvider<List<Todo>>((ref) {
+  final filter = ref.watch(listFilterProvider);
+  return ref
       .watch(todoRepositoryProvider)
-      .watchActive(listId: ref.watch(listFilterProvider)),
-);
+      .watchActive(
+        listId: filter == kInboxFilter ? null : filter,
+        unfiledOnly: filter == kInboxFilter,
+      );
+});
 
 final completedTodosProvider = StreamProvider<List<Todo>>(
   (ref) => ref.watch(todoRepositoryProvider).watchCompleted(),

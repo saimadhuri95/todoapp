@@ -213,7 +213,7 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
           initialValue: _listId,
           decoration: const InputDecoration(labelText: 'List'),
           items: [
-            const DropdownMenuItem(value: null, child: Text('No list')),
+            const DropdownMenuItem(value: null, child: Text('Inbox')),
             for (final list in lists)
               DropdownMenuItem(value: list.id, child: Text(list.name)),
           ],
