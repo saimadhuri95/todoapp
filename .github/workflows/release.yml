@@ -8,8 +8,27 @@ permissions:
   contents: write
 
 jobs:
+  verify:
+    name: Release gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Convergence property gate
+        run: >
+          flutter test
+          test/data/convergence_test.dart
+          test/data/sync_simulator_test.dart
+      - name: DST correctness suite
+        run: TZ=America/New_York flutter test test/core/dst_test.dart
+
   build:
     name: Build ${{ matrix.target }}
+    needs: verify
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

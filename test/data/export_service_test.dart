@@ -2,7 +2,7 @@ import 'package:drift/drift.dart' show TableOrViewStatements, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:todoapp/data/export_service.dart';
 
-import 'sync_engine_test.dart' show Device;
+import '../support/simulated_device.dart';
 
 void main() {
   final start = DateTime.utc(2026, 7, 6, 12);

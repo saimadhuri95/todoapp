@@ -1,0 +1,105 @@
+import 'package:drift/drift.dart' show Value;
+import 'package:drift/native.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:todoapp/app/alarm_service.dart';
+import 'package:todoapp/app/providers.dart';
+import 'package:todoapp/core/alarm_planner.dart';
+import 'package:todoapp/core/clock.dart';
+import 'package:todoapp/data/db/database.dart';
+import 'package:todoapp/features/settings/settings_screen.dart';
+
+import '../support/widget_test_support.dart';
+
+class RecordingScheduler implements AlarmScheduler {
+  final plans = <List<AlarmInstance>>[];
+
+  @override
+  Future<void> replaceAll(List<AlarmInstance> alarms) async =>
+      plans.add(alarms);
+
+  @override
+  Future<void> showInfo({required String title, required String body}) async {}
+
+  List<AlarmInstance> get latest => plans.isEmpty ? const [] : plans.last;
+}
+
+void main() {
+  late AppDatabase db;
+  late ProviderContainer container;
+  late RecordingScheduler scheduler;
+  final now = DateTime.utc(2026, 7, 6, 12);
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    db = AppDatabase(NativeDatabase.memory());
+    scheduler = RecordingScheduler();
+    container = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+        deviceIdProvider.overrideWithValue('settings-device'),
+        clockProvider.overrideWithValue(FixedClock(now)),
+        alarmSchedulerProvider.overrideWithValue(scheduler),
+        alarmsEnabledProvider.overrideWith((_) => true),
+      ],
+    );
+  });
+
+  tearDown(() async {
+    container.dispose();
+    await db.close();
+  });
+
+  Widget screen() => UncontrolledProviderScope(
+    container: container,
+    child: const MaterialApp(home: SettingsScreen()),
+  );
+
+  testApp('renders settings sections and opens sync settings', (tester) async {
+    await tester.pumpWidget(screen());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Theme'), findsOneWidget);
+    expect(find.text('Enable alarms on this device'), findsOneWidget);
+    expect(find.text('Sync & devices'), findsOneWidget);
+    expect(find.text('Export todos'), findsOneWidget);
+    expect(find.text('Import todos'), findsOneWidget);
+
+    await tester.tap(find.text('Sync & devices'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Show pairing invitation'), findsOneWidget);
+    expect(find.text('Sync now'), findsOneWidget);
+  });
+
+  testApp('disabling alarms persists the toggle and clears the schedule', (
+    tester,
+  ) async {
+    final repo = container.read(todoRepositoryProvider);
+    final todo = await repo.create(
+      title: 'Ring soon',
+      dueAtMs: now.add(const Duration(minutes: 30)).millisecondsSinceEpoch,
+    );
+    await repo.edit(todo.id, alarmOffsetsMinutes: const Value([0]));
+    await container.read(alarmServiceProvider).replan();
+    expect(scheduler.latest, hasLength(1));
+
+    await tester.pumpWidget(screen());
+    await tester.pumpAndSettle();
+    final alarmsTile = find.ancestor(
+      of: find.text('Enable alarms on this device'),
+      matching: find.byType(SwitchListTile),
+    );
+    await tester.tap(
+      find.descendant(of: alarmsTile, matching: find.byType(Switch)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(container.read(alarmsEnabledProvider), isFalse);
+    expect(scheduler.latest, isEmpty);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('alarmsEnabled'), isFalse);
+  });
+}

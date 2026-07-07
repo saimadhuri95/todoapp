@@ -11,7 +11,7 @@ import 'package:todoapp/data/sync/lww_applier.dart';
 import 'package:todoapp/data/sync/mailbox_transport.dart';
 import 'package:todoapp/data/sync/sync_orchestrator.dart';
 
-import 'sync_engine_test.dart' show Device;
+import '../support/simulated_device.dart';
 
 class FakeScheduler implements AlarmScheduler {
   final infos = <({String title, String body})>[];

@@ -6,8 +6,8 @@ on:
   pull_request:
 
 jobs:
-  test:
-    name: Analyze & test
+  verify:
+    name: Analyze & verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,15 +16,108 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: dart format --output=none --set-exit-if-changed lib test integration_test tool
       - run: flutter analyze
-      - run: flutter test
+      - name: Phase 0 unit suites
+        run: >
+          flutter test
+          test/core/hlc_test.dart
+          test/data/repositories_test.dart
+          test/core/recurrence_test.dart
+          test/data/lww_applier_test.dart
+          test/data/sync_engine_test.dart
+      - name: Convergence and simulator gate
+        run: >
+          flutter test
+          test/data/convergence_test.dart
+          test/data/sync_simulator_test.dart
+      - name: Full suite with coverage
+        run: flutter test --coverage
+      - name: Coverage floor (lib/data, generated code excluded)
+        run: >
+          dart tool/check_coverage.dart
+          --lcov coverage/lcov.info
+          --min 80
+          --scope lib/data
       - name: DST correctness suite (needs a DST-observing zone)
         run: TZ=America/New_York flutter test test/core/dst_test.dart
 
+  smoke-desktop:
+    name: Smoke ${{ matrix.target }}
+    needs: verify
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+            command: xvfb-run -a flutter test integration_test/app_smoke_test.dart -d linux
+          - os: windows-latest
+            target: windows
+            command: flutter test integration_test/app_smoke_test.dart -d windows
+          - os: macos-latest
+            target: macos
+            command: flutter test integration_test/app_smoke_test.dart -d macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux desktop dependencies
+        if: matrix.target == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgtk-3-dev libsecret-1-dev libjsoncpp-dev xvfb
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: ${{ matrix.command }}
+
+  smoke-android:
+    name: Smoke android
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          profile: pixel_7
+          script: flutter test integration_test/app_smoke_test.dart -d emulator-5554
+
+  smoke-ios:
+    name: Smoke ios
+    needs: verify
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Boot iOS simulator
+        shell: bash
+        run: |
+          SIMULATOR_ID=$(xcrun simctl list devices available | grep -m1 "iPhone" | sed -E 's/.*\(([-0-9A-F]+)\) \((Booted|Shutdown)\)/\1/')
+          echo "SIMULATOR_ID=$SIMULATOR_ID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+      - run: flutter test integration_test/app_smoke_test.dart -d ${{ env.SIMULATOR_ID }}
+
   build:
     name: Build ${{ matrix.target }}
-    needs: test
+    needs: [verify, smoke-desktop, smoke-android, smoke-ios]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
