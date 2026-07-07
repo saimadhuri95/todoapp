@@ -37,6 +37,9 @@ Future<void> main() async {
   }
   final alarmsEnabled =
       prefs.getBool('alarmsEnabled') ?? (Platform.isAndroid || Platform.isIOS);
+  final themeMode =
+      ThemeMode.values.asNameMap()[prefs.getString('themeMode')] ??
+      ThemeMode.system;
 
   late final ProviderContainer container;
   final scheduler = LocalNotificationsScheduler(
@@ -61,6 +64,7 @@ Future<void> main() async {
       if (mailboxPath != null)
         mailboxPathProvider.overrideWith((_) => mailboxPath),
       alarmsEnabledProvider.overrideWith((_) => alarmsEnabled),
+      themeModeProvider.overrideWith((_) => themeMode),
       alarmSchedulerProvider.overrideWithValue(scheduler),
     ],
   );
@@ -102,14 +106,15 @@ class _SyncBootstrapState extends ConsumerState<SyncBootstrap> {
   Widget build(BuildContext context) => widget.child;
 }
 
-class TodoApp extends StatelessWidget {
+class TodoApp extends ConsumerWidget {
   const TodoApp({super.key});
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) => MaterialApp(
     onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
+    themeMode: ref.watch(themeModeProvider),
     theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal)),
     darkTheme: ThemeData(
       colorScheme: ColorScheme.fromSeed(

@@ -62,7 +62,9 @@ numbers; the **order we execute** is:
 - **Current task:** Apple-first push (user direction 2026-07-06) — session complete. Merged: PR #7 quick-add, PR #8 macOS fixes 4.16–4.20 + iCloud channel, PR #9 camera QR (6.1). REQUIREMENTS.md triaged → Phase 6. ASO 4.9–4.11 decided ("Knot – Todo List & Sync" / "Collaborative Task Manager", docs/packaging.md). 188 tests.
 - **Automatable Apple work is now exhausted** except 4.12 screenshot staging (simulators) and Phase 6 cross-platform features that also serve Apple (6.2 notifications, 6.4 links, 6.6 theme override, 6.8 calendar).
 - **Blocked on user:** 4.21 re-verify on a fresh installed release build (folder→relaunch→syncs; QR renders; camera scan; LAN prompt). Apple Developer account unlocks: iCloud entitlement + Keychain Sharing (steps in docs/packaging.md), TestFlight 4.3, notarized dmg 4.4, App Store Connect metadata entry (values ready in packaging.md). Also Play Console/MSIX cert; device testing (2.11, 5.5, 5.8, 5.10).
-- **Next action:** fresh session → 6.2 remote-change notification (driver scenario, reuses AlarmScheduler), then 6.4 tappable links / 6.6 theme override (small) or 6.8 calendar view (big — own session).
+- **Requirements session 2026-07-06:** REQUIREMENTS.md expanded to R1–R17 (two research passes: competitor features, abandonment psychology, ADHD, GTD, routines, caregivers, kiosk) and fully triaged → Phase 6 wave 2 (6.13–6.57, prioritized P1/P2/alarms-phase/P3). Wave-1 tasks' stale R-refs fixed to current numbering. No code changed.
+- **Session 2026-07-06 (links+theme):** 6.4 + 6.6 done on branch `links-and-theme` (PR pending merge at session end — check it landed). New: `lib/core/linkify.dart`, `lib/features/todos/linkified_text.dart` (urlOpenerProvider), themeModeProvider + settings dropdown, QR white background for dark mode, url_launcher dep + Android https query. 209 tests.
+- **Next action:** fresh session → 6.8 calendar view (big — own session) or Wave-2 P1 starters: 6.13 subtasks (biggest single win) or 6.15/6.16 (small, high retention value). Also small: 6.3 sync-latency status line, 6.5 glanceable mode.
 
 ## Phase 0 — Foundations
 
@@ -198,9 +200,13 @@ fixes; 4.18 is the follow-on persistence bug the picker fix will expose.
 
 ## Phase 6 — User-sourced requirements (REQUIREMENTS.md, triaged 2026-07-06)
 
-Only the 🆕/🔶 items become tasks; ✅ ones map to existing work (R1.3→0.6,
-R2.2→1.9, R5.1/R5.2→project premise). Ordering favors the driver/dispatcher
-scenario and Apple-first direction.
+Only 🆕/🔶 items become tasks. Wave 1 (6.1–6.12) triaged the first draft;
+R-references are updated to the current expanded file (R1–R17). Wave 2
+(6.13+) triages the 2026-07-06 research passes. ✅/already-built requirements
+map to existing work instead of new tasks: R1.3→0.6, R2.1→1.9, R3.3/R3.4→1.3,
+R3.5→1.8, R5.1→1.7, R5.4→1.10 (move to FTS only if perf demands), R10.x→5.5,
+R11.1-JSON→5.3, R12.1→6.12, R12.2/R12.3→project premise. Ordering favors the
+driver/dispatcher scenario and Apple-first direction.
 
 - [x] 6.1 (R1.4 + pairing UX) Camera QR scan for pairing: mobile_scanner 7.2
   screen (`scan_invitation_screen.dart`) on iOS/Android/macOS feeding the
@@ -214,25 +220,30 @@ scenario and Apple-first direction.
 - [ ] 6.3 (R1.1) Define + document target sync latency per transport (LAN
   push target <5s, mailbox = poll interval); add a "last sync/next poll"
   line to sync settings; measure LAN path in the multi-device simulator
-- [ ] 6.4 (R2.1) Tappable links: linkify URLs in title/notes (list tiles +
-  editor read mode), open via url_launcher; no markup required
-- [ ] 6.5 (R2.3) Glanceable mode: display-density setting (default/large);
+- [x] 6.4 (R4.1) Tappable links: pure `lib/core/linkify.dart` (http/https
+  only, trailing-punctuation + paren-balance trimming) + `LinkifiedText`
+  widget in list tiles; editor shows open-link chips under notes (no read
+  mode exists); url_launcher behind injectable `urlOpenerProvider`; Android
+  manifest https VIEW query added
+- [ ] 6.5 (R4.2) Glanceable mode: display-density setting (default/large);
   large = bigger checkboxes/type, tighter info, one-tap complete targets —
   suits a dashboard-mounted phone
-- [ ] 6.6 (R3.1) Theme override setting (system/light/dark) — engine exists
-  (5.4); verify QR + settings legibility in both modes
-- [ ] 6.7 (R3.2) Minimalist audit: main list shows only user content — move
+- [x] 6.6 (R9.1) Theme override setting (system/light/dark):
+  `themeModeProvider` (pref-seeded in main, persisted via settings dropdown)
+  → MaterialApp.themeMode; pairing QR given explicit white background so it
+  stays scannable in dark mode. On-device legibility check folds into 4.21
+- [ ] 6.7 (R9.2) Minimalist audit: main list shows only user content — move
   any sync/debug affordances behind the app bar/menus (mostly true today;
   audit once 6.3's status line lands, keep it inside sync settings)
-- [ ] 6.8 (R4.1) Calendar view: month/week screen from due dates, local only;
+- [ ] 6.8 (R5.2) Calendar view: month/week screen from due dates, local only;
   day tap filters the list; reuse `todo_sections` date logic
-- [ ] 6.9 (R4.2) Recurrence UX gap: engine + editor dropdown exist (1.4/1.8);
+- [ ] 6.9 (R5.3) Recurrence UX gap: engine + editor dropdown exist (1.4/1.8);
   add completed-occurrence → next-occurrence spawn if missing, plus
   "duplicate yesterday's list" action for daily duty lists
 - [ ] 6.10 (R1.4) Unattended viewer doc + audit: sync auto-resumes after
   restart (SyncBootstrap does), document Doze/iOS background-fetch limits
   honestly in docs/sync.md; verify no interaction needed post-reboot
-- [ ] 6.11 (R4.3/R4.4, optional tail) Habit streaks; per-task focus timer
+- [ ] 6.11 (R14.6/R14.2, optional tail) Habit streaks; per-task focus timer
   with end notification (desktop behind alarms opt-in)
 - [ ] 6.12 Licensing follow-up (deferred 2026-07-06): the MIT → Knot Source
   Available 1.0 relicense (commits c8cb74a/ef55a29) landed without an ADR —
@@ -240,6 +251,108 @@ scenario and Apple-first direction.
   no-redistribution terms with Flathub submission (4.6) and the
   winget/Flathub auto-update plan (4.8); revisit R12.1 "free-with-privacy"
   positioning and store-listing wording accordingly
+
+### Wave 2 — full triage of expanded REQUIREMENTS.md (R1–R17, 2026-07-06)
+
+**P1 — core usability**
+
+- [ ] 6.13 (R3.1) Subtasks/checklists: `parentId` column (schema migration),
+  repository support, editor checklist UI; sub-items are ordinary CRDT rows
+  with per-field HLC; unit + widget tests
+- [ ] 6.14 (R2.2) Global quick capture: desktop global-hotkey quick-add
+  window; Android long-press app shortcut + iOS Home-screen quick action
+  straight into quick add (widgets themselves = 6.24)
+- [ ] 6.15 (R13.3) Inbox: quick-add defaults to an Inbox list; one-tap
+  move-to-list triage affordance on the tile
+- [ ] 6.16 (R13.1) No-shame overdue: fold Overdue into Today with a subtle
+  "since Tue" tag (restyle 1.7 sections); no red counters/badges by default
+- [ ] 6.17 (R11.1) Human-readable export: Markdown + todo.txt writers next to
+  5.3's JSON export
+- [ ] 6.18 (R13.9) Zero-config gate: add to docs/testing.md release
+  checklist — first launch is one plain usable list; every R13–R15 feature
+  ships opt-in
+
+**P2 — differentiators**
+
+- [ ] 6.19 (R3.2) Sections within a list (schema + drag between sections)
+- [ ] 6.20 (R3.6) Manual drag-to-reorder with a CRDT-safe fractional order
+  key (never integer indexes); merge property tests for concurrent reorders
+- [ ] 6.21 (R3.7) Saved filters / smart lists: list+label+priority+date
+  queries persisted as user views, local-only computation
+- [ ] 6.22 (R3.9) Completed archive: browseable per-list history screen
+  beyond the current Completed expansion tile
+- [ ] 6.23 (R4.3) Undo snackbars for complete/delete/edit
+- [ ] 6.24 (R8.1) Home-screen widgets (Android + iOS): today list,
+  interactive check-off where the OS allows, quick-add button
+- [ ] 6.25 (R2.3) Share-sheet capture target (Android/iOS/macOS): shared
+  text/URL becomes a task (title + notes)
+- [ ] 6.26 (R2.5) Multi-line paste into quick add → "create one task per
+  line" prompt
+- [ ] 6.27 (R1.5) Sync health panel: extend 6.3's status line with transport
+  in use + pending-outbound count, kept inside sync settings (6.7 audit)
+- [ ] 6.28 (R7.1) Per-list sharing: ADR + docs/sync.md design first (per-list
+  group keys, scoped changesets), then implementation — crypto/protocol
+  change, own session(s)
+- [ ] 6.29 (R13.2) Bulk reschedule ("overdue amnesty"): sweep overdue to
+  today/tomorrow/Someday as a gentle periodic prompt
+- [ ] 6.30 (R13.4) Someday/Maybe parking area excluded from Today/Upcoming
+  and all counts (extend the existing Someday section semantics)
+- [ ] 6.31 (R13.5) Stale-task review: surface tasks untouched N weeks with
+  reschedule / Someday / delete exits
+- [ ] 6.32 (R13.6) Guided weekly review flow (process Inbox → scan lists →
+  review Someday); optional, skippable, never nags by default
+- [ ] 6.33 (R13.7) Completion recap: "done today/this week" view + optional
+  end-of-day shutdown ritual rolling leftovers deliberately
+- [ ] 6.34 (R14.1) "Top 3" pinned must-dos above everything in Today
+- [ ] 6.35 (R14.3) Time-estimate + energy metadata; "I have 10 minutes"
+  quick-win filter
+- [ ] 6.36 (R14.5) Task-breakdown helper: one-tap multi-line split onto 6.13
+  subtasks + reusable breakdown templates (local only, no AI) — depends 6.13
+- [ ] 6.37 (R15.1) Checklist templates: save list/task+subtasks as template,
+  instantiate with checked-state reset (subsumes 6.9's "duplicate yesterday")
+- [ ] 6.38 (R16.1) Kiosk mode, extends 6.5: keep-screen-on while charging,
+  Android boot auto-launch, burn-in-safe dimming + clock header
+- [ ] 6.39 (R16.2) Old-hardware floor: verify on ~2 GB-RAM Android / oldest
+  supported OS; document minimum versions in README
+- [ ] 6.40 (R11.2) Import: todo.txt, CSV, Todoist/TickTick export formats;
+  imports stamp fresh HLCs (same pattern as 5.3 restore)
+- [ ] 6.41 (R11.3) Encrypted local backup/restore file; document "mailbox is
+  a transport, not a backup" in docs/sync.md
+- [ ] 6.42 (R12.4) Perf budgets: cold start <2 s, quick-add <500 ms, 5k-task
+  scroll without jank — measure (extends 5.7), automate what CI can hold
+
+**Alarms-phase additions (execute with Phase 2, per execution order)**
+
+- [ ] 6.43 (R6.2) Snooze presets on the notification (10 min / 1 h / this
+  evening / tomorrow) — extends 2.8's fixed 10 min
+- [ ] 6.44 (R6.3) Nag/escalating reminders: per-task "repeat every N minutes
+  until done", local scheduling only
+
+**P3 — optional tail (one line each; expand into subtasks when picked up)**
+
+- [ ] 6.45 (R1.6) Syncthing-tolerant mailbox: audit format for third-party
+  folder replication (conflicted-copy filenames), document in docs/sync.md
+- [ ] 6.46 (R2.4) Voice input via platform speech APIs (on-device only)
+- [ ] 6.47 (R3.8) Attachments — design doc first (size caps, lazy fetch in
+  encrypted mailbox), implementation only after sign-off
+- [ ] 6.48 (R4.4) Configurable swipe actions (complete/snooze/delete)
+- [ ] 6.49 (R5.5/R5.6) Kanban board (sections as columns) + Eisenhower view
+- [ ] 6.50 (R6.4/R6.5) Location reminders (on-device geofencing only) +
+  Android sticky today-notification
+- [ ] 6.51 (R7.2/R7.3) Assignee chip on shared-list tasks + "changed by
+  <device>" attribution from HLC metadata (feeds 6.2 notification text)
+- [ ] 6.52 (R8.2/R8.3/R8.4) iOS lock-screen widget; Siri Shortcuts / Android
+  App Actions; desktop tray quick-add + today count (ties into 5.1/5.2)
+- [ ] 6.53 (R9.3) Theming: accent color + per-list colors/icons
+- [ ] 6.54 (R13.8) Celebration feedback: check-off animation/haptics,
+  Today-cleared moment, easy off switch
+- [ ] 6.55 (R14.4) Realistic-day meter: sum of Today's estimates vs. hours
+  left, gentle over-commitment hint — depends 6.35
+- [ ] 6.56 (R15.2/R15.3) Frequency-based chores (due N days after last
+  completion, injected clock) + chore rotation among paired people
+- [ ] 6.57 (R17.1/R17.2) Simple mode preset (extra-large, high contrast,
+  list+check only) + caregiver setup guide (per-list share + nag reminders);
+  "not a medical device" wording in store listings
 
 ## Testing (cross-cutting — details in docs/testing.md)
 

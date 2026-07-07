@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart' show TableOrViewStatements;
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -41,6 +42,10 @@ final listRepositoryProvider = Provider<ListRepository>(
   (ref) =>
       ListRepository(ref.watch(databaseProvider), ref.watch(hlcClockProvider)),
 );
+
+/// Theme override — system/light/dark (TASKS.md 6.6). Seeded from the
+/// `themeMode` pref in main(), persisted on change in settings.
+final themeModeProvider = StateProvider<ThemeMode>((_) => ThemeMode.system);
 
 /// Currently selected list filter (null = all lists).
 final listFilterProvider = StateProvider<String?>((_) => null);

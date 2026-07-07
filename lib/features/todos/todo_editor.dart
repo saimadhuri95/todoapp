@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../core/linkify.dart';
 import '../../data/db/database.dart';
 import '../../data/repositories/todo_repository.dart' show TodoTags;
+import 'linkified_text.dart';
 
 /// Full-screen editor route (narrow layouts). Wide layouts embed
 /// [TodoEditor] directly in the detail pane.
@@ -131,6 +133,34 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
           decoration: const InputDecoration(labelText: 'Notes'),
           maxLines: 4,
           minLines: 2,
+        ),
+        // The editor has no read mode, so URLs typed into title/notes get
+        // open buttons here; list tiles linkify inline (TASKS.md 6.4).
+        ListenableBuilder(
+          listenable: Listenable.merge([_title, _notes]),
+          builder: (context, _) {
+            final links = extractLinks('${_title.text}\n${_notes.text}');
+            if (links.isEmpty) return const SizedBox.shrink();
+            final open = ref.read(urlOpenerProvider);
+            return Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final link in links)
+                    ActionChip(
+                      avatar: const Icon(Icons.open_in_new, size: 16),
+                      label: Text(
+                        link.toString(),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onPressed: () => open(link),
+                    ),
+                ],
+              ),
+            );
+          },
         ),
         const SizedBox(height: 12),
         ListTile(
