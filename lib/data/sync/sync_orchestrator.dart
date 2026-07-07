@@ -71,7 +71,7 @@ class SyncOrchestrator {
       var lanApplied = 0;
       var lanPeersReached = 0;
       final errors = <String>[];
-      engine.takeVisibleTodosChanged();
+      final visibleChangesBefore = engine.visibleTodoChanges;
 
       // Consume before publish so freshly learned writes get relayed in
       // the same pass.
@@ -114,8 +114,8 @@ class SyncOrchestrator {
         lanPeersReached: lanPeersReached,
         errors: errors,
       );
-      final visibleTodosChanged = engine.takeVisibleTodosChanged();
-      if (notificationsEnabled && visibleTodosChanged) {
+      if (notificationsEnabled &&
+          engine.visibleTodoChanges != visibleChangesBefore) {
         await notifications?.showInfo(
           title: 'List updated',
           body: 'Changes from another device were applied.',

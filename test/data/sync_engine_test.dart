@@ -97,8 +97,7 @@ void main() {
       expect(todo.tags, ['errand']);
       expect((await b.db.todoLists.all().getSingle()).name, 'Groceries');
       expect(await a.dump(), await b.dump());
-      expect(b.engine.takeVisibleTodosChanged(), isTrue);
-      expect(b.engine.takeVisibleTodosChanged(), isFalse);
+      expect(b.engine.visibleTodoChanges, 1);
     });
 
     test('second pull is empty (version vector covers first)', () async {
@@ -184,7 +183,7 @@ void main() {
       final onA = await a.db.todos.all().getSingle();
       expect(onA.lastDismissedMs, due);
       expect(await a.dump(), await b.dump());
-      expect(a.engine.takeVisibleTodosChanged(), isFalse);
+      expect(a.engine.visibleTodoChanges, 0);
     });
 
     test('non-todo writes do not mark visible todos changed', () async {
@@ -204,7 +203,41 @@ void main() {
       );
 
       expect(applied, 1);
-      expect(b.engine.takeVisibleTodosChanged(), isFalse);
+      expect(b.engine.visibleTodoChanges, 0);
+    });
+
+    test('todo created and tombstoned in one changeset is not a visible '
+        'change', () async {
+      FieldWrite ghostWrite(String field, Object? value, int counter) =>
+          FieldWrite(
+            entity: 'todos',
+            rowId: 'ghost',
+            field: field,
+            value: value,
+            hlc: Hlc(start.millisecondsSinceEpoch, counter, 'ccc'),
+          );
+
+      final applied = await b.engine.apply(
+        Changeset(
+          deviceId: 'ccc',
+          writes: [
+            ghostWrite('title', 'never shown here', 0),
+            ghostWrite('deleted', 1, 1),
+          ],
+        ),
+      );
+
+      expect(applied, 2);
+      expect(b.engine.visibleTodoChanges, 0);
+
+      // A later edit to the tombstoned row stays invisible too.
+      await b.engine.apply(
+        Changeset(
+          deviceId: 'ccc',
+          writes: [ghostWrite('title', 'still not shown', 2)],
+        ),
+      );
+      expect(b.engine.visibleTodoChanges, 0);
     });
 
     test('tombstone propagates and wins over older concurrent edit', () async {

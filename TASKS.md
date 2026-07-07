@@ -234,6 +234,12 @@ scenario and Apple-first direction.
   honestly in docs/sync.md; verify no interaction needed post-reboot
 - [ ] 6.11 (R4.3/R4.4, optional tail) Habit streaks; per-task focus timer
   with end notification (desktop behind alarms opt-in)
+- [ ] 6.12 Licensing follow-up (deferred 2026-07-06): the MIT → Knot Source
+  Available 1.0 relicense (commits c8cb74a/ef55a29) landed without an ADR —
+  write docs/decisions/000X-license.md making the final call; reconcile the
+  no-redistribution terms with Flathub submission (4.6) and the
+  winget/Flathub auto-update plan (4.8); revisit R12.1 "free-with-privacy"
+  positioning and store-listing wording accordingly
 
 ## Testing (cross-cutting — details in docs/testing.md)
 
