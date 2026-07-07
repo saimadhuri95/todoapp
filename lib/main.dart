@@ -40,6 +40,9 @@ Future<void> main() async {
   final themeMode =
       ThemeMode.values.asNameMap()[prefs.getString('themeMode')] ??
       ThemeMode.system;
+  final density =
+      DisplayDensity.values.asNameMap()[prefs.getString('displayDensity')] ??
+      DisplayDensity.standard;
 
   late final ProviderContainer container;
   final scheduler = LocalNotificationsScheduler(
@@ -65,6 +68,7 @@ Future<void> main() async {
         mailboxPathProvider.overrideWith((_) => mailboxPath),
       alarmsEnabledProvider.overrideWith((_) => alarmsEnabled),
       themeModeProvider.overrideWith((_) => themeMode),
+      displayDensityProvider.overrideWith((_) => density),
       alarmSchedulerProvider.overrideWithValue(scheduler),
     ],
   );

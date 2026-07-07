@@ -54,6 +54,15 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
         SwitchListTile(
+          secondary: const Icon(Icons.fit_screen_outlined),
+          title: const Text('Glanceable mode'),
+          subtitle: const Text(
+            'Larger type and checkboxes — readable across the room',
+          ),
+          value: ref.watch(displayDensityProvider) == DisplayDensity.large,
+          onChanged: (large) => _setDensity(ref, large),
+        ),
+        SwitchListTile(
           secondary: const Icon(Icons.alarm),
           title: const Text('Enable alarms on this device'),
           subtitle: const Text(
@@ -91,6 +100,13 @@ class SettingsScreen extends ConsumerWidget {
       ],
     ),
   );
+
+  Future<void> _setDensity(WidgetRef ref, bool large) async {
+    final density = large ? DisplayDensity.large : DisplayDensity.standard;
+    ref.read(displayDensityProvider.notifier).state = density;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('displayDensity', density.name);
+  }
 
   Future<void> _setThemeMode(WidgetRef ref, ThemeMode? mode) async {
     if (mode == null) return;

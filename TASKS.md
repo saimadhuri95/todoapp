@@ -65,8 +65,9 @@ numbers; the **order we execute** is:
 - **Requirements session 2026-07-06:** REQUIREMENTS.md expanded to R1–R17 (two research passes: competitor features, abandonment psychology, ADHD, GTD, routines, caregivers, kiosk) and fully triaged → Phase 6 wave 2 (6.13–6.57, prioritized P1/P2/alarms-phase/P3). Wave-1 tasks' stale R-refs fixed to current numbering. No code changed.
 - **Session 2026-07-06 (links+theme):** 6.4 + 6.6 merged as PR #12. New: `lib/core/linkify.dart`, `LinkifiedText` (urlOpenerProvider), themeModeProvider + settings dropdown, QR white background for dark mode.
 - **Session 2026-07-06 (inbox+overdue):** 6.15 + 6.16 merged as PR #13. Inbox = null listId (see 6.15 note re: sync safety), `kInboxFilter` sentinel + `watchActive(unfiledOnly:)`, tile move-to-list popup; sectionize folds Overdue→Today + pure `overdueLabel`.
-- **Session 2026-07-06 (export):** 6.17 merged as PR #14 (CI green on all 6 checks). exportMarkdown/exportTodoTxt in ExportService + settings format picker. 218 tests.
-- **Next action:** fresh session → 6.8 calendar view or 6.13 subtasks (each big — own session). Small fillers left: 6.3 sync-latency status line, 6.5 glanceable mode, 6.9 recurrence spawn check.
+- **Session 2026-07-06 (export):** 6.17 merged as PR #14. exportMarkdown/exportTodoTxt in ExportService + settings format picker.
+- **Session 2026-07-06 (latency+density+recurrence):** 6.3 + 6.5 + 6.9 on branch `latency-density-recurrence` (PR pending merge at session end — check it landed). Latency table in docs/sync.md + status line (`lastSyncPassProvider`); glanceable `DisplayDensity`; recurring complete() advances due in place (CRDT-safe). 226 tests.
+- **Next action:** fresh session → 6.8 calendar view or 6.13 subtasks (each big — own session). Phase 6 P1 small items are now exhausted except 6.7 minimalist audit (do after using 6.3's line a while), 6.10 unattended-viewer doc, 6.14/6.18 (need platform/native or doc work).
 
 ## Phase 0 — Foundations
 
@@ -219,17 +220,21 @@ driver/dispatcher scenario and Apple-first direction.
   todos, post one local "List updated" notification via the existing
   AlarmScheduler abstraction; desktop obeys the notifications opt-in; batch
   per sync pass (no per-row spam); generated locally — never a push server
-- [ ] 6.3 (R1.1) Define + document target sync latency per transport (LAN
-  push target <5s, mailbox = poll interval); add a "last sync/next poll"
-  line to sync settings; measure LAN path in the multi-device simulator
+- [x] 6.3 (R1.1) Sync latency: targets table in docs/sync.md (LAN <6 s =
+  5 s debounce + transfer; mailbox ≤ poll ∨ cloud-client lag); "last sync +
+  cadence" status line in sync settings via `lastSyncPassProvider` (written
+  by SyncService passes and Sync now). In-process LAN measurement is
+  ms-scale/meaningless — real-network numbers folded into manual matrix
+  (2.11/4.21)
 - [x] 6.4 (R4.1) Tappable links: pure `lib/core/linkify.dart` (http/https
   only, trailing-punctuation + paren-balance trimming) + `LinkifiedText`
   widget in list tiles; editor shows open-link chips under notes (no read
   mode exists); url_launcher behind injectable `urlOpenerProvider`; Android
   manifest https VIEW query added
-- [ ] 6.5 (R4.2) Glanceable mode: display-density setting (default/large);
-  large = bigger checkboxes/type, tighter info, one-tap complete targets —
-  suits a dashboard-mounted phone
+- [x] 6.5 (R4.2) Glanceable mode: `DisplayDensity` setting (standard/large,
+  pref-seeded, settings switch); large = titleLarge tile type + 1.4× checkbox
+  (Transform.scale grows the hit target too) + taller tiles. Kiosk extras
+  (keep-screen-on, boot launch) stay in 6.38
 - [x] 6.6 (R9.1) Theme override setting (system/light/dark):
   `themeModeProvider` (pref-seeded in main, persisted via settings dropdown)
   → MaterialApp.themeMode; pairing QR given explicit white background so it
@@ -239,9 +244,12 @@ driver/dispatcher scenario and Apple-first direction.
   audit once 6.3's status line lands, keep it inside sync settings)
 - [ ] 6.8 (R5.2) Calendar view: month/week screen from due dates, local only;
   day tap filters the list; reuse `todo_sections` date logic
-- [ ] 6.9 (R5.3) Recurrence UX gap: engine + editor dropdown exist (1.4/1.8);
-  add completed-occurrence → next-occurrence spawn if missing, plus
-  "duplicate yesterday's list" action for daily duty lists
+- [x] 6.9 (R5.3) Recurrence UX gap closed: complete() on a recurring todo
+  now advances dueAt to the next occurrence in place (CRDT-safe: concurrent
+  completes converge via LWW; spawning rows would duplicate on merge);
+  overdue completes jump past now, early completes skip the pending one,
+  stale snooze cleared, malformed rules fall back to normal completion.
+  "Duplicate yesterday's list" lives in 6.37 templates (which subsumes it)
 - [ ] 6.10 (R1.4) Unattended viewer doc + audit: sync auto-resumes after
   restart (SyncBootstrap does), document Doze/iOS background-fetch limits
   honestly in docs/sync.md; verify no interaction needed post-reboot

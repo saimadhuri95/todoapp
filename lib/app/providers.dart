@@ -47,6 +47,19 @@ final listRepositoryProvider = Provider<ListRepository>(
 /// `themeMode` pref in main(), persisted on change in settings.
 final themeModeProvider = StateProvider<ThemeMode>((_) => ThemeMode.system);
 
+/// Glanceable mode (TASKS.md 6.5): large bumps type + checkbox size on the
+/// list for dashboard-mounted phones. Seeded from the `displayDensity` pref
+/// in main(), persisted on change in settings.
+enum DisplayDensity { standard, large }
+
+final displayDensityProvider = StateProvider<DisplayDensity>(
+  (_) => DisplayDensity.standard,
+);
+
+/// When the last sync pass finished on this device (null = none yet this
+/// run); written by SyncService, shown in sync settings (TASKS.md 6.3).
+final lastSyncPassProvider = StateProvider<DateTime?>((_) => null);
+
 /// Sentinel [listFilterProvider] value for the Inbox view: unfiled todos
 /// (listId == null). The Inbox is deliberately *not* a synced list row —
 /// devices auto-creating one each would duplicate on merge, while a null

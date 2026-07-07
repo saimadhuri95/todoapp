@@ -67,6 +67,24 @@ devices over pluggable transports, merged with CRDT semantics.
 - Prefer LAN when a peer is visible; mailbox otherwise. Both can run — merge
   idempotency makes duplicate delivery harmless.
 
+### Latency targets (TASKS.md 6.3)
+
+What "synced" should feel like per transport, and why:
+
+| Path | Target | Dominated by |
+|---|---|---|
+| LAN, both apps foreground | **< 6 s** | 5 s mutation debounce + transfer |
+| App brought to foreground | seconds | immediate pass on resume |
+| Mailbox, apps open | **≤ ~5 min + cloud lag** | our 5-min poll ∨ the drive client's own upload/download cadence (outside our control) |
+| Either app closed | until next launch/resume | no background daemon in v1 (see 5.1/5.2) |
+
+The receiving side applies deltas in one transaction, so "arrived" ≈
+"visible". LAN transfer itself is millisecond-scale (loopback protocol
+tests); the debounce *is* the LAN latency budget, chosen to batch bursts of
+edits into one changeset. Real-network measurements (Wi-Fi, congested
+mDNS) fold into the manual device matrix (2.11/4.21). Sync settings shows
+the live "last sync" time + trigger cadence (6.3's status line).
+
 ## Failure modes considered
 
 - Clock skew between devices → HLC handles ordering.

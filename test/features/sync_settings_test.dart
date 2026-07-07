@@ -48,6 +48,26 @@ void main() {
 
     expect(find.text('No paired devices yet'), findsOneWidget);
     expect(find.textContaining('Not set'), findsOneWidget);
+    // 6.3 status line before any pass this session.
+    expect(find.text('No sync pass yet this session'), findsOneWidget);
+  });
+
+  testApp('status line shows the last sync pass time', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          deviceIdProvider.overrideWithValue('this-device'),
+          clockProvider.overrideWithValue(FixedClock(DateTime.utc(2026, 7, 5))),
+          keyStoreProvider.overrideWithValue(keyStore),
+          lastSyncPassProvider.overrideWith((_) => DateTime(2026, 7, 5, 9, 30)),
+        ],
+        child: const MaterialApp(home: SyncSettingsScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Last sync 09:30'), findsOneWidget);
   });
 
   testApp('showing an invitation renders a QR and registers this device', (
