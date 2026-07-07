@@ -32,6 +32,7 @@ class LocalNotificationsScheduler implements AlarmScheduler {
 
   static const _dismissAction = 'dismiss';
   static const _snoozeAction = 'snooze';
+  static const _syncInfoId = 0x4b4e4f54;
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -146,6 +147,28 @@ class LocalNotificationsScheduler implements AlarmScheduler {
         }),
       );
     }
+  }
+
+  @override
+  Future<void> showInfo({required String title, required String body}) async {
+    await initialize();
+    await _plugin.show(
+      id: _syncInfoId,
+      title: title,
+      body: body,
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'knot_updates',
+          'Updates',
+          channelDescription: 'Sync status updates',
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+        ),
+        iOS: DarwinNotificationDetails(),
+        macOS: DarwinNotificationDetails(),
+        linux: LinuxNotificationDetails(),
+      ),
+    );
   }
 
   NotificationDetails _details() => const NotificationDetails(

@@ -31,6 +31,7 @@ class LanSync {
     required Socket socket,
     required SyncEngine engine,
     required SecretKey groupKey,
+    Future<void> Function()? onVisibleTodosChanged,
   }) async {
     final io = _SecureFrameIO(socket, groupKey);
     try {
@@ -48,7 +49,14 @@ class LanSync {
 
       final deltas = await io.readJson();
       if (deltas == null) return 0;
-      return engine.apply(Changeset.decode(deltas['changeset'] as String));
+      engine.takeVisibleTodosChanged();
+      final applied = await engine.apply(
+        Changeset.decode(deltas['changeset'] as String),
+      );
+      if (applied > 0 && engine.takeVisibleTodosChanged()) {
+        await onVisibleTodosChanged?.call();
+      }
+      return applied;
     } on SecretBoxAuthenticationError {
       return 0; // Not paired with us: drop silently.
     } on FormatException {
@@ -99,10 +107,15 @@ class LanSync {
 
 /// Accepts LAN sync connections. Discovery/advertising is layered on top.
 class LanSyncServer {
-  LanSyncServer({required this.engine, required this.groupKey});
+  LanSyncServer({
+    required this.engine,
+    required this.groupKey,
+    this.onVisibleTodosChanged,
+  });
 
   final SyncEngine engine;
   final SecretKey groupKey;
+  final Future<void> Function()? onVisibleTodosChanged;
   ServerSocket? _server;
 
   int? get port => _server?.port;
@@ -116,6 +129,7 @@ class LanSyncServer {
         socket: socket,
         engine: engine,
         groupKey: groupKey,
+        onVisibleTodosChanged: onVisibleTodosChanged,
       ).ignore();
     });
     return server.port;

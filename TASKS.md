@@ -207,7 +207,7 @@ scenario and Apple-first direction.
   shared `_acceptInvitation` flow; NSCameraUsageDescription both platforms +
   macOS camera entitlement; camera-unavailable fallback points to paste.
   Real-camera verify on devices = part of 4.21/2.11 manual pass
-- [ ] 6.2 (R1.2) Remote-change notification: when a merge changes visible
+- [x] 6.2 (R1.2) Remote-change notification: when a merge changes visible
   todos, post one local "List updated" notification via the existing
   AlarmScheduler abstraction; desktop obeys the notifications opt-in; batch
   per sync pass (no per-row spam); generated locally — never a push server

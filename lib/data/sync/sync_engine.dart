@@ -28,6 +28,20 @@ class SyncEngine {
   final HlcClock _hlc;
   final LwwApplier _applier;
   final String deviceId;
+  var _visibleTodosChanged = false;
+
+  static const _visibleTodoFields = {
+    'listId',
+    'title',
+    'notes',
+    'dueAtMs',
+    'recurrenceRule',
+    'completedAtMs',
+    'priority',
+    'tagsJson',
+    'alarmOffsetsJson',
+    'deleted',
+  };
 
   /// Max encoded HLC per origin nodeId across everything this device has.
   Future<Map<String, String>> versionVector() async {
@@ -86,7 +100,19 @@ class SyncEngine {
       ..sort((a, b) => a.hlc.compareTo(b.hlc));
     var applied = 0;
     for (final write in writes) {
-      if (await _applier.apply(write)) applied++;
+      final tracksVisibleTodo =
+          write.entity == 'todos' && _visibleTodoFields.contains(write.field);
+      final wasVisible = tracksVisibleTodo
+          ? await _todoIsVisible(write.rowId)
+          : false;
+      if (await _applier.apply(write)) {
+        applied++;
+        if (tracksVisibleTodo) {
+          final isVisible = await _todoIsVisible(write.rowId);
+          _visibleTodosChanged =
+              _visibleTodosChanged || wasVisible || isVisible;
+        }
+      }
     }
     // Keep the local HLC ahead of everything we've seen, and record the
     // exchange for sync-status UI (3.14).
@@ -100,6 +126,18 @@ class SyncEngine {
       mode: InsertMode.insertOrReplace,
     );
     return applied;
+  }
+
+  bool takeVisibleTodosChanged() {
+    final changed = _visibleTodosChanged;
+    _visibleTodosChanged = false;
+    return changed;
+  }
+
+  Future<bool> _todoIsVisible(String id) async {
+    final todo = await (_db.todos.select()..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return todo != null && !todo.deleted;
   }
 
   /// One full pull from [peer] into this device.

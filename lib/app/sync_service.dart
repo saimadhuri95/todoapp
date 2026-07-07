@@ -4,10 +4,12 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/alarm_planner.dart';
 import '../data/sync/lan_discovery.dart';
 import '../data/sync/lan_transport.dart';
 import '../data/sync/mailbox_transport.dart';
 import '../data/sync/sync_orchestrator.dart';
+import 'alarm_service.dart';
 import 'providers.dart';
 
 /// Builds a ready-to-run orchestrator from current app state, or null when
@@ -16,6 +18,8 @@ import 'providers.dart';
 Future<SyncOrchestrator?> buildOrchestrator(
   ProviderContainer ref, {
   Future<List<LanPeer>> Function()? discoverPeers,
+  AlarmScheduler? notifications,
+  bool notificationsEnabled = true,
 }) async {
   final pairing = ref.read(pairingServiceProvider);
   if (!await pairing.hasGroupKey()) return null;
@@ -35,6 +39,8 @@ Future<SyncOrchestrator?> buildOrchestrator(
             groupKey: groupKey,
           ),
     discoverPeers: discoverPeers,
+    notifications: notifications,
+    notificationsEnabled: notificationsEnabled,
   );
 }
 
@@ -84,6 +90,7 @@ class SyncService with WidgetsBindingObserver {
     final server = LanSyncServer(
       engine: _ref.read(syncEngineProvider),
       groupKey: await _ref.read(pairingServiceProvider).loadOrCreateGroupKey(),
+      onVisibleTodosChanged: _notifyVisibleTodoChanges,
     );
     final port = await server.start();
     _server = server;
@@ -110,11 +117,23 @@ class SyncService with WidgetsBindingObserver {
       final orchestrator = await buildOrchestrator(
         _ref.container,
         discoverPeers: _discovery?.currentPeers,
+        notifications: _ref.read(alarmSchedulerProvider),
+        notificationsEnabled: _ref.read(alarmsEnabledProvider),
       );
       await orchestrator?.syncNow();
     } finally {
       _syncing = false;
     }
+  }
+
+  Future<void> _notifyVisibleTodoChanges() async {
+    if (!_ref.read(alarmsEnabledProvider)) return;
+    await _ref
+        .read(alarmSchedulerProvider)
+        .showInfo(
+          title: 'List updated',
+          body: 'Changes from another device were applied.',
+        );
   }
 
   Future<void> stop() async {

@@ -3,11 +3,27 @@ import 'dart:io';
 import 'package:cryptography/cryptography.dart';
 import 'package:drift/drift.dart' show TableOrViewStatements;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:todoapp/core/alarm_planner.dart';
+import 'package:todoapp/core/hlc.dart';
+import 'package:todoapp/data/sync/changeset.dart';
 import 'package:todoapp/data/sync/lan_transport.dart';
+import 'package:todoapp/data/sync/lww_applier.dart';
 import 'package:todoapp/data/sync/mailbox_transport.dart';
 import 'package:todoapp/data/sync/sync_orchestrator.dart';
 
 import 'sync_engine_test.dart' show Device;
+
+class FakeScheduler implements AlarmScheduler {
+  final infos = <({String title, String body})>[];
+
+  @override
+  Future<void> replaceAll(List<AlarmInstance> alarms) async {}
+
+  @override
+  Future<void> showInfo({required String title, required String body}) async {
+    infos.add((title: title, body: body));
+  }
+}
 
 void main() {
   final start = DateTime.utc(2026, 7, 5, 12);
@@ -85,6 +101,129 @@ void main() {
     expect(report.errors, hasLength(1));
   });
 
+  test('applied remote changes emit one batched notification', () async {
+    final root = await Directory.systemTemp.createTemp('orch_notify');
+    addTearDown(() => root.delete(recursive: true));
+    final scheduler = FakeScheduler();
+
+    await a.todos.create(title: 'from a');
+
+    MailboxTransport boxFor(Device d) => MailboxTransport(
+      root: root,
+      engine: d.engine,
+      db: d.db,
+      deviceId: d.id,
+      groupKey: groupKey,
+    );
+
+    final orchestratorA = SyncOrchestrator(
+      engine: a.engine,
+      groupKey: groupKey,
+      mailbox: boxFor(a),
+    );
+    final orchestratorB = SyncOrchestrator(
+      engine: b.engine,
+      groupKey: groupKey,
+      mailbox: boxFor(b),
+      notifications: scheduler,
+      notificationsEnabled: true,
+    );
+
+    await orchestratorA.syncNow();
+    final reportB = await orchestratorB.syncNow();
+
+    expect(reportB.totalApplied, greaterThan(0));
+    expect(scheduler.infos, hasLength(1));
+    expect(scheduler.infos.single.title, 'List updated');
+    expect(
+      scheduler.infos.single.body,
+      'Changes from another device were applied.',
+    );
+  });
+
+  test('disabled notifications suppress the batched update notice', () async {
+    final root = await Directory.systemTemp.createTemp('orch_notify_off');
+    addTearDown(() => root.delete(recursive: true));
+    final scheduler = FakeScheduler();
+
+    await a.todos.create(title: 'from a');
+
+    MailboxTransport boxFor(Device d) => MailboxTransport(
+      root: root,
+      engine: d.engine,
+      db: d.db,
+      deviceId: d.id,
+      groupKey: groupKey,
+    );
+
+    final orchestratorA = SyncOrchestrator(
+      engine: a.engine,
+      groupKey: groupKey,
+      mailbox: boxFor(a),
+    );
+    final orchestratorB = SyncOrchestrator(
+      engine: b.engine,
+      groupKey: groupKey,
+      mailbox: boxFor(b),
+      notifications: scheduler,
+      notificationsEnabled: false,
+    );
+
+    await orchestratorA.syncNow();
+    final reportB = await orchestratorB.syncNow();
+
+    expect(reportB.totalApplied, greaterThan(0));
+    expect(scheduler.infos, isEmpty);
+  });
+
+  test('non-todo remote changes do not emit an update notice', () async {
+    final root = await Directory.systemTemp.createTemp('orch_device_notify');
+    addTearDown(() => root.delete(recursive: true));
+    final scheduler = FakeScheduler();
+
+    await a.engine.apply(
+      Changeset(
+        deviceId: 'cc',
+        writes: [
+          FieldWrite(
+            entity: 'devices',
+            rowId: 'cc',
+            field: 'name',
+            value: 'Dashboard phone',
+            hlc: Hlc(start.millisecondsSinceEpoch, 0, 'cc'),
+          ),
+        ],
+      ),
+    );
+
+    MailboxTransport boxFor(Device d) => MailboxTransport(
+      root: root,
+      engine: d.engine,
+      db: d.db,
+      deviceId: d.id,
+      groupKey: groupKey,
+    );
+
+    final orchestratorA = SyncOrchestrator(
+      engine: a.engine,
+      groupKey: groupKey,
+      mailbox: boxFor(a),
+    );
+    final orchestratorB = SyncOrchestrator(
+      engine: b.engine,
+      groupKey: groupKey,
+      mailbox: boxFor(b),
+      notifications: scheduler,
+      notificationsEnabled: true,
+    );
+
+    await orchestratorA.syncNow();
+    final reportB = await orchestratorB.syncNow();
+
+    expect(reportB.totalApplied, greaterThan(0));
+    expect(scheduler.infos, isEmpty);
+  });
+
   test('reentrant syncNow is skipped', () async {
     final orchestrator = SyncOrchestrator(
       engine: a.engine,
@@ -122,7 +261,7 @@ void main() {
     addTearDown(orchestrator.stop);
 
     await Future<void>.delayed(const Duration(milliseconds: 200));
-    orchestrator.stop();
+    await orchestrator.stop();
 
     // The periodic pass published A's outbox.
     expect(Directory('${root.path}/aa').existsSync(), isTrue);

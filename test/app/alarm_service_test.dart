@@ -10,10 +10,16 @@ import 'package:todoapp/data/db/database.dart';
 
 class FakeScheduler implements AlarmScheduler {
   final plans = <List<AlarmInstance>>[];
+  final infos = <({String title, String body})>[];
 
   @override
   Future<void> replaceAll(List<AlarmInstance> alarms) async =>
       plans.add(alarms);
+
+  @override
+  Future<void> showInfo({required String title, required String body}) async {
+    infos.add((title: title, body: body));
+  }
 
   List<AlarmInstance> get latest => plans.isEmpty ? const [] : plans.last;
 }

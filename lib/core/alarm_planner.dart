@@ -35,6 +35,9 @@ abstract interface class AlarmScheduler {
   /// Replace everything previously scheduled with [alarms] (already
   /// sorted, already capped). Idempotent by construction.
   Future<void> replaceAll(List<AlarmInstance> alarms);
+
+  /// Show one immediate informational notification.
+  Future<void> showInfo({required String title, required String body});
 }
 
 class NoopAlarmScheduler implements AlarmScheduler {
@@ -42,6 +45,9 @@ class NoopAlarmScheduler implements AlarmScheduler {
 
   @override
   Future<void> replaceAll(List<AlarmInstance> alarms) async {}
+
+  @override
+  Future<void> showInfo({required String title, required String body}) async {}
 }
 
 /// Pure planning (TASKS.md 2.4/2.9/2.10 logic): given the todos, compute
