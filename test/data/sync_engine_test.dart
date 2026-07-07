@@ -7,6 +7,7 @@ import 'package:todoapp/data/db/database.dart';
 import 'package:todoapp/data/repositories/list_repository.dart';
 import 'package:todoapp/data/repositories/todo_repository.dart';
 import 'package:todoapp/data/sync/changeset.dart';
+import 'package:todoapp/data/sync/lww_applier.dart';
 import 'package:todoapp/data/sync/sync_engine.dart';
 
 /// One simulated device: its own db, clock, repos, and engine.
@@ -96,6 +97,8 @@ void main() {
       expect(todo.tags, ['errand']);
       expect((await b.db.todoLists.all().getSingle()).name, 'Groceries');
       expect(await a.dump(), await b.dump());
+      expect(b.engine.takeVisibleTodosChanged(), isTrue);
+      expect(b.engine.takeVisibleTodosChanged(), isFalse);
     });
 
     test('second pull is empty (version vector covers first)', () async {
@@ -181,6 +184,27 @@ void main() {
       final onA = await a.db.todos.all().getSingle();
       expect(onA.lastDismissedMs, due);
       expect(await a.dump(), await b.dump());
+      expect(a.engine.takeVisibleTodosChanged(), isFalse);
+    });
+
+    test('non-todo writes do not mark visible todos changed', () async {
+      final applied = await b.engine.apply(
+        Changeset(
+          deviceId: 'ccc',
+          writes: [
+            FieldWrite(
+              entity: 'devices',
+              rowId: 'ccc',
+              field: 'name',
+              value: 'Cab phone',
+              hlc: Hlc(start.millisecondsSinceEpoch, 0, 'ccc'),
+            ),
+          ],
+        ),
+      );
+
+      expect(applied, 1);
+      expect(b.engine.takeVisibleTodosChanged(), isFalse);
     });
 
     test('tombstone propagates and wins over older concurrent edit', () async {

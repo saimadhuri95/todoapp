@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:cryptography/cryptography.dart';
 
+import '../../core/alarm_planner.dart';
+
 import 'lan_transport.dart';
 import 'mailbox_transport.dart';
 import 'sync_engine.dart';
@@ -41,6 +43,8 @@ class SyncOrchestrator {
     required this.groupKey,
     this.mailbox,
     this.discoverPeers,
+    this.notifications,
+    this.notificationsEnabled = true,
     this.connectTimeout = const Duration(seconds: 3),
   });
 
@@ -48,9 +52,12 @@ class SyncOrchestrator {
   final SecretKey groupKey;
   final MailboxTransport? mailbox;
   final Future<List<LanPeer>> Function()? discoverPeers;
+  final AlarmScheduler? notifications;
+  final bool notificationsEnabled;
   final Duration connectTimeout;
 
   Timer? _timer;
+  Future<void>? _periodicSync;
   bool _running = false;
 
   /// Runs one full sync pass. Reentrant calls are skipped, not queued —
@@ -64,6 +71,7 @@ class SyncOrchestrator {
       var lanApplied = 0;
       var lanPeersReached = 0;
       final errors = <String>[];
+      engine.takeVisibleTodosChanged();
 
       // Consume before publish so freshly learned writes get relayed in
       // the same pass.
@@ -99,13 +107,21 @@ class SyncOrchestrator {
         }
       }
 
-      return SyncReport(
+      final report = SyncReport(
         mailboxApplied: mailboxApplied,
         mailboxPublished: mailboxPublished,
         lanApplied: lanApplied,
         lanPeersReached: lanPeersReached,
         errors: errors,
       );
+      final visibleTodosChanged = engine.takeVisibleTodosChanged();
+      if (notificationsEnabled && visibleTodosChanged) {
+        await notifications?.showInfo(
+          title: 'List updated',
+          body: 'Changes from another device were applied.',
+        );
+      }
+      return report;
     } finally {
       _running = false;
     }
@@ -115,11 +131,20 @@ class SyncOrchestrator {
   /// after local mutations (debounced) — those hooks live in the UI layer.
   void start({Duration period = const Duration(minutes: 5)}) {
     _timer?.cancel();
-    _timer = Timer.periodic(period, (_) => syncNow());
+    _timer = Timer.periodic(period, (_) => _runPeriodicSync());
   }
 
-  void stop() {
+  Future<void> stop() async {
     _timer?.cancel();
     _timer = null;
+    await _periodicSync;
+    _periodicSync = null;
+  }
+
+  void _runPeriodicSync() {
+    if (_periodicSync != null) return;
+    _periodicSync = syncNow().whenComplete(() {
+      _periodicSync = null;
+    });
   }
 }

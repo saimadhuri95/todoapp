@@ -13,12 +13,20 @@ void main() {
   late Device a;
   late Device b;
   late LanSyncServer server;
+  late int visibleTodoNotices;
 
   setUp(() async {
     groupKey = SecretKey(List<int>.generate(32, (i) => (i * 13 + 1) % 256));
     a = Device('aa', start);
     b = Device('bb', start.add(const Duration(seconds: 5)));
-    server = LanSyncServer(engine: a.engine, groupKey: groupKey);
+    visibleTodoNotices = 0;
+    server = LanSyncServer(
+      engine: a.engine,
+      groupKey: groupKey,
+      onVisibleTodosChanged: () async {
+        visibleTodoNotices++;
+      },
+    );
   });
 
   tearDown(() async {
@@ -47,6 +55,7 @@ void main() {
     await _eventually(() async => (await a.db.todos.all().get()).length == 2);
 
     expect(await a.dump(), await b.dump());
+    expect(visibleTodoNotices, 1);
   });
 
   test('second session is a near no-op and still converges', () async {
