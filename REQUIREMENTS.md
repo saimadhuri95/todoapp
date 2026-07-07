@@ -4,7 +4,10 @@ Requirements gathered 2026-07-06 from online user requests, app-comparison
 research (Todoist, TickTick, Things 3, Microsoft To Do, Any.do, Super
 Productivity, Joplin, Due, Taskito), Reddit/forum wish-lists, and a real-world
 multi-device use case (dispatcher → driver with a dashboard-mounted phone).
-Sources are listed at the bottom.
+A second, deeper research pass (same day) went beyond todo apps: why people
+abandon task managers, ADHD/executive-function needs, GTD methodology, daily
+planning/reflection psychology, household routines, senior/caregiver use, and
+repurposed-device wall displays. Sources are listed at the bottom.
 
 Every requirement must respect the non-negotiable invariants in CLAUDE.md — in
 particular **no central server, ever**: "real-time" means best-effort push over
@@ -208,6 +211,109 @@ Priority legend: **P1** core usability · **P2** strong differentiator ·
   mid-range mobile; quick-add ready < 500 ms from hotkey/widget; lists with
   5k+ tasks scroll without jank (virtualized lists, indexed queries).
 
+## R13. Sustainable use & anti-abandonment
+
+The single biggest finding of the deeper research: people don't quit todo
+apps for lack of features — they quit from **overdue guilt spirals**,
+**overflowing-list overwhelm**, and **system-maintenance friction**. These
+requirements make abandonment less likely and are cheap relative to their
+retention value.
+
+- **R13.1 🆕 P1 No-shame overdue handling.** Overdue tasks flow quietly into
+  Today (subtle "since Tue" tag) instead of stacking in a red overdue pile;
+  no large overdue counters or red badges by default. "Mornings became guilt
+  management" is the canonical abandonment story.
+- **R13.2 🆕 P2 Bulk reschedule ("overdue amnesty").** One action to sweep
+  overdue items to today / tomorrow / Someday, offered as a gentle periodic
+  triage prompt rather than a daily wall of red.
+- **R13.3 🆕 P1 Inbox.** A frictionless capture destination separate from all
+  lists: quick-add defaults to Inbox, triage happens later. Stops half-baked
+  ideas from polluting real lists — capture and organization are different
+  moments (GTD's core insight).
+- **R13.4 🆕 P2 Someday/Maybe.** A parking area excluded from Today, Upcoming,
+  and all counts; reviewed only on demand. Must feel like possibility, not a
+  guilt-inducing graveyard.
+- **R13.5 🆕 P2 Stale-task surfacing.** Optional review of tasks untouched for
+  N weeks with three exits: reschedule, move to Someday, delete.
+- **R13.6 🆕 P2 Guided weekly review.** An optional checklist-style flow —
+  process Inbox, scan each list, review Someday — GTD's "critical success
+  factor". Fully local, skippable, never nags by default.
+- **R13.7 🆕 P2 Completion recap.** "Done today / this week" view and an
+  optional end-of-day shutdown ritual: celebrate what got done, deliberately
+  roll leftovers to tomorrow. Reflection measurably reinforces habit
+  formation; also answers "what did I actually do this week?"
+- **R13.8 🆕 P3 Celebration feedback.** Satisfying check-off animation +
+  haptics, optional small celebration when Today is cleared; easy to disable.
+- **R13.9 🆕 P1 Zero-config default.** Everything in R13–R15 is optional
+  machinery: on first launch the app is one plain list, and it must stay
+  fully usable that way forever. Complexity is opt-in, never mandatory
+  onboarding.
+
+## R14. Focus & neurodivergent support
+
+ADHD-focused research (task paralysis, executive dysfunction) generalizes:
+features that lower activation energy help everyone on a bad day.
+
+- **R14.1 🆕 P2 "Top 3" today.** Pin up to N (default 3) must-do tasks shown
+  above everything else — externalizes prioritization and caps decision
+  paralysis on low-energy days.
+- **R14.2 🆕 P2 Focus mode with timer.** Show one task full-screen with an
+  optional Pomodoro-style timer and completion notification (desktop obeys
+  the alarms opt-in). Replaces the earlier standalone-Pomodoro idea with a
+  task-anchored version.
+- **R14.3 🆕 P2 Effort/energy metadata + quick-win filter.** Optional time
+  estimate (2m / 15m / 1h) and energy tag per task; an "I have 10 minutes"
+  filter surfaces quick wins. Estimates double as commitment devices.
+- **R14.4 🆕 P3 Realistic-day meter.** Sum of Today's time estimates vs.
+  hours remaining, shown as a gentle over-commitment hint at planning time —
+  bad estimates are the top time-blocking failure mode.
+- **R14.5 🆕 P2 Task-breakdown helper.** One-tap "split into checklist" on any
+  task (fast multi-line entry onto R3.1 subtasks) plus reusable breakdown
+  templates. Delivers the Goblin-Tools value **without cloud AI** — templates
+  and frictionless manual splitting, all local.
+- **R14.6 🆕 P3 Streaks for recurring tasks.** Optional habit-style streak
+  display on recurring tasks (covers the habit-tracker ask from round 1
+  without a separate subsystem).
+
+## R15. Routines & reusable checklists
+
+- **R15.1 🆕 P2 Checklist templates.** Save any list (or task + subtasks) as a
+  template and instantiate it on demand with checked-state reset: packing
+  lists, weekly cleaning, morning routine, the dispatcher's daily duty list
+  (subsumes round-1 "duplicate yesterday's list").
+- **R15.2 🆕 P3 Frequency-based chores.** Tody-style "due when stale": a task
+  regenerates N days after its **last completion** rather than on a fixed
+  calendar date — the natural model for cleaning/maintenance. Runs through
+  the injected clock; each occurrence is its own CRDT row.
+- **R15.3 🆕 P3 Chore rotation.** Rotate the assignee (R7.2) of a recurring
+  task among the people paired to a shared list.
+
+## R16. Wall-display / kiosk & repurposed devices
+
+Repurposing an old phone/tablet as an always-on family or car display is a
+popular zero-cost setup that fits the free/serverless ethos perfectly — and
+the original driver-dashboard request is exactly this.
+
+- **R16.1 🆕 P2 Kiosk mode.** Full-screen glanceable list (extends R4.2):
+  keep-screen-on while charging, auto-launch on boot (Android), optional
+  clock/date header and burn-in-safe dimming. Zero-interaction operation
+  combined with R1.4 (unattended sync) and R1.2 (change notifications).
+- **R16.2 🆕 P2 Old-hardware floor.** Run acceptably on ~2 GB-RAM Android
+  devices and the oldest OS versions Flutter supports; document minimum
+  versions honestly. Old donated hardware is the target device class here.
+
+## R17. Assisted & caregiver use
+
+- **R17.1 🆕 P3 Simple mode.** A reduced UI preset: extra-large text and
+  buttons, high contrast, list + check-off only (builds on R10 floors and
+  R4.2). Serves seniors, kids' chore charts, and anyone in a stressful
+  context.
+- **R17.2 🆕 P3 Remote list curation.** A caregiver maintains a loved one's
+  list from their own device via per-list sharing (R7.1); nag reminders
+  (R6.3) plus completion visibility through sync give medication-style
+  adherence support with **no cloud service and no account**. Explicitly not
+  a medical device; no health claims in store listings.
+
 ## Out of scope (would violate invariants or the project premise)
 
 - Hosted real-time relay, push-notification server, or "just a small
@@ -217,8 +323,13 @@ Priority legend: **P1** core usability · **P2** strong differentiator ·
   integrations. Cloud drives remain dumb encrypted mailboxes only.
 - Team/workspace features (comments threads, per-user permissions, admin
   roles) — this is a personal/household app, not Asana.
-- AI features requiring cloud inference.
+- AI features requiring cloud inference — including AI task breakdown
+  (R14.5 delivers it with local templates instead).
 - Email-in / calendar-service two-way sync (needs a server endpoint).
+- Body-doubling / live co-working sessions (Focusmate-style) — requires a
+  live matching service; R14.2 focus mode is the serverless slice of this.
+- Gamified points/karma economies beyond R13.8/R14.6 — retention research
+  says reducing guilt beats adding game mechanics.
 
 ## Sources
 
@@ -246,3 +357,25 @@ Priority legend: **P1** core usability · **P2** strong differentiator ·
 - [Toodledo — Import/export tools (CSV/XML/JSON)](https://www.toodledo.com/tools/import_export.php)
 - [Todoist — Apple Watch](https://www.todoist.com/help/articles/use-todoist-on-apple-watch-vTvnTJFz) / [Wear OS](https://www.todoist.com/help/articles/use-todoist-on-wear-os-t8tzJ0mO)
 - [Todoist — Widgets on Apple devices](https://www.todoist.com/help/articles/use-a-todoist-widget-on-an-apple-device-ptRdme)
+
+Second pass (abandonment, ADHD, GTD, routines, caregivers, kiosk):
+
+- [Zapier — Why you hate every to-do app](https://zapier.com/blog/why-you-hate-every-to-do-list-app/)
+- [Molodtsov — Why you've dropped your task manager](https://molodtsov.me/2021/03/why-youve-dropped-your-task-manager/)
+- [Theo Stowell — I quit task management apps](https://medium.com/@fundamentalised/i-quit-task-management-apps-23b6e244f52c)
+- [Morgen — Best ADHD productivity apps (2026)](https://www.morgen.so/blog-posts/adhd-productivity-apps)
+- [Tiimo — Task initiation tactics for ADHD adults](https://www.tiimoapp.com/resource-hub/task-initiation-adhd)
+- [Simply Psychology — Body doubling (2026)](https://www.simplypsychology.com/articles/body-doubling-adhd)
+- [Super Productivity — GTD weekly review guide](https://super-productivity.com/blog/gtd-weekly-review-guide/)
+- [Super Productivity — GTD next actions](https://super-productivity.com/blog/gtd-next-actions-guide/)
+- [Asian Efficiency — GTD weekly review step-by-step](https://www.asianefficiency.com/productivity/gtd-weekly-review/)
+- [Zapier — Best time blocking apps (2026)](https://zapier.com/blog/best-time-blocking-app/)
+- [Kelly Nolan — 7 time-blocking mistakes](https://kellynolan.com/7-timeblocking-mistakes/)
+- [Top10 — Best household chore apps for families](https://www.top10.com/household-chore-apps)
+- [Apartment Therapy — Notes-app chore lists](https://www.apartmenttherapy.com/notes-app-chore-list-37196476)
+- [SteadiDay — Best medication reminder apps for seniors (2026)](https://www.steadiday.com/blog/best-medication-reminder-apps-seniors.html)
+- [Memoryboard — Senior-friendly reminder apps](https://memoryboard.com/blogs/news/the-best-senior-friendly-reminder-apps-to-stay-organized-and-connected)
+- [XDA — Old tablet as smart-home command center](https://www.xda-developers.com/stop-wasting-old-tablet-netflix-use-smart-home-command-center/)
+- [Dashpadd — Old iPad/tablet as family calendar display](https://dashpadd.com/ipad-repurpose-digital-calendar/)
+- [AlchemLearning — Daily review ritual](https://alchemlearning.com/daily-review-ritual/)
+- [Akiflow — Rituals (daily shutdown)](https://how-to-use-guide.akiflow.com/rituals)
