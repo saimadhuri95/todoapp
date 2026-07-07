@@ -8,6 +8,7 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../core/alarm_planner.dart';
+import '../core/clock.dart';
 
 /// What a notification action reports back to the app.
 typedef AlarmActionHandler =
@@ -23,9 +24,13 @@ typedef AlarmActionHandler =
 ///   chain fires notifications while the app runs (docs/alarms.md — the
 ///   resident-process variant is 5.1, still open).
 class LocalNotificationsScheduler implements AlarmScheduler {
-  LocalNotificationsScheduler({this.onAction});
+  LocalNotificationsScheduler({
+    this.onAction,
+    this.clock = const SystemClock(),
+  });
 
   final AlarmActionHandler? onAction;
+  final Clock clock;
   final _plugin = FlutterLocalNotificationsPlugin();
   final List<Timer> _linuxTimers = [];
   var _initialized = false;
@@ -131,7 +136,7 @@ class LocalNotificationsScheduler implements AlarmScheduler {
   }
 
   void _scheduleLinux(List<AlarmInstance> alarms) {
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final nowMs = clock.now().millisecondsSinceEpoch;
     for (final alarm in alarms) {
       final delay = alarm.fireAtMs - nowMs;
       if (delay < 0) continue;

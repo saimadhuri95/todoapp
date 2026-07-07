@@ -59,6 +59,10 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
+- **Update 2026-07-06:** testing hardening complete and rebased onto latest `main` after PR #15 landed. Landed: shared simulated-device + fake-transport harnesses, missing screen widget tests, `integration_test` smoke flow, CI/release gates, the coverage floor script, and manual release checklist docs.
+- **Local verification:** 234 `flutter test` cases, `dart tool/check_coverage.dart --lcov coverage/lcov.info --min 80 --scope lib/data` (85.7% on `lib/data`), `test/core/dst_test.dart`, and Windows `integration_test/app_smoke_test.dart` all pass.
+- **Next action:** fresh session -> 6.8 calendar view or 6.13 subtasks (each big - own session). Phase 6 P1 small items are now exhausted except 6.7 minimalist audit (do after using 6.3's line a while), 6.10 unattended-viewer doc, 6.14/6.18 (need platform/native or doc work).
+
 - **Current task:** Apple-first push (user direction 2026-07-06) — session complete. Merged: PR #7 quick-add, PR #8 macOS fixes 4.16–4.20 + iCloud channel, PR #9 camera QR (6.1). REQUIREMENTS.md triaged → Phase 6. ASO 4.9–4.11 decided ("Knot – Todo List & Sync" / "Collaborative Task Manager", docs/packaging.md). 188 tests.
 - **Automatable Apple work is now exhausted** except 4.12 screenshot staging (simulators) and Phase 6 cross-platform features that also serve Apple (6.2 notifications, 6.4 links, 6.6 theme override, 6.8 calendar).
 - **Blocked on user:** 4.21 re-verify on a fresh installed release build (folder→relaunch→syncs; QR renders; camera scan; LAN prompt). Apple Developer account unlocks: iCloud entitlement + Keychain Sharing (steps in docs/packaging.md), TestFlight 4.3, notarized dmg 4.4, App Store Connect metadata entry (values ready in packaging.md). Also Play Console/MSIX cert; device testing (2.11, 5.5, 5.8, 5.10).
@@ -66,8 +70,7 @@ numbers; the **order we execute** is:
 - **Session 2026-07-06 (links+theme):** 6.4 + 6.6 merged as PR #12. New: `lib/core/linkify.dart`, `LinkifiedText` (urlOpenerProvider), themeModeProvider + settings dropdown, QR white background for dark mode.
 - **Session 2026-07-06 (inbox+overdue):** 6.15 + 6.16 merged as PR #13. Inbox = null listId (see 6.15 note re: sync safety), `kInboxFilter` sentinel + `watchActive(unfiledOnly:)`, tile move-to-list popup; sectionize folds Overdue→Today + pure `overdueLabel`.
 - **Session 2026-07-06 (export):** 6.17 merged as PR #14. exportMarkdown/exportTodoTxt in ExportService + settings format picker.
-- **Session 2026-07-06 (latency+density+recurrence):** 6.3 + 6.5 + 6.9 on branch `latency-density-recurrence` (PR pending merge at session end — check it landed). Latency table in docs/sync.md + status line (`lastSyncPassProvider`); glanceable `DisplayDensity`; recurring complete() advances due in place (CRDT-safe). 226 tests.
-- **Next action:** fresh session → 6.8 calendar view or 6.13 subtasks (each big — own session). Phase 6 P1 small items are now exhausted except 6.7 minimalist audit (do after using 6.3's line a while), 6.10 unattended-viewer doc, 6.14/6.18 (need platform/native or doc work).
+- **Session 2026-07-06 (latency+density+recurrence):** 6.3 + 6.5 + 6.9 landed on `main` as PR #15. Latency table in docs/sync.md + status line (`lastSyncPassProvider`); glanceable `DisplayDensity`; recurring complete() advances due in place (CRDT-safe). 226 tests at merge time.
 
 ## Phase 0 — Foundations
 
@@ -373,11 +376,11 @@ driver/dispatcher scenario and Apple-first direction.
 
 ## Testing (cross-cutting — details in docs/testing.md)
 
-- [ ] T.1 Unit test suites wired into CI from Phase 0 (HLC, repositories, recurrence, merge)
-- [ ] T.2 Widget tests for every screen as it's built
-- [ ] T.3 Property-based convergence harness (Phase 3 gate: no release with a failing convergence property)
-- [ ] T.4 Multi-device sync simulator (in-process fake transports; runs in CI)
-- [ ] T.5 integration_test smoke suite per platform in CI (launch, add todo, complete, restart-persists)
-- [ ] T.6 Timezone/DST regression suite
-- [ ] T.7 Manual test matrix doc per release: alarms, pairing, permission flows per platform
-- [ ] T.8 Coverage floor: 80% on data/sync layers, enforced in CI
+- [x] T.1 Unit test suites wired into CI from Phase 0 (HLC, repositories, recurrence, merge)
+- [x] T.2 Widget tests for every screen as it's built
+- [x] T.3 Property-based convergence harness (Phase 3 gate: no release with a failing convergence property)
+- [x] T.4 Multi-device sync simulator (in-process fake transports; runs in CI)
+- [x] T.5 integration_test smoke suite per platform in CI (launch, add todo, complete, restart-persists)
+- [x] T.6 Timezone/DST regression suite
+- [x] T.7 Manual test matrix doc per release: alarms, pairing, permission flows per platform
+- [x] T.8 Coverage floor: 80% on data/sync layers, enforced in CI

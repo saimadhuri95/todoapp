@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:todoapp/data/sync/device_identity.dart';
 import 'package:todoapp/data/sync/pairing_service.dart';
 
-import 'sync_engine_test.dart' show Device;
+import '../support/simulated_device.dart';
 
 void main() {
   final start = DateTime.utc(2026, 7, 5, 12);

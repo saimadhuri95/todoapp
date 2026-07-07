@@ -5,7 +5,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:todoapp/data/sync/lan_transport.dart';
 
-import 'sync_engine_test.dart' show Device;
+import '../support/simulated_device.dart';
 
 void main() {
   final start = DateTime.utc(2026, 7, 5, 12);

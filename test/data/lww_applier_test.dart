@@ -9,6 +9,7 @@ import 'package:todoapp/data/sync/lww_applier.dart';
 /// independent databases converge under per-field LWW, regardless of
 /// apply order or duplication.
 void main() {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late AppDatabase dbA;
   late AppDatabase dbB;
 

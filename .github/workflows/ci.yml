@@ -6,25 +6,135 @@ on:
   pull_request:
 
 jobs:
-  test:
-    name: Analyze & test
+  verify:
+    name: Analyze & verify
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: dart format --output=none --set-exit-if-changed lib test integration_test tool
       - run: flutter analyze
-      - run: flutter test
+      - name: Phase 0 unit suites
+        run: >
+          flutter test
+          test/core/hlc_test.dart
+          test/data/repositories_test.dart
+          test/core/recurrence_test.dart
+          test/data/lww_applier_test.dart
+          test/data/sync_engine_test.dart
+      - name: Convergence and simulator gate
+        run: >
+          flutter test
+          test/data/convergence_test.dart
+          test/data/sync_simulator_test.dart
+      - name: Full suite with coverage
+        run: flutter test --coverage
+      - name: Coverage floor (lib/data, generated code excluded)
+        run: >
+          dart tool/check_coverage.dart
+          --lcov coverage/lcov.info
+          --min 80
+          --scope lib/data
       - name: DST correctness suite (needs a DST-observing zone)
         run: TZ=America/New_York flutter test test/core/dst_test.dart
 
+  smoke-desktop:
+    name: Smoke ${{ matrix.target }}
+    needs: verify
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+            command: xvfb-run -a flutter test integration_test/app_smoke_test.dart -d linux
+          - os: windows-latest
+            target: windows
+            command: flutter test integration_test/app_smoke_test.dart -d windows
+          - os: macos-26
+            target: macos
+            command: flutter test integration_test/app_smoke_test.dart -d macos
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Linux desktop dependencies
+        if: matrix.target == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgtk-3-dev libsecret-1-dev libjsoncpp-dev xvfb
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: ${{ matrix.command }}
+
+  smoke-android:
+    name: Smoke android
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          profile: pixel_7
+          emulator-boot-timeout: 900
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: adb wait-for-device && flutter test integration_test/app_smoke_test.dart -d emulator-5554
+
+  smoke-ios:
+    name: Smoke ios
+    needs: verify
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Boot iOS simulator
+        shell: bash
+        run: |
+          xcrun simctl list devices available
+          SIMULATOR_UDID=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ && /(Booted|Shutdown)/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}')
+          if [ -z "$SIMULATOR_UDID" ]; then
+            echo "No available iPhone simulator found" >&2
+            exit 1
+          fi
+          echo "SIMULATOR_UDID=$SIMULATOR_UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$SIMULATOR_UDID" || true
+          open -a Simulator --args -CurrentDeviceUDID "$SIMULATOR_UDID"
+          xcrun simctl bootstatus "$SIMULATOR_UDID" -b
+          flutter devices
+      - run: flutter test integration_test/app_smoke_test.dart -d "${{ env.SIMULATOR_UDID }}"
+
   build:
     name: Build ${{ matrix.target }}
-    needs: test
+    needs: [verify, smoke-desktop, smoke-android, smoke-ios]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -39,15 +149,15 @@ jobs:
           - os: windows-latest
             target: windows
             build-cmd: flutter build windows --debug
-          - os: macos-latest
+          - os: macos-26
             target: macos
             build-cmd: flutter build macos --debug
-          - os: macos-latest
+          - os: macos-26
             target: ios
             build-cmd: flutter build ios --debug --no-codesign
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         if: matrix.target == 'android'
         with:
           distribution: temurin

@@ -12,15 +12,7 @@ import 'package:todoapp/data/sync/device_identity.dart';
 import 'package:todoapp/data/sync/pairing_service.dart';
 import 'package:todoapp/features/settings/sync_settings_screen.dart';
 
-/// Same drift-safe teardown as widget_test.dart (see comment there).
-void testApp(String description, Future<void> Function(WidgetTester) body) {
-  testWidgets(description, (tester) async {
-    await body(tester);
-    await tester.pumpWidget(const SizedBox());
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pump(const Duration(minutes: 1));
-  });
-}
+import '../support/widget_test_support.dart';
 
 void main() {
   late AppDatabase db;

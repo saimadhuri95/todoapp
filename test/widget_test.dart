@@ -8,19 +8,7 @@ import 'package:todoapp/core/clock.dart';
 import 'package:todoapp/data/db/database.dart';
 import 'package:todoapp/main.dart';
 
-/// testWidgets + drift-safe teardown. Drift schedules a stream keep-alive
-/// Timer in the fake-async zone once the tree unmounts and riverpod cancels
-/// its stream subscriptions; without advancing fake time that timer never
-/// fires, the binding asserts `!timersPending`, and tearDown's db.close()
-/// deadlocks waiting on the stream store.
-void testApp(String description, Future<void> Function(WidgetTester) body) {
-  testWidgets(description, (tester) async {
-    await body(tester);
-    await tester.pumpWidget(const SizedBox());
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pump(const Duration(minutes: 1));
-  });
-}
+import 'support/widget_test_support.dart';
 
 void main() {
   late AppDatabase db;

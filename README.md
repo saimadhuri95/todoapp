@@ -1,10 +1,10 @@
 # Knot
 
 A local-first todo app for **Windows, macOS, Linux, iOS, and Android** with
-cross-device sync and alarms — **no central server**. Knot ties your devices
+cross-device sync and alarms - **no central server**. Knot ties your devices
 together directly: no account, no cloud backend, your data never leaves your
-control. Source-available for reading, evaluation, and contribution; redistribution
-requires written permission from `saimadhuri95`.
+control. Source-available for reading, evaluation, and contribution;
+redistribution requires written permission from `saimadhuri95`.
 
 ## Why it's different
 
@@ -12,8 +12,8 @@ requires written permission from `saimadhuri95`.
   (SQLite). The app works 100% offline, forever.
 - **Serverless sync.** Devices sync directly over your Wi-Fi (peer-to-peer),
   or through a folder on a cloud drive you already use (iCloud, Google Drive,
-  Dropbox, Syncthing, …). Everything that leaves a device is end-to-end
-  encrypted — the cloud provider only ever sees ciphertext.
+  Dropbox, Syncthing, etc.). Everything that leaves a device is end-to-end
+  encrypted - the cloud provider only ever sees ciphertext.
 - **No accounts.** Devices pair with a QR code, like a password manager.
 - **Real alarms.** Exact alarms on Android, local notifications on iOS,
   opt-in OS-scheduled alarms on macOS. Windows alarms fire in-app today
@@ -22,25 +22,27 @@ requires written permission from `saimadhuri95`.
 
 ## Status
 
-**v0.1 — feature-complete, locally verified.** Core app, sync engine
+**v0.1 - feature-complete, locally verified.** Core app, sync engine
 (LAN P2P + encrypted cloud-drive mailbox), alarms, and the release pipeline
-are implemented, with 175 tests green in CI. Built and launched on macOS;
-iOS builds clean (unsigned). Remaining: store distribution (needs developer
-accounts), real-device testing, and a small polish tail — current state
-lives in the `RESUME` section of [TASKS.md](TASKS.md).
+are implemented, with 234 `flutter test` cases passing locally plus a Windows
+`integration_test` smoke pass. CI now also runs the smoke flow on all five
+platforms. Built and launched on macOS; iOS builds clean (unsigned).
+Remaining: store distribution (needs developer accounts), real-device testing,
+and a small polish tail - current state lives in the `RESUME` section of
+[TASKS.md](TASKS.md).
 
 See [PLAN.md](PLAN.md) for the plan and [docs/](docs/) for design docs:
 
-- [docs/architecture.md](docs/architecture.md) — stack, data model, invariants
-- [docs/sync.md](docs/sync.md) — CRDT merge, pairing, encryption, transports
-- [docs/alarms.md](docs/alarms.md) — per-platform alarm behavior
-- [docs/testing.md](docs/testing.md) — testing strategy
-- [docs/packaging.md](docs/packaging.md) — signing, stores, release pipeline
+- [docs/architecture.md](docs/architecture.md) - stack, data model, invariants
+- [docs/sync.md](docs/sync.md) - CRDT merge, pairing, encryption, transports
+- [docs/alarms.md](docs/alarms.md) - per-platform alarm behavior
+- [docs/testing.md](docs/testing.md) - testing strategy
+- [docs/packaging.md](docs/packaging.md) - signing, stores, release pipeline
 
 ## Stack
 
-Flutter · Riverpod · SQLite (drift) · hand-rolled per-field LWW CRDT with
-hybrid logical clocks ([ADR 0001](docs/decisions/0001-crdt-choice.md)) ·
+Flutter - Riverpod - SQLite (drift) - hand-rolled per-field LWW CRDT with
+hybrid logical clocks ([ADR 0001](docs/decisions/0001-crdt-choice.md)) -
 X25519 + XChaCha20-Poly1305 for device pairing and payload encryption.
 
 ## Building
@@ -48,7 +50,9 @@ X25519 + XChaCha20-Poly1305 for device pairing and payload encryption.
 ```sh
 flutter pub get
 flutter run     # -d macos / windows / linux, or a connected mobile device
-flutter test    # full suite (175 tests)
+flutter test --coverage
+dart tool/check_coverage.dart --lcov coverage/lcov.info --min 80 --scope lib/data
+flutter test integration_test/app_smoke_test.dart -d windows
 ```
 
 Generated drift code is checked in; after schema changes run

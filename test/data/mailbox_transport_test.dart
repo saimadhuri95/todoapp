@@ -6,7 +6,7 @@ import 'package:drift/drift.dart' hide isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:todoapp/data/sync/mailbox_transport.dart';
 
-import 'sync_engine_test.dart' show Device;
+import '../support/simulated_device.dart';
 
 void main() {
   final start = DateTime.utc(2026, 7, 5, 12);
@@ -131,23 +131,26 @@ void main() {
     expect(await b.dump(), await a.dump());
   });
 
-  test('corrupt/torn file is skipped and retried without crashing', () async {
-    await a.todos.create(title: 'good');
-    await transportFor(a).publish();
+  test(
+    'corrupt/torn file is left unread and retried without crashing',
+    () async {
+      await a.todos.create(title: 'good');
+      await transportFor(a).publish();
 
-    // Simulate a torn upload: truncate the changeset file.
-    final changesetFile = Directory('${root.path}/aa')
-        .listSync()
-        .whereType<File>()
-        .firstWhere((f) => !f.path.endsWith('vector.bin'));
-    final bytes = await changesetFile.readAsBytes();
-    await changesetFile.writeAsBytes(bytes.sublist(0, bytes.length ~/ 2));
+      // Simulate a torn upload: truncate the changeset file.
+      final changesetFile = Directory('${root.path}/aa')
+          .listSync()
+          .whereType<File>()
+          .firstWhere((f) => !f.path.endsWith('vector.bin'));
+      final bytes = await changesetFile.readAsBytes();
+      await changesetFile.writeAsBytes(bytes.sublist(0, bytes.length ~/ 2));
 
-    expect(await transportFor(b).consume(), 0); // skipped, no crash
+      expect(await transportFor(b).consume(), 0); // left unread, no crash
 
-    // Cloud drive finishes the upload; retry succeeds.
-    await changesetFile.writeAsBytes(bytes, flush: true);
-    expect(await transportFor(b).consume(), greaterThan(0));
-    expect(await b.dump(), await a.dump());
-  });
+      // Cloud drive finishes the upload; retry succeeds.
+      await changesetFile.writeAsBytes(bytes, flush: true);
+      expect(await transportFor(b).consume(), greaterThan(0));
+      expect(await b.dump(), await a.dump());
+    },
+  );
 }

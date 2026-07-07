@@ -4,7 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:todoapp/data/sync/changeset.dart';
 
-import 'sync_engine_test.dart' show Device;
+import '../support/simulated_device.dart';
 
 /// TASKS.md 3.3 — the sync release gate. Random ops on N devices with
 /// random pairwise syncs must always converge to identical state. Seeds are
@@ -95,6 +95,43 @@ void main() {
       },
     );
   }
+
+  test('reapplying any published prefix is idempotent', () async {
+    final rng = Random(20260706);
+    final a = Device('aa', start);
+    final b = Device('bb', start.add(const Duration(seconds: 9)));
+    for (final d in [a, b]) {
+      addTearDown(d.close);
+    }
+
+    var publishedVector = const <String, String>{};
+    final published = <Changeset>[];
+    final knownIds = <String>[];
+
+    for (var i = 0; i < 12; i++) {
+      await randomOp(rng, a, knownIds);
+      final delta = await a.engine.changesFor(publishedVector);
+      if (delta.writes.isEmpty) continue;
+      published.add(delta);
+      publishedVector = await a.engine.versionVector();
+    }
+
+    for (final delta in published) {
+      await b.engine.apply(delta);
+    }
+    final converged = await b.dump();
+
+    for (var i = 1; i <= published.length; i++) {
+      for (final delta in published.take(i)) {
+        await b.engine.apply(delta);
+      }
+      expect(
+        await b.dump(),
+        converged,
+        reason: 'prefix length $i changed state',
+      );
+    }
+  });
 
   test(
     'applying a changeset in shuffled order converges identically',
