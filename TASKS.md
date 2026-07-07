@@ -59,6 +59,7 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
+- **Session 2026-07-07 (multi-line paste):** 6.26 done. Quick-add `_AddTodoDialog` field is now multi-line (`TextInputType.multiline`, `maxLines: 5`, Enter still submits via `textInputAction.done`) so a pasted list keeps its line breaks; `_showAddDialog` splits via new pure `splitTodoLines()` and, when >1 line, shows `_SplitLinesDialog` ("Single todo" vs "N todos"). One-todo path collapses lines with spaces. New `test/features/multiline_add_test.dart` (unit + widget). 241 tests green locally; analyzer clean; coverage 85.7% on lib/data; DST pass. macOS/Windows integration smoke left to CI (pure Dart/UI change, no platform paths).
 - **Update 2026-07-06:** testing hardening complete and rebased onto latest `main` after PR #15 landed. Landed: shared simulated-device + fake-transport harnesses, missing screen widget tests, `integration_test` smoke flow, CI/release gates, the coverage floor script, and manual release checklist docs.
 - **Local verification:** 234 `flutter test` cases, `dart tool/check_coverage.dart --lcov coverage/lcov.info --min 80 --scope lib/data` (85.7% on `lib/data`), `test/core/dst_test.dart`, and Windows `integration_test/app_smoke_test.dart` all pass.
 - **Next action:** fresh session -> 6.8 calendar view or 6.13 subtasks (each big - own session). Phase 6 P1 small items are now exhausted except 6.7 minimalist audit (do after using 6.3's line a while), 6.10 unattended-viewer doc, 6.14/6.18 (need platform/native or doc work).
@@ -306,7 +307,7 @@ driver/dispatcher scenario and Apple-first direction.
   interactive check-off where the OS allows, quick-add button
 - [ ] 6.25 (R2.3) Share-sheet capture target (Android/iOS/macOS): shared
   text/URL becomes a task (title + notes)
-- [ ] 6.26 (R2.5) Multi-line paste into quick add → "create one task per
+- [x] 6.26 (R2.5) Multi-line paste into quick add → "create one task per
   line" prompt
 - [ ] 6.27 (R1.5) Sync health panel: extend 6.3's status line with transport
   in use + pending-outbound count, kept inside sync settings (6.7 audit)
