@@ -59,6 +59,7 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
+- **Session 2026-07-07 (completion recap):** 6.33 done. New pure `completionRecap()` + `CompletionRecap` in `todo_sections.dart` buckets completed todos into Today / Earlier this week (Mon-first) / Older, preserving repo order, unstamped rows → Older. List screen's flat "Completed (N)" ExpansionTile replaced by `_CompletedRecapTile`: subtitle "`X done today · Y this week`" (week folds in today), items grouped under labelled subheaders. New `test/features/completion_recap_test.dart` (5 unit + 1 widget). Full suite green except the pre-existing macOS-local `settings_screen_test` "Sync now" fold failure (also fails on clean `main`; tracked by PR #17). Analyzer clean; coverage 85.7% on lib/data; DST pass. Optional end-of-day shutdown ritual deferred as a follow-up. Pure Dart/UI, no platform paths → integration smoke via CI.
 - **Update 2026-07-06:** testing hardening complete and rebased onto latest `main` after PR #15 landed. Landed: shared simulated-device + fake-transport harnesses, missing screen widget tests, `integration_test` smoke flow, CI/release gates, the coverage floor script, and manual release checklist docs.
 - **Local verification:** 234 `flutter test` cases, `dart tool/check_coverage.dart --lcov coverage/lcov.info --min 80 --scope lib/data` (85.7% on `lib/data`), `test/core/dst_test.dart`, and Windows `integration_test/app_smoke_test.dart` all pass.
 - **Next action:** fresh session -> 6.8 calendar view or 6.13 subtasks (each big - own session). Phase 6 P1 small items are now exhausted except 6.7 minimalist audit (do after using 6.3's line a while), 6.10 unattended-viewer doc, 6.14/6.18 (need platform/native or doc work).
@@ -321,8 +322,10 @@ driver/dispatcher scenario and Apple-first direction.
   reschedule / Someday / delete exits
 - [ ] 6.32 (R13.6) Guided weekly review flow (process Inbox → scan lists →
   review Someday); optional, skippable, never nags by default
-- [ ] 6.33 (R13.7) Completion recap: "done today/this week" view + optional
-  end-of-day shutdown ritual rolling leftovers deliberately
+- [x] 6.33 (R13.7) Completion recap: "done today/this week" view (grouped
+  Today / Earlier this week / Older with a count summary). The optional
+  end-of-day shutdown ritual (rolling leftovers deliberately) is deferred as
+  its own follow-up.
 - [ ] 6.34 (R14.1) "Top 3" pinned must-dos above everything in Today
 - [ ] 6.35 (R14.3) Time-estimate + energy metadata; "I have 10 minutes"
   quick-win filter
