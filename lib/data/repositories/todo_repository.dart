@@ -171,6 +171,66 @@ class TodoRepository {
     const ['deleted'],
   );
 
+  /// Re-applies values from an earlier synced [snapshot], typically for
+  /// short-lived UI undo flows. Restrict [fields] so the undo only reverts
+  /// columns touched by the original action.
+  Future<void> restoreSnapshot(
+    Todo snapshot, {
+    Iterable<String>? fields,
+  }) async {
+    final requested = {...?fields};
+    final allowed = syncColumns['todos']!.keys.toSet();
+    if (requested.isEmpty) {
+      requested.addAll(allowed);
+    }
+    final unknown = requested.difference(allowed);
+    if (unknown.isNotEmpty) {
+      throw ArgumentError('Unknown todo snapshot fields: $unknown');
+    }
+    return _write(
+      snapshot.id,
+      TodosCompanion(
+        listId: requested.contains('listId')
+            ? Value(snapshot.listId)
+            : const Value.absent(),
+        title: requested.contains('title')
+            ? Value(snapshot.title)
+            : const Value.absent(),
+        notes: requested.contains('notes')
+            ? Value(snapshot.notes)
+            : const Value.absent(),
+        dueAtMs: requested.contains('dueAtMs')
+            ? Value(snapshot.dueAtMs)
+            : const Value.absent(),
+        recurrenceRule: requested.contains('recurrenceRule')
+            ? Value(snapshot.recurrenceRule)
+            : const Value.absent(),
+        completedAtMs: requested.contains('completedAtMs')
+            ? Value(snapshot.completedAtMs)
+            : const Value.absent(),
+        priority: requested.contains('priority')
+            ? Value(snapshot.priority)
+            : const Value.absent(),
+        tagsJson: requested.contains('tagsJson')
+            ? Value(snapshot.tagsJson)
+            : const Value.absent(),
+        alarmOffsetsJson: requested.contains('alarmOffsetsJson')
+            ? Value(snapshot.alarmOffsetsJson)
+            : const Value.absent(),
+        lastDismissedMs: requested.contains('lastDismissedMs')
+            ? Value(snapshot.lastDismissedMs)
+            : const Value.absent(),
+        snoozeUntilMs: requested.contains('snoozeUntilMs')
+            ? Value(snapshot.snoozeUntilMs)
+            : const Value.absent(),
+        deleted: requested.contains('deleted')
+            ? Value(snapshot.deleted)
+            : const Value.absent(),
+      ),
+      requested.toList(),
+    );
+  }
+
   Future<Todo?> getById(String id) =>
       (_db.todos.select()..where((t) => t.id.equals(id))).getSingleOrNull();
 
