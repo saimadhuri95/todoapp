@@ -26,36 +26,59 @@ void main() {
       DateTime(2026, 7, day, hour).millisecondsSinceEpoch;
 
   group('sectionize', () {
-    test('splits overdue/today/upcoming/someday and drops empty sections', () {
+    test('splits today/upcoming/someday, folding overdue into Today', () {
       final sections = sectionize([
+        todo('yesterday', dueAtMs: at(4, 9)), // repository orders by due date
         todo('overdue', dueAtMs: at(5, 9)), // this morning, past noon
-        todo('yesterday', dueAtMs: at(4, 9)),
         todo('today', dueAtMs: at(5, 18)), // tonight
         todo('tomorrow', dueAtMs: at(6, 9)),
         todo('someday'),
       ], now);
 
-      expect(sections.map((s) => s.title), [
-        'Overdue',
-        'Today',
-        'Upcoming',
-        'Someday',
+      // No shaming "Overdue" section (TASKS.md 6.16): overdue leads Today.
+      expect(sections.map((s) => s.title), ['Today', 'Upcoming', 'Someday']);
+      expect(sections[0].items.map((t) => t.id), [
+        'yesterday',
+        'overdue',
+        'today',
       ]);
-      expect(sections[0].items.map((t) => t.id), ['overdue', 'yesterday']);
-      expect(sections[1].items.map((t) => t.id), ['today']);
-      expect(sections[2].items.map((t) => t.id), ['tomorrow']);
-      expect(sections[3].items.map((t) => t.id), ['someday']);
+      expect(sections[1].items.map((t) => t.id), ['tomorrow']);
+      expect(sections[2].items.map((t) => t.id), ['someday']);
     });
 
     test('empty input yields no sections', () {
       expect(sectionize([], now), isEmpty);
     });
 
-    test('due exactly now counts as overdue, not today', () {
+    test('due exactly now counts as today', () {
       final sections = sectionize([
         todo('x', dueAtMs: now.millisecondsSinceEpoch),
       ], now);
-      expect(sections.single.title, 'Overdue');
+      expect(sections.single.title, 'Today');
+    });
+  });
+
+  group('overdueLabel', () {
+    // 2026-07-05 is a Sunday.
+    test('null for due today or later, even if past now', () {
+      expect(overdueLabel(at(5, 9), now), isNull); // late but same day
+      expect(overdueLabel(at(5, 18), now), isNull);
+      expect(overdueLabel(at(6, 9), now), isNull);
+    });
+
+    test('weekday within the last week', () {
+      expect(overdueLabel(at(4, 9), now), 'since Sat');
+      expect(overdueLabel(at(3, 23), now), 'since Fri');
+      // 6 days back = Monday Jun 29, still a weekday label.
+      final jun29 = DateTime(2026, 6, 29, 8).millisecondsSinceEpoch;
+      expect(overdueLabel(jun29, now), 'since Mon');
+    });
+
+    test('month + day from a week back', () {
+      final jun28 = DateTime(2026, 6, 28, 8).millisecondsSinceEpoch;
+      expect(overdueLabel(jun28, now), 'since Jun 28');
+      final feb10 = DateTime(2026, 2, 10).millisecondsSinceEpoch;
+      expect(overdueLabel(feb10, now), 'since Feb 10');
     });
   });
 

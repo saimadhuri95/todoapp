@@ -63,8 +63,9 @@ numbers; the **order we execute** is:
 - **Automatable Apple work is now exhausted** except 4.12 screenshot staging (simulators) and Phase 6 cross-platform features that also serve Apple (6.2 notifications, 6.4 links, 6.6 theme override, 6.8 calendar).
 - **Blocked on user:** 4.21 re-verify on a fresh installed release build (folder→relaunch→syncs; QR renders; camera scan; LAN prompt). Apple Developer account unlocks: iCloud entitlement + Keychain Sharing (steps in docs/packaging.md), TestFlight 4.3, notarized dmg 4.4, App Store Connect metadata entry (values ready in packaging.md). Also Play Console/MSIX cert; device testing (2.11, 5.5, 5.8, 5.10).
 - **Requirements session 2026-07-06:** REQUIREMENTS.md expanded to R1–R17 (two research passes: competitor features, abandonment psychology, ADHD, GTD, routines, caregivers, kiosk) and fully triaged → Phase 6 wave 2 (6.13–6.57, prioritized P1/P2/alarms-phase/P3). Wave-1 tasks' stale R-refs fixed to current numbering. No code changed.
-- **Session 2026-07-06 (links+theme):** 6.4 + 6.6 done, merged as PR #12 (CI green on all 6 checks). New: `lib/core/linkify.dart`, `lib/features/todos/linkified_text.dart` (urlOpenerProvider), themeModeProvider + settings dropdown, QR white background for dark mode, url_launcher dep + Android https query. 209 tests.
-- **Next action:** fresh session → 6.8 calendar view (big — own session) or Wave-2 P1 starters: 6.13 subtasks (biggest single win) or 6.15/6.16 (small, high retention value). Also small: 6.3 sync-latency status line, 6.5 glanceable mode.
+- **Session 2026-07-06 (links+theme):** 6.4 + 6.6 merged as PR #12. New: `lib/core/linkify.dart`, `LinkifiedText` (urlOpenerProvider), themeModeProvider + settings dropdown, QR white background for dark mode.
+- **Session 2026-07-06 (inbox+overdue):** 6.15 + 6.16 on branch `inbox-and-overdue` (PR pending merge at session end — check it landed). Inbox = null listId (see 6.15 note re: sync safety), `kInboxFilter` sentinel + `watchActive(unfiledOnly:)`, tile move-to-list popup; sectionize folds Overdue→Today + pure `overdueLabel`. 216 tests.
+- **Next action:** fresh session → 6.8 calendar view (big — own session) or 6.13 subtasks (biggest single win, schema migration — own session). Small fillers: 6.3 sync-latency status line, 6.5 glanceable mode, 6.17 Markdown/todo.txt export.
 
 ## Phase 0 — Foundations
 
@@ -262,10 +263,14 @@ driver/dispatcher scenario and Apple-first direction.
 - [ ] 6.14 (R2.2) Global quick capture: desktop global-hotkey quick-add
   window; Android long-press app shortcut + iOS Home-screen quick action
   straight into quick add (widgets themselves = 6.24)
-- [ ] 6.15 (R13.3) Inbox: quick-add defaults to an Inbox list; one-tap
-  move-to-list triage affordance on the tile
-- [ ] 6.16 (R13.1) No-shame overdue: fold Overdue into Today with a subtle
-  "since Tue" tag (restyle 1.7 sections); no red counters/badges by default
+- [x] 6.15 (R13.3) Inbox: modeled as `listId == null` (deliberately not a
+  synced list row — per-device auto-created "Inbox" rows would duplicate on
+  merge); drawer Inbox view (`kInboxFilter` sentinel, `watchActive
+  unfiledOnly`), quick-add already lands there, tile popup-menu move-to-list
+  triage, editor "No list" renamed Inbox
+- [x] 6.16 (R13.1) No-shame overdue: Overdue section folded into Today
+  (oldest first); tiles show subtle `overdueLabel` tag ("since Tue" <7 days,
+  "since Jun 12" beyond, same-day lateness untagged); no red anywhere
 - [ ] 6.17 (R11.1) Human-readable export: Markdown + todo.txt writers next to
   5.3's JSON export
 - [ ] 6.18 (R13.9) Zero-config gate: add to docs/testing.md release

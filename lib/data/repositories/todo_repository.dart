@@ -139,7 +139,8 @@ class TodoRepository {
       (_db.todos.select()..where((t) => t.id.equals(id))).getSingleOrNull();
 
   /// Not deleted and not completed, soonest due date first (nulls last).
-  Stream<List<Todo>> watchActive({String? listId}) {
+  /// [unfiledOnly] restricts to Inbox todos (no list) and wins over [listId].
+  Stream<List<Todo>> watchActive({String? listId, bool unfiledOnly = false}) {
     final query = _db.todos.select()
       ..where((t) => t.deleted.equals(false) & t.completedAtMs.isNull())
       ..orderBy([
@@ -148,7 +149,9 @@ class TodoRepository {
         (t) => OrderingTerm(expression: t.dueAtMs),
         (t) => OrderingTerm(expression: t.priority, mode: OrderingMode.desc),
       ]);
-    if (listId != null) {
+    if (unfiledOnly) {
+      query.where((t) => t.listId.isNull());
+    } else if (listId != null) {
       query.where((t) => t.listId.equals(listId));
     }
     return query.watch();

@@ -10,11 +10,13 @@ class TodoSection {
   final List<Todo> items;
 }
 
-/// Groups active todos into Overdue / Today / Upcoming / Someday, dropping
-/// empty sections. Input order (repository due-date ordering) is preserved.
+/// Groups active todos into Today / Upcoming / Someday, dropping empty
+/// sections. Overdue items fold into Today — oldest first via the
+/// repository's due-date ordering — and tiles tag them with [overdueLabel]
+/// instead of a shaming red "Overdue" section (TASKS.md 6.16, R13.1).
+/// Input order is preserved.
 List<TodoSection> sectionize(List<Todo> todos, DateTime now) {
   final startOfTomorrow = DateTime(now.year, now.month, now.day + 1);
-  final overdue = <Todo>[];
   final today = <Todo>[];
   final upcoming = <Todo>[];
   final someday = <Todo>[];
@@ -25,20 +27,37 @@ List<TodoSection> sectionize(List<Todo> todos, DateTime now) {
       continue;
     }
     final due = DateTime.fromMillisecondsSinceEpoch(ms);
-    if (!due.isAfter(now)) {
-      overdue.add(todo);
-    } else if (due.isBefore(startOfTomorrow)) {
-      today.add(todo);
-    } else {
-      upcoming.add(todo);
-    }
+    (due.isBefore(startOfTomorrow) ? today : upcoming).add(todo);
   }
   return [
-    if (overdue.isNotEmpty) TodoSection('Overdue', overdue),
     if (today.isNotEmpty) TodoSection('Today', today),
     if (upcoming.isNotEmpty) TodoSection('Upcoming', upcoming),
     if (someday.isNotEmpty) TodoSection('Someday', someday),
   ];
+}
+
+const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const _months = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/// Subtle tag for items due before today: "since Tue" within the last week,
+/// "since Jun 12" beyond. Null for anything due today or later — same-day
+/// lateness keeps its normal due time, not a tag.
+String? overdueLabel(int dueAtMs, DateTime now) {
+  final due = DateTime.fromMillisecondsSinceEpoch(dueAtMs);
+  final startOfToday = DateTime(now.year, now.month, now.day);
+  if (!due.isBefore(startOfToday)) return null;
+  // Calendar-day distance via UTC so a DST-shortened day still counts as 1.
+  final days = DateTime.utc(
+    now.year,
+    now.month,
+    now.day,
+  ).difference(DateTime.utc(due.year, due.month, due.day)).inDays;
+  return days < 7
+      ? 'since ${_weekdays[due.weekday - 1]}'
+      : 'since ${_months[due.month - 1]} ${due.day}';
 }
 
 /// Case-insensitive match against title, notes, and tags.
