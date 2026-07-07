@@ -288,7 +288,13 @@ class SyncSettingsScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              QrImageView(data: invitation, size: 220),
+              // Explicit white background: the default is transparent, which
+              // makes the black modules unscannable on a dark-theme dialog.
+              QrImageView(
+                data: invitation,
+                size: 220,
+                backgroundColor: Colors.white,
+              ),
               const SizedBox(height: 8),
               const Text(
                 'Keep this private — anyone with it can read your todos.',

@@ -19,11 +19,19 @@ class SettingsScreen extends ConsumerWidget {
     appBar: AppBar(title: const Text('Settings')),
     body: ListView(
       children: [
-        const ListTile(
-          leading: Icon(Icons.palette_outlined),
-          title: Text('Theme'),
-          subtitle: Text('Follows system'),
-          enabled: false,
+        ListTile(
+          leading: const Icon(Icons.palette_outlined),
+          title: const Text('Theme'),
+          trailing: DropdownButton<ThemeMode>(
+            value: ref.watch(themeModeProvider),
+            underline: const SizedBox.shrink(),
+            items: const [
+              DropdownMenuItem(value: ThemeMode.system, child: Text('System')),
+              DropdownMenuItem(value: ThemeMode.light, child: Text('Light')),
+              DropdownMenuItem(value: ThemeMode.dark, child: Text('Dark')),
+            ],
+            onChanged: (mode) => _setThemeMode(ref, mode),
+          ),
         ),
         SwitchListTile(
           secondary: const Icon(Icons.alarm),
@@ -63,6 +71,13 @@ class SettingsScreen extends ConsumerWidget {
       ],
     ),
   );
+
+  Future<void> _setThemeMode(WidgetRef ref, ThemeMode? mode) async {
+    if (mode == null) return;
+    ref.read(themeModeProvider.notifier).state = mode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('themeMode', mode.name);
+  }
 
   ExportService _service(WidgetRef ref) => ExportService(
     db: ref.read(databaseProvider),
