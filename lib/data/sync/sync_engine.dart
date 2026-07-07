@@ -28,7 +28,13 @@ class SyncEngine {
   final HlcClock _hlc;
   final LwwApplier _applier;
   final String deviceId;
-  var _visibleTodosChanged = false;
+  var _visibleTodoChanges = 0;
+
+  /// Monotonic count of [apply] calls that changed user-visible todos.
+  /// Consumers snapshot it before syncing and compare after — unlike a
+  /// take-and-clear flag, concurrent consumers (an inbound LAN session vs.
+  /// an orchestrator pass) cannot consume each other's signal.
+  int get visibleTodoChanges => _visibleTodoChanges;
 
   static const _visibleTodoFields = {
     'listId',
@@ -98,21 +104,30 @@ class SyncEngine {
     if (changeset.writes.isEmpty) return 0;
     final writes = [...changeset.writes]
       ..sort((a, b) => a.hlc.compareTo(b.hlc));
+    // Visibility is compared at the changeset's endpoints, not per write:
+    // two batched queries instead of two point lookups per write, and a
+    // todo created and tombstoned within one changeset (never shown to the
+    // user) correctly counts as no visible change.
+    final candidateTodoIds = {
+      for (final write in writes)
+        if (write.entity == 'todos' && _visibleTodoFields.contains(write.field))
+          write.rowId,
+    };
+    final visibleBefore = await _visibleTodoIds(candidateTodoIds);
+    final appliedTodoIds = <String>{};
     var applied = 0;
     for (final write in writes) {
-      final tracksVisibleTodo =
-          write.entity == 'todos' && _visibleTodoFields.contains(write.field);
-      final wasVisible = tracksVisibleTodo
-          ? await _todoIsVisible(write.rowId)
-          : false;
       if (await _applier.apply(write)) {
         applied++;
-        if (tracksVisibleTodo) {
-          final isVisible = await _todoIsVisible(write.rowId);
-          _visibleTodosChanged =
-              _visibleTodosChanged || wasVisible || isVisible;
+        if (write.entity == 'todos' &&
+            _visibleTodoFields.contains(write.field)) {
+          appliedTodoIds.add(write.rowId);
         }
       }
+    }
+    if (appliedTodoIds.any(visibleBefore.contains) ||
+        (await _visibleTodoIds(appliedTodoIds)).isNotEmpty) {
+      _visibleTodoChanges++;
     }
     // Keep the local HLC ahead of everything we've seen, and record the
     // exchange for sync-status UI (3.14).
@@ -128,16 +143,24 @@ class SyncEngine {
     return applied;
   }
 
-  bool takeVisibleTodosChanged() {
-    final changed = _visibleTodosChanged;
-    _visibleTodosChanged = false;
-    return changed;
-  }
-
-  Future<bool> _todoIsVisible(String id) async {
-    final todo = await (_db.todos.select()..where((t) => t.id.equals(id)))
-        .getSingleOrNull();
-    return todo != null && !todo.deleted;
+  /// Which of [ids] exist and are not tombstoned, in chunks that stay
+  /// under SQLite's bind-variable limit even on a 5k-todo first sync.
+  Future<Set<String>> _visibleTodoIds(Set<String> ids) async {
+    const chunkSize = 500;
+    final visible = <String>{};
+    final pending = ids.toList();
+    for (var i = 0; i < pending.length; i += chunkSize) {
+      final chunk = pending.sublist(
+        i,
+        i + chunkSize > pending.length ? pending.length : i + chunkSize,
+      );
+      final rows =
+          await (_db.todos.select()
+                ..where((t) => t.id.isIn(chunk) & t.deleted.equals(false)))
+              .get();
+      visible.addAll(rows.map((row) => row.id));
+    }
+    return visible;
   }
 
   /// One full pull from [peer] into this device.

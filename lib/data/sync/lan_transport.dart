@@ -49,11 +49,11 @@ class LanSync {
 
       final deltas = await io.readJson();
       if (deltas == null) return 0;
-      engine.takeVisibleTodosChanged();
+      final visibleChangesBefore = engine.visibleTodoChanges;
       final applied = await engine.apply(
         Changeset.decode(deltas['changeset'] as String),
       );
-      if (applied > 0 && engine.takeVisibleTodosChanged()) {
+      if (applied > 0 && engine.visibleTodoChanges != visibleChangesBefore) {
         await onVisibleTodosChanged?.call();
       }
       return applied;
