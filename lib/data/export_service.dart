@@ -1,9 +1,11 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
 
 import '../core/hlc.dart';
 import 'db/database.dart';
+import 'import_parsers.dart';
 import 'repositories/todo_repository.dart' show TodoTags;
 import 'sync/sync_fields.dart';
 
@@ -21,6 +23,46 @@ class ExportService {
   final HlcClock hlc;
 
   static const int formatVersion = 1;
+  static const _uuid = Uuid();
+
+  /// Creates new todos from a parsed third-party import (the [ImportedTodo]s
+  /// from [parseTodoTxt]/[parseCsv]). Unlike [importJson], these are fresh
+  /// rows with new ids — never a row-for-row restore — so each gets a new
+  /// uuid v7 and a single batch HLC stamp and replicates like a local add.
+  /// Completed items without a source timestamp are stamped with the clock.
+  /// Returns the number of todos written.
+  Future<int> importParsed(List<ImportedTodo> items) async {
+    if (items.isEmpty) return 0;
+    final stamp = hlc.send();
+    final nowMs = hlc.clock.now().millisecondsSinceEpoch;
+    await db.transaction(() async {
+      for (final item in items) {
+        final id = _uuid.v7();
+        await db.todos.insertOne(
+          TodosCompanion.insert(
+            id: id,
+            title: item.title,
+            notes: Value(item.notes),
+            dueAtMs: Value(item.dueAtMs),
+            recurrenceRule: Value(item.recurrenceRule),
+            completedAtMs: Value(
+              item.completed ? (item.completedAtMs ?? nowMs) : null,
+            ),
+            priority: Value(item.priority),
+            tagsJson: Value(jsonEncode(item.tags)),
+          ),
+        );
+        await stampFields(
+          db: db,
+          entity: 'todos',
+          rowId: id,
+          fields: syncColumns['todos']!.keys,
+          hlc: stamp,
+        );
+      }
+    });
+    return items.length;
+  }
 
   Future<String> exportJson() async {
     final lists = await db.todoLists.all().get();
