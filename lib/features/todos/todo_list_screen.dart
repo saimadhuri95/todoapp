@@ -194,7 +194,7 @@ class _TodoListPane extends ConsumerWidget {
               context,
               ref,
               sectionize(filterTodos(items, query), now),
-              filterTodos(completed, query),
+              completionRecap(filterTodos(completed, query), now),
             ),
             AsyncError(error: final e) => Center(child: Text('Error: $e')),
             _ => const Center(child: CircularProgressIndicator()),
@@ -208,9 +208,9 @@ class _TodoListPane extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     List<TodoSection> sections,
-    List<Todo> completed,
+    CompletionRecap recap,
   ) {
-    if (sections.isEmpty && completed.isEmpty) {
+    if (sections.isEmpty && recap.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -240,15 +240,13 @@ class _TodoListPane extends ConsumerWidget {
     // Flattened row models + builder so huge lists stay lazy (TASKS.md 5.7).
     final rows = <Object>[
       for (final section in sections) ...[section.title, ...section.items],
-      if (completed.isNotEmpty) _completedMarker,
+      if (!recap.isEmpty) _completedMarker,
     ];
     return ListView.builder(
       itemCount: rows.length,
       itemBuilder: (context, i) => switch (rows[i]) {
-        final String title when title == _completedMarker => ExpansionTile(
-          title: Text('Completed (${completed.length})'),
-          children: [for (final todo in completed) _CompletedTile(todo: todo)],
-        ),
+        final String title when title == _completedMarker =>
+          _CompletedRecapTile(recap: recap),
         final String title => _SectionHeader(title),
         final Todo todo => _TodoTile(todo: todo),
         _ => const SizedBox.shrink(),
@@ -379,6 +377,45 @@ class _MoveToListButton extends ConsumerWidget {
           PopupMenuItem(value: list.id, child: Text(list.name)),
       ],
     );
+  }
+}
+
+/// Completion recap (TASKS.md 6.33, R13.7): a collapsible "Completed" section
+/// whose subtitle summarizes what got done today and this week, with the items
+/// grouped by when they were finished.
+class _CompletedRecapTile extends StatelessWidget {
+  const _CompletedRecapTile({required this.recap});
+
+  final CompletionRecap recap;
+
+  @override
+  Widget build(BuildContext context) => ExpansionTile(
+    title: Text('Completed (${recap.total})'),
+    subtitle: Text(
+      '${recap.today.length} done today · ${recap.weekCount} this week',
+    ),
+    children: [
+      ..._group(context, 'Today', recap.today),
+      ..._group(context, 'Earlier this week', recap.thisWeek),
+      ..._group(context, 'Older', recap.earlier),
+    ],
+  );
+
+  /// A subheader + its tiles, or nothing when the bucket is empty.
+  List<Widget> _group(BuildContext context, String label, List<Todo> items) {
+    if (items.isEmpty) return const [];
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+      ),
+      for (final todo in items) _CompletedTile(todo: todo),
+    ];
   }
 }
 

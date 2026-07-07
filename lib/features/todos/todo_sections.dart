@@ -36,6 +36,57 @@ List<TodoSection> sectionize(List<Todo> todos, DateTime now) {
   ];
 }
 
+/// Completed todos bucketed for the recap view (TASKS.md 6.33, R13.7): what
+/// got done [today], earlier [thisWeek], and everything [earlier]. Counts come
+/// straight off the list lengths; [weekCount] folds today into the week total
+/// so the summary reads the way people mean "done this week".
+class CompletionRecap {
+  const CompletionRecap(this.today, this.thisWeek, this.earlier);
+
+  final List<Todo> today;
+  final List<Todo> thisWeek;
+  final List<Todo> earlier;
+
+  int get total => today.length + thisWeek.length + earlier.length;
+  int get weekCount => today.length + thisWeek.length;
+  bool get isEmpty => total == 0;
+}
+
+/// Buckets completed todos by completion time for the recap (TASKS.md 6.33).
+/// The week starts Monday, to match the weekday labels. Input order
+/// (completed-newest-first from the repository) is preserved within each
+/// bucket. Rows without a completion stamp fall into [CompletionRecap.earlier]
+/// so nothing silently disappears from the recap.
+CompletionRecap completionRecap(List<Todo> completed, DateTime now) {
+  final startOfToday = DateTime(now.year, now.month, now.day);
+  // Monday = weekday 1; DateTime normalizes the day arithmetic so a week
+  // spanning a DST change still lands on the right calendar day.
+  final startOfWeek = DateTime(
+    now.year,
+    now.month,
+    now.day - (now.weekday - 1),
+  );
+  final today = <Todo>[];
+  final thisWeek = <Todo>[];
+  final earlier = <Todo>[];
+  for (final todo in completed) {
+    final ms = todo.completedAtMs;
+    if (ms == null) {
+      earlier.add(todo);
+      continue;
+    }
+    final at = DateTime.fromMillisecondsSinceEpoch(ms);
+    if (!at.isBefore(startOfToday)) {
+      today.add(todo);
+    } else if (!at.isBefore(startOfWeek)) {
+      thisWeek.add(todo);
+    } else {
+      earlier.add(todo);
+    }
+  }
+  return CompletionRecap(today, thisWeek, earlier);
+}
+
 const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const _months = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
