@@ -65,7 +65,7 @@ numbers; the **order we execute** is:
 - **Requirements session 2026-07-06:** REQUIREMENTS.md expanded to R1–R17 (two research passes: competitor features, abandonment psychology, ADHD, GTD, routines, caregivers, kiosk) and fully triaged → Phase 6 wave 2 (6.13–6.57, prioritized P1/P2/alarms-phase/P3). Wave-1 tasks' stale R-refs fixed to current numbering. No code changed.
 - **Session 2026-07-06 (links+theme):** 6.4 + 6.6 merged as PR #12. New: `lib/core/linkify.dart`, `LinkifiedText` (urlOpenerProvider), themeModeProvider + settings dropdown, QR white background for dark mode.
 - **Session 2026-07-06 (inbox+overdue):** 6.15 + 6.16 merged as PR #13. Inbox = null listId (see 6.15 note re: sync safety), `kInboxFilter` sentinel + `watchActive(unfiledOnly:)`, tile move-to-list popup; sectionize folds Overdue→Today + pure `overdueLabel`.
-- **Session 2026-07-06 (export):** 6.17 on branch `readable-export` (PR pending merge at session end — check it landed). exportMarkdown/exportTodoTxt in ExportService + settings format picker. 218 tests.
+- **Session 2026-07-06 (export):** 6.17 merged as PR #14 (CI green on all 6 checks). exportMarkdown/exportTodoTxt in ExportService + settings format picker. 218 tests.
 - **Next action:** fresh session → 6.8 calendar view or 6.13 subtasks (each big — own session). Small fillers left: 6.3 sync-latency status line, 6.5 glanceable mode, 6.9 recurrence spawn check.
 
 ## Phase 0 — Foundations
