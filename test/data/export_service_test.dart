@@ -81,6 +81,88 @@ void main() {
     expect(rows.single.title, 'original'); // snapshot restored
   });
 
+  test('markdown export groups by list and reads like a document', () async {
+    final chores = await a.lists.create(name: 'Weekend Chores');
+    await a.todos.create(
+      title: 'Mow lawn',
+      listId: chores.id,
+      dueAtMs: DateTime(2026, 7, 4, 9).millisecondsSinceEpoch,
+      tags: ['garden'],
+      priority: 3,
+    );
+    await a.todos.create(title: 'Loose idea', notes: 'line one\nline two');
+    final done = await a.todos.create(title: 'Water plants');
+    await a.todos.complete(done.id);
+    final gone = await a.todos.create(title: 'invisible');
+    await a.todos.softDelete(gone.id);
+    final weekly = await a.todos.create(title: 'Recycling');
+    await a.todos.edit(
+      weekly.id,
+      recurrenceRule: const Value('FREQ=WEEKLY;INTERVAL=2'),
+    );
+
+    final md = await exportA.exportMarkdown();
+
+    expect(md, contains('## Inbox'));
+    expect(md, contains('## Weekend Chores'));
+    expect(
+      md,
+      contains('- [ ] Mow lawn (due 2026-07-04 09:00, high, #garden)'),
+    );
+    expect(md, contains('- [x] Water plants'));
+    expect(md, contains('- [ ] Loose idea\n  line one\n  line two'));
+    expect(md, contains('(repeats every 2 weeks)'));
+    expect(md, isNot(contains('invisible')));
+    // Inbox section precedes named lists.
+    expect(md.indexOf('## Inbox'), lessThan(md.indexOf('## Weekend Chores')));
+  });
+
+  test('todo.txt export follows the format', () async {
+    final chores = await a.lists.create(name: 'Weekend Chores');
+    await a.todos.create(
+      title: 'Mow lawn',
+      listId: chores.id,
+      dueAtMs: DateTime(2026, 7, 4, 9).millisecondsSinceEpoch,
+      tags: ['garden'],
+      priority: 3,
+    );
+    final done = await a.todos.create(title: 'Water plants');
+    await a.todos.complete(done.id);
+    final gone = await a.todos.create(title: 'invisible');
+    await a.todos.softDelete(gone.id);
+    final daily = await a.todos.create(
+      title: 'Meds',
+      notes: 'secret note',
+      priority: 1,
+    );
+    await a.todos.edit(daily.id, recurrenceRule: const Value('FREQ=DAILY'));
+    final byday = await a.todos.create(title: 'Standup');
+    await a.todos.edit(
+      byday.id,
+      recurrenceRule: const Value('FREQ=WEEKLY;BYDAY=MO'),
+    );
+
+    final lines = (await exportA.exportTodoTxt()).trim().split('\n');
+
+    expect(
+      lines,
+      contains('(A) Mow lawn +Weekend_Chores @garden due:2026-07-04'),
+    );
+    // Completion date comes from device A's clock (2026-07-06 UTC).
+    expect(lines, contains('x 2026-07-06 Water plants'));
+    expect(lines, contains('(C) Meds rec:1d'));
+    // BYDAY can't be said in rec: — omit rather than export a wrong rule.
+    expect(lines, contains('Standup'));
+    // Notes and tombstones never leak into the single-line format.
+    expect(lines.join(), isNot(contains('secret')));
+    expect(lines.join(), isNot(contains('invisible')));
+    // Active tasks list before completed ones.
+    expect(
+      lines.indexWhere((l) => l.startsWith('(A) Mow lawn')),
+      lessThan(lines.indexWhere((l) => l.startsWith('x '))),
+    );
+  });
+
   test('malformed and foreign files are rejected without writes', () async {
     for (final bad in ['nope', '{}', '{"v":1,"app":"other"}']) {
       expect(() => importB.importJson(bad), throwsFormatException, reason: bad);

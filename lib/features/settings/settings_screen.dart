@@ -11,6 +11,26 @@ import '../../app/providers.dart';
 import '../../data/export_service.dart';
 import 'sync_settings_screen.dart';
 
+enum _ExportFormat {
+  json(
+    'JSON',
+    'Full backup — the only format Knot can restore', //
+    'knot-export.json',
+  ),
+  markdown('Markdown', 'Readable document grouped by list', 'knot-todos.md'),
+  todoTxt(
+    'todo.txt',
+    'One task per line for todo.txt apps (drops notes)',
+    'todo.txt',
+  );
+
+  const _ExportFormat(this.label, this.description, this.fileName);
+
+  final String label;
+  final String description;
+  final String fileName;
+}
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -54,7 +74,7 @@ class SettingsScreen extends ConsumerWidget {
         ListTile(
           leading: const Icon(Icons.upload_file),
           title: const Text('Export todos'),
-          subtitle: const Text('Save everything as a JSON file'),
+          subtitle: const Text('JSON backup, Markdown, or todo.txt'),
           onTap: () => _export(context, ref),
         ),
         ListTile(
@@ -86,10 +106,33 @@ class SettingsScreen extends ConsumerWidget {
 
   Future<void> _export(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
-    final location = await getSaveLocation(suggestedName: 'knot-export.json');
+    final format = await showDialog<_ExportFormat>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Export as'),
+        children: [
+          for (final format in _ExportFormat.values)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(context).pop(format),
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(format.label),
+                subtitle: Text(format.description),
+              ),
+            ),
+        ],
+      ),
+    );
+    if (format == null) return;
+    final location = await getSaveLocation(suggestedName: format.fileName);
     if (location == null) return;
-    final json = await _service(ref).exportJson();
-    await File(location.path).writeAsString(json);
+    final service = _service(ref);
+    final content = switch (format) {
+      _ExportFormat.json => await service.exportJson(),
+      _ExportFormat.markdown => await service.exportMarkdown(),
+      _ExportFormat.todoTxt => await service.exportTodoTxt(),
+    };
+    await File(location.path).writeAsString(content);
     messenger.showSnackBar(
       SnackBar(content: Text('Exported to ${location.path}')),
     );
