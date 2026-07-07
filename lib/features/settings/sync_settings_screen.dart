@@ -23,6 +23,12 @@ class SyncSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final devices = ref.watch(devicesProvider).value ?? const [];
     final mailboxPath = ref.watch(mailboxPathProvider);
+    final syncHealth =
+        ref.watch(syncHealthProvider).value ??
+        const SyncHealthSnapshot(
+          transportLabel: 'Checking sync setup…',
+          isSyncReady: false,
+        );
     return Scaffold(
       appBar: AppBar(title: const Text('Sync & devices')),
       body: ListView(
@@ -32,7 +38,8 @@ class SyncSettingsScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.schedule),
             title: Text(_syncStatusLine(ref)),
-            subtitle: const Text(
+            subtitle: Text(
+              '${_syncHealthLine(syncHealth)}\n'
               'Syncs when you make changes, on app resume, '
               'and every 5 minutes while open',
             ),
@@ -134,6 +141,13 @@ class SyncSettingsScreen extends ConsumerWidget {
     if (at == null) return 'No sync pass yet this session';
     String two(int n) => n.toString().padLeft(2, '0');
     return 'Last sync ${two(at.hour)}:${two(at.minute)}';
+  }
+
+  String _syncHealthLine(SyncHealthSnapshot health) {
+    if (!health.isSyncReady) return health.transportLabel;
+    final noun = health.pendingOutboundCount == 1 ? 'change' : 'changes';
+    return '${health.transportLabel} · '
+        '${health.pendingOutboundCount} outbound $noun pending';
   }
 
   String _deviceSubtitle(WidgetRef ref, Device device) {
