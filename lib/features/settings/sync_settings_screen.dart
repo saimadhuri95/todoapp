@@ -27,6 +27,17 @@ class SyncSettingsScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Sync & devices')),
       body: ListView(
         children: [
+          // Last sync + cadence (TASKS.md 6.3); latency targets live in
+          // docs/sync.md.
+          ListTile(
+            leading: const Icon(Icons.schedule),
+            title: Text(_syncStatusLine(ref)),
+            subtitle: const Text(
+              'Syncs when you make changes, on app resume, '
+              'and every 5 minutes while open',
+            ),
+          ),
+          const Divider(),
           // file_selector has no directory picker on iOS; iCloud Drive is
           // the folder story there. macOS gets both (picker for third-party
           // drives, iCloud for the managed container).
@@ -116,6 +127,13 @@ class SyncSettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  String _syncStatusLine(WidgetRef ref) {
+    final at = ref.watch(lastSyncPassProvider);
+    if (at == null) return 'No sync pass yet this session';
+    String two(int n) => n.toString().padLeft(2, '0');
+    return 'Last sync ${two(at.hour)}:${two(at.minute)}';
   }
 
   String _deviceSubtitle(WidgetRef ref, Device device) {
@@ -403,6 +421,9 @@ class SyncSettingsScreen extends ConsumerWidget {
       return;
     }
     final report = await orchestrator.syncNow();
+    ref.read(lastSyncPassProvider.notifier).state = ref
+        .read(clockProvider)
+        .now();
     messenger.showSnackBar(
       SnackBar(
         content: Text(

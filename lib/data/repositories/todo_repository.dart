@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/hlc.dart';
+import '../../core/recurrence.dart';
 import '../db/database.dart';
 import '../sync/sync_fields.dart';
 
@@ -113,11 +114,46 @@ class TodoRepository {
     const ['snoozeUntilMs'],
   );
 
-  Future<void> complete(String id) => _write(
-    id,
-    TodosCompanion(completedAtMs: Value(_nowMs())),
-    const ['completedAtMs'],
-  );
+  /// Completing a recurring todo advances it to its next occurrence instead
+  /// of completing the row (TASKS.md 6.9). In-place field writes are the
+  /// CRDT-safe shape: two devices completing concurrently compute the same
+  /// next due and LWW converges, whereas spawning a fresh row per completion
+  /// would duplicate on merge. Overdue completions jump past now rather than
+  /// landing on another already-past occurrence; early completions skip the
+  /// pending one. The stale snooze is cleared; lastDismissedMs stays (it
+  /// only silences occurrences ≤ itself).
+  Future<void> complete(String id) async {
+    final todo = await getById(id);
+    final rule = todo?.recurrenceRule;
+    final dueMs = todo?.dueAtMs;
+    Recurrence? recurrence;
+    if (rule != null) {
+      try {
+        recurrence = Recurrence.parse(rule);
+      } on FormatException {
+        // A malformed rule (bad sync input) shouldn't block completion.
+      }
+    }
+    if (recurrence == null || dueMs == null) {
+      return _write(id, TodosCompanion(completedAtMs: Value(_nowMs())), const [
+        'completedAtMs',
+      ]);
+    }
+    final due = DateTime.fromMillisecondsSinceEpoch(dueMs);
+    final now = DateTime.fromMillisecondsSinceEpoch(_nowMs());
+    final next = recurrence.nextAfter(
+      now.isAfter(due) ? now : due,
+      anchor: due,
+    );
+    return _write(
+      id,
+      TodosCompanion(
+        dueAtMs: Value(next.millisecondsSinceEpoch),
+        snoozeUntilMs: const Value(null),
+      ),
+      const ['dueAtMs', 'snoozeUntilMs'],
+    );
+  }
 
   Future<void> uncomplete(String id) => _write(
     id,

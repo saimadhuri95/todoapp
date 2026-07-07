@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' hide isNull;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:todoapp/core/clock.dart';
@@ -150,6 +150,100 @@ void main() {
 
       final inWork = await todos.watchActive(listId: work.id).first;
       expect(inWork.map((t) => t.id), [todo.id]);
+    });
+  });
+
+  // Clock is fixed at 2026-07-05 12:00 UTC.
+  group('recurring complete (TASKS.md 6.9)', () {
+    int at(DateTime d) => d.millisecondsSinceEpoch;
+
+    test('advances due to the next occurrence and stays active', () async {
+      final todo = await todos.create(
+        title: 'meds',
+        dueAtMs: at(DateTime.utc(2026, 7, 5, 9)), // this morning
+        recurrenceRule: 'FREQ=DAILY',
+      );
+
+      await todos.complete(todo.id);
+
+      final row = (await todos.getById(todo.id))!;
+      expect(row.completedAtMs, isNull); // never leaves the active list
+      expect(row.dueAtMs, at(DateTime.utc(2026, 7, 6, 9)));
+    });
+
+    test(
+      'overdue completion jumps past now, not to another past slot',
+      () async {
+        final todo = await todos.create(
+          title: 'meds',
+          dueAtMs: at(DateTime.utc(2026, 7, 1, 9)), // 4 days overdue
+          recurrenceRule: 'FREQ=DAILY',
+        );
+
+        await todos.complete(todo.id);
+
+        // First occurrence after now (Jul 5 12:00), not Jul 2.
+        expect(
+          (await todos.getById(todo.id))!.dueAtMs,
+          at(DateTime.utc(2026, 7, 6, 9)),
+        );
+      },
+    );
+
+    test('early completion skips the pending occurrence', () async {
+      final todo = await todos.create(
+        title: 'water plants',
+        dueAtMs: at(DateTime.utc(2026, 7, 6, 9)), // due tomorrow
+        recurrenceRule: 'FREQ=WEEKLY',
+      );
+
+      await todos.complete(todo.id);
+
+      expect(
+        (await todos.getById(todo.id))!.dueAtMs,
+        at(DateTime.utc(2026, 7, 13, 9)),
+      );
+    });
+
+    test('advancing clears a stale snooze and stamps the fields', () async {
+      final todo = await todos.create(
+        title: 'meds',
+        dueAtMs: at(DateTime.utc(2026, 7, 5, 9)),
+        recurrenceRule: 'FREQ=DAILY',
+      );
+      await todos.snoozeAlarm(todo.id, at(DateTime.utc(2026, 7, 5, 13)));
+      final before = await clocksFor(todo.id);
+
+      await todos.complete(todo.id);
+
+      final row = (await todos.getById(todo.id))!;
+      expect(row.snoozeUntilMs, isNull);
+      final after = await clocksFor(todo.id);
+      expect(after['dueAtMs'], isNot(before['dueAtMs']));
+      expect(after['completedAtMs'], before['completedAtMs']); // untouched
+    });
+
+    test('malformed rule falls back to normal completion', () async {
+      final todo = await todos.create(
+        title: 'odd',
+        dueAtMs: at(DateTime.utc(2026, 7, 5, 9)),
+        recurrenceRule: 'FREQ=SOMETIMES',
+      );
+
+      await todos.complete(todo.id);
+
+      expect((await todos.getById(todo.id))!.completedAtMs, isNotNull);
+    });
+
+    test('recurring without a due date completes normally', () async {
+      final todo = await todos.create(
+        title: 'floaty',
+        recurrenceRule: 'FREQ=DAILY',
+      );
+
+      await todos.complete(todo.id);
+
+      expect((await todos.getById(todo.id))!.completedAtMs, isNotNull);
     });
   });
 

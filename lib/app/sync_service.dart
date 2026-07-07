@@ -120,7 +120,12 @@ class SyncService with WidgetsBindingObserver {
         notifications: _ref.read(alarmSchedulerProvider),
         notificationsEnabled: _ref.read(alarmsEnabledProvider),
       );
-      await orchestrator?.syncNow();
+      if (orchestrator != null) {
+        await orchestrator.syncNow();
+        _ref.read(lastSyncPassProvider.notifier).state = _ref
+            .read(clockProvider)
+            .now();
+      }
     } finally {
       _syncing = false;
     }
