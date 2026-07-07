@@ -116,17 +116,21 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - name: Select iOS simulator
+      - name: Boot iOS simulator
         shell: bash
         run: |
           xcrun simctl list devices available
-          SIMULATOR_NAME=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ && /Booted|Shutdown/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $1); print $1; exit}')
-          if [ -z "$SIMULATOR_NAME" ]; then
+          SIMULATOR_UDID=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ && /(Booted|Shutdown)/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}')
+          if [ -z "$SIMULATOR_UDID" ]; then
             echo "No available iPhone simulator found" >&2
             exit 1
           fi
-          echo "SIMULATOR_NAME=$SIMULATOR_NAME" >> "$GITHUB_ENV"
-      - run: flutter test integration_test/app_smoke_test.dart -d "${{ env.SIMULATOR_NAME }}"
+          echo "SIMULATOR_UDID=$SIMULATOR_UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$SIMULATOR_UDID" || true
+          open -a Simulator --args -CurrentDeviceUDID "$SIMULATOR_UDID"
+          xcrun simctl bootstatus "$SIMULATOR_UDID" -b
+          flutter devices
+      - run: flutter test integration_test/app_smoke_test.dart -d "${{ env.SIMULATOR_UDID }}"
 
   build:
     name: Build ${{ matrix.target }}
