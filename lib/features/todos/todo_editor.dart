@@ -7,6 +7,7 @@ import '../../core/linkify.dart';
 import '../../data/db/database.dart';
 import '../../data/repositories/todo_repository.dart' show TodoTags;
 import 'linkified_text.dart';
+import 'todo_undo.dart';
 
 /// Full-screen editor route (narrow layouts). Wide layouts embed
 /// [TodoEditor] directly in the detail pane.
@@ -94,27 +95,37 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
   }
 
   Future<void> _save() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final repo = ref.read(todoRepositoryProvider);
     final tags = _tags.text
         .split(',')
         .map((t) => t.trim())
         .where((t) => t.isNotEmpty)
         .toList();
-    await ref
-        .read(todoRepositoryProvider)
-        .edit(
-          widget.todo.id,
-          title: Value(_title.text.trim()),
-          notes: Value(_notes.text),
-          listId: Value(_listId),
-          dueAtMs: Value(_dueAt?.millisecondsSinceEpoch),
-          recurrenceRule: Value(_recurrence),
-          priority: Value(_priority),
-          tags: Value(tags),
-          alarmOffsetsMinutes: Value(
-            _dueAt == null ? const [] : (_alarmOffsets.toList()..sort()),
-          ),
-        );
-    if (widget.popOnSave && mounted) Navigator.of(context).pop();
+    await repo.edit(
+      widget.todo.id,
+      title: Value(_title.text.trim()),
+      notes: Value(_notes.text),
+      listId: Value(_listId),
+      dueAtMs: Value(_dueAt?.millisecondsSinceEpoch),
+      recurrenceRule: Value(_recurrence),
+      priority: Value(_priority),
+      tags: Value(tags),
+      alarmOffsetsMinutes: Value(
+        _dueAt == null ? const [] : (_alarmOffsets.toList()..sort()),
+      ),
+    );
+    final after = await repo.getById(widget.todo.id);
+    if (!mounted) return;
+    if (widget.popOnSave) Navigator.of(context).pop();
+    if (after == null) return;
+    showTodoUndoSnackBar(
+      messenger: messenger,
+      repo: repo,
+      before: widget.todo,
+      after: after,
+      message: 'Todo updated',
+    );
   }
 
   @override

@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' hide Column;
+import 'package:drift/drift.dart' hide Column, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,9 +60,39 @@ void main() {
     await tester.tap(find.byType(Checkbox));
     await tester.pumpAndSettle();
 
+    expect(find.text('Todo completed'), findsOneWidget);
+    expect(find.text('Undo'), findsOneWidget);
     expect(find.text('Walk dog'), findsNothing);
     // Not the empty state: the collapsed Completed section holds it now.
     expect(find.text('Completed (1)'), findsOneWidget);
+  });
+
+  testApp('undo restores a recurring todo after complete', (tester) async {
+    final originalDue = DateTime.utc(2026, 7, 4, 9).millisecondsSinceEpoch;
+    await db.todos.insertOne(
+      TodosCompanion.insert(
+        id: 'daily-task',
+        title: 'Daily stretch',
+        dueAtMs: Value(originalDue),
+        recurrenceRule: const Value('FREQ=DAILY'),
+      ),
+    );
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(Checkbox));
+    await tester.pumpAndSettle();
+
+    final advanced = await db.todos.all().getSingle();
+    expect(advanced.dueAtMs, isNot(originalDue));
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    final restored = await db.todos.all().getSingle();
+    expect(restored.dueAtMs, originalDue);
+    expect(restored.completedAtMs, isNull);
+    expect(find.text('Daily stretch'), findsOneWidget);
   });
 
   testApp('swipe-to-dismiss soft-deletes', (tester) async {
@@ -77,6 +107,25 @@ void main() {
     // Tombstoned, not hard-deleted.
     final rows = await db.todos.all().get();
     expect(rows.single.deleted, isTrue);
+  });
+
+  testApp('delete snackbar undo restores the todo', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await addTodo(tester, 'Keep me');
+
+    await tester.drag(find.text('Keep me'), const Offset(-600, 0));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Todo deleted'), findsOneWidget);
+    expect(find.text('Keep me'), findsNothing);
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Keep me'), findsOneWidget);
+    final row = await db.todos.all().getSingle();
+    expect(row.deleted, isFalse);
   });
 
   testApp('settings screen opens from the app bar', (tester) async {
@@ -136,6 +185,36 @@ void main() {
     final row = await db.todos.all().getSingle();
     expect(row.title, 'Final title');
     expect(row.priority, 3);
+  });
+
+  testApp('edit snackbar undo restores the previous todo values', (
+    tester,
+  ) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await addTodo(tester, 'Draft');
+
+    await tester.tap(find.text('Draft'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Draft'),
+      'Final title',
+    );
+    await tester.tap(find.text('High'));
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Todo updated'), findsOneWidget);
+    expect(find.text('Final title'), findsOneWidget);
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Draft'), findsOneWidget);
+    expect(find.text('Final title'), findsNothing);
+    final row = await db.todos.all().getSingle();
+    expect(row.title, 'Draft');
+    expect(row.priority, 0);
   });
 
   testApp('search filters the list', (tester) async {
