@@ -30,6 +30,18 @@ void main() {
     return {for (final r in rows) r.fieldName: r.hlc};
   }
 
+  Future<void> backdateTodoClocks(String rowId, DateTime when) async {
+    await (db.fieldClocks.update()
+          ..where((c) => c.entity.equals('todos') & c.rowId.equals(rowId)))
+        .write(
+          FieldClocksCompanion(
+            hlc: Value(
+              Hlc(when.millisecondsSinceEpoch, 0, 'device-1').encode(),
+            ),
+          ),
+        );
+  }
+
   group('TodoRepository', () {
     test('create returns row and stamps every sync field', () async {
       final todo = await todos.create(
@@ -114,6 +126,35 @@ void main() {
       final todo = await todos.create(title: 't');
       await todos.edit(todo.id, tags: const Value(['home', 'urgent']));
       expect((await todos.getById(todo.id))!.tags, ['home', 'urgent']);
+    });
+
+    test('staleCandidates skips fresh, completed, and Someday todos', () async {
+      final stale = await todos.create(
+        title: 'stale',
+        dueAtMs: DateTime.utc(2026, 6, 1, 9).millisecondsSinceEpoch,
+      );
+      await todos.create(
+        title: 'fresh',
+        dueAtMs: DateTime.utc(2026, 7, 4, 9).millisecondsSinceEpoch,
+      );
+      final someday = await todos.create(title: 'parked');
+      final done = await todos.create(
+        title: 'done',
+        dueAtMs: DateTime.utc(2026, 6, 1, 10).millisecondsSinceEpoch,
+      );
+      await todos.complete(done.id);
+
+      await backdateTodoClocks(stale.id, DateTime.utc(2026, 5, 1, 8));
+      await backdateTodoClocks(someday.id, DateTime.utc(2026, 5, 1, 8));
+      await backdateTodoClocks(done.id, DateTime.utc(2026, 5, 1, 8));
+
+      final candidates = await todos.staleCandidates(now: clock.now());
+
+      expect(candidates.map((candidate) => candidate.todo.id), [stale.id]);
+      expect(
+        candidates.single.lastTouchedAt.millisecondsSinceEpoch,
+        DateTime.utc(2026, 5, 1, 8).millisecondsSinceEpoch,
+      );
     });
   });
 

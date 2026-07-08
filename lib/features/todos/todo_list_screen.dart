@@ -17,6 +17,11 @@ import 'todo_undo.dart';
 /// Wide layouts (>= this width) show a master-detail split; narrower ones
 /// push the editor as a route. 840 = Material "expanded" breakpoint.
 const kWideLayoutBreakpoint = 840.0;
+const _staleReviewWeeks = 4;
+
+enum _ReviewAction { overdueAmnesty, staleReview }
+
+enum _StaleAction { today, tomorrow, someday, delete }
 
 class TodoListScreen extends ConsumerWidget {
   const TodoListScreen({super.key});
@@ -24,6 +29,8 @@ class TodoListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final wide = MediaQuery.sizeOf(context).width >= kWideLayoutBreakpoint;
+    final overdue = ref.watch(overdueTodosProvider);
+    final stale = ref.watch(staleTodoCandidatesProvider).value ?? const [];
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyN, control: true): () =>
@@ -37,6 +44,32 @@ class TodoListScreen extends ConsumerWidget {
           appBar: AppBar(
             title: const Text('Todos'),
             actions: [
+              if (overdue.isNotEmpty || stale.isNotEmpty)
+                PopupMenuButton<_ReviewAction>(
+                  tooltip: 'Review tools',
+                  onSelected: (action) {
+                    switch (action) {
+                      case _ReviewAction.overdueAmnesty:
+                        _showOverdueAmnesty(context, overdue);
+                        break;
+                      case _ReviewAction.staleReview:
+                        _showStaleReview(context, stale);
+                        break;
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    if (overdue.isNotEmpty)
+                      PopupMenuItem(
+                        value: _ReviewAction.overdueAmnesty,
+                        child: Text('Overdue amnesty (${overdue.length})'),
+                      ),
+                    if (stale.isNotEmpty)
+                      PopupMenuItem(
+                        value: _ReviewAction.staleReview,
+                        child: Text('Review stale tasks (${stale.length})'),
+                      ),
+                  ],
+                ),
               IconButton(
                 tooltip: 'Settings',
                 icon: const Icon(Icons.settings_outlined),
@@ -103,7 +136,9 @@ Future<void> _showAddDialog(BuildContext context, WidgetRef ref) async {
   final now = ref.read(clockProvider).now();
   final filter = ref.read(listFilterProvider);
   // All-todos and Inbox views both capture into the Inbox (no list).
-  final listId = filter == kInboxFilter ? null : filter;
+  final listId = filter == kInboxFilter || filter == kSomedayFilter
+      ? null
+      : filter;
   final repo = ref.read(todoRepositoryProvider);
 
   if (perLine) {
@@ -175,8 +210,15 @@ class _TodoListPane extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final todos = ref.watch(activeTodosProvider);
     final completed = ref.watch(completedTodosProvider).value ?? const [];
+    final overdue = ref.watch(overdueTodosProvider);
+    final dismissedPromptIds = ref.watch(dismissedOverduePromptIdsProvider);
     final query = ref.watch(searchQueryProvider);
     final now = ref.watch(clockProvider).now();
+    final somedayView = ref.watch(listFilterProvider) == kSomedayFilter;
+    final promptTodos = [
+      for (final todo in overdue)
+        if (!dismissedPromptIds.contains(todo.id)) todo,
+    ];
 
     return Column(
       children: [
@@ -188,14 +230,25 @@ class _TodoListPane extends ConsumerWidget {
             onChanged: (q) => ref.read(searchQueryProvider.notifier).state = q,
           ),
         ),
+        if (!somedayView && promptTodos.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: _OverduePromptCard(todos: promptTodos),
+          ),
         Expanded(
           child: switch (todos) {
-            AsyncData(value: final items) => _buildList(
-              context,
-              ref,
-              sectionize(filterTodos(items, query), now),
-              completionRecap(filterTodos(completed, query), now),
-            ),
+            AsyncData(value: final items) => () {
+              final filtered = filterTodos(items, query);
+              return _buildList(
+                context,
+                sectionize(filtered, now),
+                completionRecap(
+                  somedayView ? const [] : filterTodos(completed, query),
+                  now,
+                ),
+                somedayView: somedayView,
+              );
+            }(),
             AsyncError(error: final e) => Center(child: Text('Error: $e')),
             _ => const Center(child: CircularProgressIndicator()),
           },
@@ -206,11 +259,29 @@ class _TodoListPane extends ConsumerWidget {
 
   Widget _buildList(
     BuildContext context,
-    WidgetRef ref,
     List<TodoSection> sections,
-    CompletionRecap recap,
-  ) {
+    CompletionRecap recap, {
+    required bool somedayView,
+  }) {
     if (sections.isEmpty && recap.isEmpty) {
+      if (somedayView) {
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.backpack_outlined, size: 56),
+              const SizedBox(height: 12),
+              const Text('No Someday tasks parked'),
+              const SizedBox(height: 4),
+              Text(
+                'Move something here when it is a possibility, not a commitment.',
+                style: Theme.of(context).textTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      }
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -239,8 +310,11 @@ class _TodoListPane extends ConsumerWidget {
     }
     // Flattened row models + builder so huge lists stay lazy (TASKS.md 5.7).
     final rows = <Object>[
-      for (final section in sections) ...[section.title, ...section.items],
-      if (!recap.isEmpty) _completedMarker,
+      if (somedayView)
+        for (final section in sections) ...section.items
+      else
+        for (final section in sections) ...[section.title, ...section.items],
+      if (!somedayView && !recap.isEmpty) _completedMarker,
     ];
     return ListView.builder(
       itemCount: rows.length,
@@ -470,6 +544,12 @@ class _ListsDrawer extends ConsumerWidget {
             selected: filter == kInboxFilter,
             onTap: () => select(kInboxFilter),
           ),
+          ListTile(
+            leading: const Icon(Icons.backpack_outlined),
+            title: const Text('Someday'),
+            selected: filter == kSomedayFilter,
+            onTap: () => select(kSomedayFilter),
+          ),
           for (final list in lists)
             ListTile(
               leading: const Icon(Icons.list),
@@ -497,6 +577,394 @@ class _ListsDrawer extends ConsumerWidget {
     );
   }
 }
+
+class _OverduePromptCard extends ConsumerWidget {
+  const _OverduePromptCard({required this.todos});
+
+  final List<Todo> todos;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = todos.length;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '$count overdue ${count == 1 ? 'task could' : 'tasks could'} use a reset',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Sweep them to today, tomorrow, or Someday without a wall of red.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () {
+                    ref
+                        .read(dismissedOverduePromptIdsProvider.notifier)
+                        .state = {
+                      ...ref.read(dismissedOverduePromptIdsProvider),
+                      for (final todo in todos) todo.id,
+                    };
+                  },
+                  child: const Text('Later'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: () => _showOverdueAmnesty(context, todos),
+                  child: const Text('Sweep'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _showOverdueAmnesty(BuildContext context, List<Todo> todos) {
+  if (todos.isEmpty) return Future.value();
+  return showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (_) => _OverdueAmnestySheet(todos: todos),
+  );
+}
+
+class _OverdueAmnestySheet extends ConsumerWidget {
+  const _OverdueAmnestySheet({required this.todos});
+
+  final List<Todo> todos;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    Future<void> apply({
+      required String label,
+      required int? dayOffset,
+      required bool clearDueDate,
+    }) async {
+      final repo = ref.read(todoRepositoryProvider);
+      final now = ref.read(clockProvider).now();
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+      for (final todo in todos) {
+        await repo.edit(
+          todo.id,
+          dueAtMs: clearDueDate
+              ? const Value(null)
+              : Value(
+                  _rescheduledDueAt(
+                    todo: todo,
+                    now: now,
+                    dayOffset: dayOffset!,
+                  ).millisecondsSinceEpoch,
+                ),
+        );
+      }
+      final dismissed = ref.read(dismissedOverduePromptIdsProvider);
+      ref.read(dismissedOverduePromptIdsProvider.notifier).state = dismissed
+          .difference({for (final todo in todos) todo.id});
+      if (navigator.mounted) navigator.pop();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Moved ${todos.length} overdue ${todos.length == 1 ? 'task' : 'tasks'} to $label',
+          ),
+        ),
+      );
+    }
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Overdue amnesty',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Give ${todos.length == 1 ? 'this task' : 'these tasks'} a fresh landing spot.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.today_outlined),
+              title: const Text('Move to today'),
+              subtitle: const Text(
+                'Keep momentum without pretending the past did not happen.',
+              ),
+              onTap: () =>
+                  apply(label: 'today', dayOffset: 0, clearDueDate: false),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.event_outlined),
+              title: const Text('Move to tomorrow'),
+              subtitle: const Text(
+                'Start fresh with the same rough time of day.',
+              ),
+              onTap: () =>
+                  apply(label: 'tomorrow', dayOffset: 1, clearDueDate: false),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.backpack_outlined),
+              title: const Text('Park in Someday'),
+              subtitle: const Text(
+                'Keep it possible without keeping it in the daily flow.',
+              ),
+              onTap: () =>
+                  apply(label: 'Someday', dayOffset: null, clearDueDate: true),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _showStaleReview(
+  BuildContext context,
+  List<StaleTodoCandidate> candidates,
+) {
+  if (candidates.isEmpty) return Future.value();
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (_) => FractionallySizedBox(
+      heightFactor: 0.85,
+      child: _StaleReviewSheet(candidates: candidates),
+    ),
+  );
+}
+
+class _StaleReviewSheet extends ConsumerStatefulWidget {
+  const _StaleReviewSheet({required this.candidates});
+
+  final List<StaleTodoCandidate> candidates;
+
+  @override
+  ConsumerState<_StaleReviewSheet> createState() => _StaleReviewSheetState();
+}
+
+class _StaleReviewSheetState extends ConsumerState<_StaleReviewSheet> {
+  late List<StaleTodoCandidate> _remaining;
+
+  @override
+  void initState() {
+    super.initState();
+    _remaining = [...widget.candidates];
+  }
+
+  Future<void> _apply(StaleTodoCandidate candidate, _StaleAction action) async {
+    final repo = ref.read(todoRepositoryProvider);
+    final messenger = ScaffoldMessenger.of(context);
+    final now = ref.read(clockProvider).now();
+    switch (action) {
+      case _StaleAction.today:
+        await repo.edit(
+          candidate.todo.id,
+          dueAtMs: Value(
+            _rescheduledDueAt(
+              todo: candidate.todo,
+              now: now,
+              dayOffset: 0,
+            ).millisecondsSinceEpoch,
+          ),
+        );
+        break;
+      case _StaleAction.tomorrow:
+        await repo.edit(
+          candidate.todo.id,
+          dueAtMs: Value(
+            _rescheduledDueAt(
+              todo: candidate.todo,
+              now: now,
+              dayOffset: 1,
+            ).millisecondsSinceEpoch,
+          ),
+        );
+        break;
+      case _StaleAction.someday:
+        await repo.edit(candidate.todo.id, dueAtMs: const Value(null));
+        break;
+      case _StaleAction.delete:
+        await repo.softDelete(candidate.todo.id);
+        break;
+    }
+    if (!mounted) return;
+    setState(() {
+      _remaining = [
+        for (final entry in _remaining)
+          if (entry.todo.id != candidate.todo.id) entry,
+      ];
+    });
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(_staleSnackBarMessage(candidate.todo.title, action)),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = ref.watch(clockProvider).now();
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Stale task review',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Untouched for $_staleReviewWeeks+ weeks. Give each one a fresh date, park it in Someday, or let it go.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: _remaining.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Nothing stale is waiting on you now.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    )
+                  : ListView.separated(
+                      itemCount: _remaining.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final candidate = _remaining[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                candidate.todo.title,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                [
+                                  _formatStaleLabel(
+                                    candidate.lastTouchedAt,
+                                    now,
+                                  ),
+                                  if (candidate.todo.dueAtMs != null)
+                                    _TodoTile._formatDue(
+                                      candidate.todo.dueAtMs!,
+                                    ),
+                                ].join(' • '),
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  ActionChip(
+                                    label: const Text('Today'),
+                                    onPressed: () =>
+                                        _apply(candidate, _StaleAction.today),
+                                  ),
+                                  ActionChip(
+                                    label: const Text('Tomorrow'),
+                                    onPressed: () => _apply(
+                                      candidate,
+                                      _StaleAction.tomorrow,
+                                    ),
+                                  ),
+                                  ActionChip(
+                                    label: const Text('Someday'),
+                                    onPressed: () =>
+                                        _apply(candidate, _StaleAction.someday),
+                                  ),
+                                  ActionChip(
+                                    label: const Text('Delete'),
+                                    onPressed: () =>
+                                        _apply(candidate, _StaleAction.delete),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+DateTime _rescheduledDueAt({
+  required Todo todo,
+  required DateTime now,
+  required int dayOffset,
+}) {
+  final existing = todo.dueAtMs == null
+      ? null
+      : DateTime.fromMillisecondsSinceEpoch(todo.dueAtMs!);
+  final base = DateTime(
+    now.year,
+    now.month,
+    now.day + dayOffset,
+    existing?.hour ?? 9,
+    existing?.minute ?? 0,
+  );
+  if (dayOffset != 0 || !base.isBefore(now)) return base;
+  return DateTime(now.year, now.month, now.day, now.hour + 1, now.minute);
+}
+
+String _formatStaleLabel(DateTime lastTouchedAt, DateTime now) {
+  final days = DateTime.utc(now.year, now.month, now.day)
+      .difference(
+        DateTime.utc(
+          lastTouchedAt.year,
+          lastTouchedAt.month,
+          lastTouchedAt.day,
+        ),
+      )
+      .inDays;
+  if (days <= 0) return 'Touched today';
+  if (days < 7) return 'Touched $days day${days == 1 ? '' : 's'} ago';
+  final weeks = days ~/ 7;
+  if (weeks < 6) {
+    return 'Touched $weeks week${weeks == 1 ? '' : 's'} ago';
+  }
+  return 'Touched ${lastTouchedAt.year}-${_two(lastTouchedAt.month)}-${_two(lastTouchedAt.day)}';
+}
+
+String _staleSnackBarMessage(String title, _StaleAction action) {
+  final subject = title.isEmpty ? 'Task' : '"$title"';
+  return switch (action) {
+    _StaleAction.today => '$subject moved to today',
+    _StaleAction.tomorrow => '$subject moved to tomorrow',
+    _StaleAction.someday => '$subject moved to Someday',
+    _StaleAction.delete => '$subject deleted',
+  };
+}
+
+String _two(int value) => value.toString().padLeft(2, '0');
 
 class _AddTodoDialog extends ConsumerStatefulWidget {
   const _AddTodoDialog();
