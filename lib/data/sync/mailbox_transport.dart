@@ -40,6 +40,16 @@ class MailboxTransport {
 
   Directory get _outbox => Directory('${root.path}/$deviceId');
 
+  /// User-facing sync health (TASKS.md 6.27): how many distinct records
+  /// still have local mailbox writes waiting to be published.
+  Future<int> pendingOutboundCount() async {
+    final published = await _readVector();
+    final changeset = await engine.changesFor(published);
+    return {
+      for (final write in changeset.writes) '${write.entity}:${write.rowId}',
+    }.length;
+  }
+
   /// Writes everything not yet covered by our outbox. Returns the number
   /// of field writes published.
   Future<int> publish() async {

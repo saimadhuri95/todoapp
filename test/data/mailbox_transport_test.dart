@@ -75,6 +75,17 @@ void main() {
     expect(aFiles, hasLength(2));
   });
 
+  test('pendingOutboundCount tracks unpublished local records', () async {
+    final ta = transportFor(a);
+    expect(await ta.pendingOutboundCount(), 0);
+
+    await a.todos.create(title: 'draft');
+    expect(await ta.pendingOutboundCount(), 1);
+
+    await ta.publish();
+    expect(await ta.pendingOutboundCount(), 0);
+  });
+
   test('bidirectional edits converge via the folder', () async {
     await a.todos.create(title: 'shared');
     await transportFor(a).publish();

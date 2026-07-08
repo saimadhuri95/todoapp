@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' show TableOrViewStatements;
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +12,7 @@ import '../data/db/database.dart';
 import '../data/repositories/list_repository.dart';
 import '../data/repositories/todo_repository.dart';
 import '../data/sync/device_identity.dart';
+import '../data/sync/mailbox_transport.dart';
 import '../data/sync/pairing_service.dart';
 import '../data/sync/sync_engine.dart';
 import 'cloud_folder_channel.dart';
@@ -59,6 +62,18 @@ final displayDensityProvider = StateProvider<DisplayDensity>(
 /// When the last sync pass finished on this device (null = none yet this
 /// run); written by SyncService, shown in sync settings (TASKS.md 6.3).
 final lastSyncPassProvider = StateProvider<DateTime?>((_) => null);
+
+class SyncHealthSnapshot {
+  const SyncHealthSnapshot({
+    required this.transportLabel,
+    required this.isSyncReady,
+    this.pendingOutboundCount = 0,
+  });
+
+  final String transportLabel;
+  final bool isSyncReady;
+  final int pendingOutboundCount;
+}
 
 /// Sentinel [listFilterProvider] value for the Inbox view: unfiled todos
 /// (listId == null). The Inbox is deliberately *not* a synced list row —
@@ -149,8 +164,51 @@ final syncLogProvider = StreamProvider<Map<String, SyncLogData>>(
 /// Mailbox folder path; seeded from prefs in main(), persisted on change.
 final mailboxPathProvider = StateProvider<String?>((_) => null);
 
+/// Quiet sync-health summary for 6.27: active transport(s) and unpublished
+/// mailbox changes, recomputed whenever local tables move.
+final syncHealthProvider = StreamProvider.autoDispose<SyncHealthSnapshot>((
+  ref,
+) async* {
+  ref.watch(mailboxPathProvider);
+  final db = ref.watch(databaseProvider);
+  yield await _readSyncHealth(ref);
+  await for (final _ in db.tableUpdates()) {
+    yield await _readSyncHealth(ref);
+  }
+});
+
 /// Managed cloud folder + folder bookmarks (iCloud Drive / security-scoped
 /// bookmarks on Apple platforms); unsupported elsewhere.
 final cloudFolderProvider = Provider<CloudFolderLocator>(
   (_) => platformCloudFolder(),
 );
+
+Future<SyncHealthSnapshot> _readSyncHealth(Ref ref) async {
+  final pairing = ref.read(pairingServiceProvider);
+  final mailboxPath = ref.read(mailboxPathProvider);
+  final paired = await pairing.hasGroupKey();
+  if (!paired) {
+    return const SyncHealthSnapshot(
+      transportLabel: 'Pair a device to start sync',
+      isSyncReady: false,
+    );
+  }
+
+  var pendingOutboundCount = 0;
+  if (mailboxPath != null) {
+    final transport = MailboxTransport(
+      root: Directory(mailboxPath),
+      engine: ref.read(syncEngineProvider),
+      db: ref.read(databaseProvider),
+      deviceId: ref.read(deviceIdProvider),
+      groupKey: await pairing.loadOrCreateGroupKey(),
+    );
+    pendingOutboundCount = await transport.pendingOutboundCount();
+  }
+
+  return SyncHealthSnapshot(
+    transportLabel: mailboxPath == null ? 'Using LAN' : 'Using LAN + mailbox',
+    isSyncReady: true,
+    pendingOutboundCount: pendingOutboundCount,
+  );
+}
