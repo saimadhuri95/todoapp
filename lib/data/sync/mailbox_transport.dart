@@ -81,18 +81,21 @@ class MailboxTransport {
   Future<int> consume() async {
     if (!root.existsSync()) return 0;
     var applied = 0;
-    final dirs = root.listSync().whereType<Directory>().where(
-      (d) => d.path.split(Platform.pathSeparator).last != deviceId,
-    );
+    final dirs = root.listSync().whereType<Directory>().where((d) {
+      final name = _baseName(d);
+      // Only real device outboxes are peers. Skip our own, and skip the
+      // dot-prefixed metadata folders third-party sync tools leave behind
+      // (Syncthing .stfolder/.stversions, .Trash-*, cloud caches).
+      return name != deviceId && !name.startsWith('.');
+    });
     for (final dir in dirs) {
-      final peerDir = dir.path.split(Platform.pathSeparator).last;
+      final peerDir = _baseName(dir);
       final cursor = await _cursorFor(peerDir);
       final files =
           dir
               .listSync()
               .whereType<File>()
-              .where((f) => _baseName(f).endsWith('.bin'))
-              .where((f) => _baseName(f) != _vectorFile)
+              .where(_isChangesetFile)
               .where(
                 (f) => cursor == null || _baseName(f).compareTo(cursor) > 0,
               )
@@ -127,8 +130,7 @@ class MailboxTransport {
     final deltas = _outbox
         .listSync()
         .whereType<File>()
-        .where((f) => _baseName(f).endsWith('.bin'))
-        .where((f) => _baseName(f) != _vectorFile)
+        .where(_isChangesetFile)
         .toList();
     if (deltas.length < threshold) return false;
 
@@ -161,6 +163,21 @@ class MailboxTransport {
 
   static String _baseName(FileSystemEntity f) =>
       f.path.split(Platform.pathSeparator).last;
+
+  /// Matches only the changeset files we write — a 15-digit millis, a hex
+  /// counter, and a nodeId joined by `_`, with a `.bin` suffix (see
+  /// [_fileNameFor], HLC ':' → '_'). Third-party
+  /// sync tools drop artifacts alongside them: Syncthing `*.sync-conflict-*`
+  /// copies, Dropbox "(conflicted copy)" files, iCloud `.icloud` placeholders,
+  /// and `~`/`.tmp` temp files. Each introduces a `.`, space, `(`, `)`, or
+  /// `~` that this pattern rejects, so consumption and compaction ignore them
+  /// (TASKS.md 6.45). `vector.bin` is excluded too — it carries no HLC prefix.
+  static final _changesetName = RegExp(
+    r'^\d{15}_[0-9a-f]{4,}_[^.\s()~]+\.bin$',
+  );
+
+  static bool _isChangesetFile(FileSystemEntity f) =>
+      _changesetName.hasMatch(_baseName(f));
 
   Future<Map<String, String>> _readVector() async {
     final file = File('${_outbox.path}/$_vectorFile');
