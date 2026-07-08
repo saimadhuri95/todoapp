@@ -430,6 +430,14 @@ you a peer of someone else's storage without sharing credentials.
   iCloud folder; Apple↔non-Apple over a shared Dropbox folder; solo
   local-only regression — extend the simulated-device convergence
   harness with per-group scopes before touching real devices
+- [ ] 8.11 WebDAV mailbox backend (issue #107) — zero registration:
+  server URL + username/app-password (Basic auth over TLS, keychain),
+  `WebDavMailboxStore` via PROPFIND/GET/PUT/DELETE/MKCOL over the
+  existing `CloudHttp`; connect form instead of a browser hop; the only
+  backend verifiable end-to-end with no external accounts.
+  **Priority (user decision 2026-07-08): iCloud + WebDAV first; the
+  OAuth provider registrations (7.8/#103) come after the iPhone app is
+  ready.**
 
 **Alarms-phase additions (execute with Phase 2, per execution order)**
 
