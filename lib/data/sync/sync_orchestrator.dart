@@ -41,16 +41,21 @@ class SyncOrchestrator {
   SyncOrchestrator({
     required this.engine,
     required this.groupKey,
-    this.mailbox,
+    MailboxTransport? mailbox,
+    List<MailboxTransport> groupMailboxes = const [],
     this.discoverPeers,
     this.notifications,
     this.notificationsEnabled = true,
     this.connectTimeout = const Duration(seconds: 3),
-  });
+  }) : mailboxes = [?mailbox, ...groupMailboxes];
 
   final SyncEngine engine;
   final SecretKey groupKey;
-  final MailboxTransport? mailbox;
+
+  /// Every configured mailbox: the personal one (if any) plus one per
+  /// sharing group (TASKS 8.6, ADR 0004) — each with its own store, key,
+  /// scope, and cursors.
+  final List<MailboxTransport> mailboxes;
   final Future<List<LanPeer>> Function()? discoverPeers;
   final AlarmScheduler? notifications;
   final bool notificationsEnabled;
@@ -74,17 +79,17 @@ class SyncOrchestrator {
       final visibleChangesBefore = engine.visibleTodoChanges;
 
       // Consume before publish so freshly learned writes get relayed in
-      // the same pass.
-      final box = mailbox;
-      if (box != null) {
+      // the same pass. Each mailbox fails soft *individually* (8.6): one
+      // group's unreachable backend must not block the others.
+      for (final box in mailboxes) {
         try {
-          mailboxApplied = await box.consume();
-          mailboxPublished = await box.publish();
+          mailboxApplied += await box.consume();
+          mailboxPublished += await box.publish();
           await box.compactIfNeeded();
         } on IOException catch (e) {
           // Folder stores throw FileSystemException; provider-API stores
           // throw HttpException/SocketException. All soft: retry next pass.
-          errors.add('mailbox: $e');
+          errors.add('mailbox[${box.groupId ?? 'personal'}]: $e');
         }
       }
 
