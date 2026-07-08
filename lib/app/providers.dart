@@ -9,6 +9,7 @@ import '../data/cloud/cloud_account_service.dart';
 import '../data/cloud/cloud_http.dart';
 import '../data/cloud/cloud_providers.dart';
 import '../data/db/database.dart';
+import '../data/repositories/group_repository.dart';
 import '../data/repositories/list_repository.dart';
 import '../data/repositories/todo_repository.dart';
 import '../data/sync/device_identity.dart';
@@ -46,6 +47,18 @@ final todoRepositoryProvider = Provider<TodoRepository>(
 final listRepositoryProvider = Provider<ListRepository>(
   (ref) =>
       ListRepository(ref.watch(databaseProvider), ref.watch(hlcClockProvider)),
+);
+
+/// Sharing groups + membership (ADR 0004, TASKS 8.2).
+final groupRepositoryProvider = Provider<GroupRepository>(
+  (ref) =>
+      GroupRepository(ref.watch(databaseProvider), ref.watch(hlcClockProvider)),
+);
+
+/// Active sharing groups, for the drawer sections and the Sharing &
+/// storage screen (8.8/8.9).
+final syncGroupsProvider = StreamProvider<List<SyncGroup>>(
+  (ref) => ref.watch(groupRepositoryProvider).watchAll(),
 );
 
 /// Theme override — system/light/dark (TASKS.md 6.6). Seeded from the

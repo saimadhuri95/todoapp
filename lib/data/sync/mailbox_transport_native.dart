@@ -32,6 +32,7 @@ class MailboxTransport {
     required this.db,
     required this.deviceId,
     required this.groupKey,
+    this.groupId,
   }) : store = FolderMailboxStore(root);
 
   /// Mailbox over any [MailboxStore] (cloud provider APIs on iPhone).
@@ -41,6 +42,7 @@ class MailboxTransport {
     required this.db,
     required this.deviceId,
     required this.groupKey,
+    this.groupId,
   });
 
   final MailboxStore store;
@@ -48,6 +50,12 @@ class MailboxTransport {
   final AppDatabase db;
   final String deviceId;
   final SecretKey groupKey;
+
+  /// Sharing group this mailbox serves (ADR 0004, TASKS 8.2). Namespaces
+  /// the consumption cursors so one device can hold many groups — each
+  /// with its own mailbox and independent progress. Null = the personal
+  /// (pre-groups) mailbox, whose cursor keys stay unchanged.
+  final String? groupId;
 
   static const _vectorFile = 'vector.bin';
 
@@ -185,10 +193,15 @@ class MailboxTransport {
 
   /// Consumption cursors live in the local sync_log (never in the shared
   /// mailbox — they're per-device state).
+  /// Keys are per group (8.2): `mailbox:<peer>` for the personal mailbox,
+  /// `group:<gid>:mailbox:<peer>` inside a sharing group.
+  String _cursorKey(String peerDir) =>
+      groupId == null ? 'mailbox:$peerDir' : 'group:$groupId:mailbox:$peerDir';
+
   Future<String?> _cursorFor(String peerDir) async {
     final row =
         await (db.syncLog.select()
-              ..where((s) => s.peerId.equals('mailbox:$peerDir')))
+              ..where((s) => s.peerId.equals(_cursorKey(peerDir))))
             .getSingleOrNull();
     return row?.lastAppliedHlc.isEmpty ?? true ? null : row!.lastAppliedHlc;
   }
@@ -196,7 +209,7 @@ class MailboxTransport {
   Future<void> _saveCursor(String peerDir, String fileName) =>
       db.syncLog.insertOne(
         SyncLogCompanion.insert(
-          peerId: 'mailbox:$peerDir',
+          peerId: _cursorKey(peerDir),
           lastAppliedHlc: Value(fileName),
         ),
         mode: InsertMode.insertOrReplace,

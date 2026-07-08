@@ -233,4 +233,36 @@ void main() {
         .length;
     expect(surviving, 10);
   });
+
+  test('group mailboxes keep independent cursors (TASKS 8.2)', () async {
+    final list = await a.lists.create(name: 'Inbox');
+    await a.todos.create(title: 'Buy milk', listId: list.id);
+    await transportFor(a).publish();
+
+    // Same physical store consumed as the personal mailbox and as two
+    // different groups: each track their own progress in sync_log.
+    MailboxTransport groupTransport(Device d, String? gid) => MailboxTransport(
+      root: root,
+      engine: d.engine,
+      db: d.db,
+      deviceId: d.id,
+      groupKey: groupKey,
+      groupId: gid,
+    );
+
+    expect(await groupTransport(b, null).consume(), greaterThan(0));
+    // The family scope re-reads the same file: every write loses LWW
+    // against the copy just applied (0 wins) but the cursor still lands.
+    expect(await groupTransport(b, 'family').consume(), 0);
+
+    final keys = (await b.db.syncLog.select().get())
+        .map((r) => r.peerId)
+        .where((k) => k.contains('mailbox'))
+        .toSet();
+    expect(keys, {'mailbox:aa', 'group:family:mailbox:aa'});
+
+    // Each cursor is independently caught up: nothing re-applies.
+    expect(await groupTransport(b, null).consume(), 0);
+    expect(await groupTransport(b, 'family').consume(), 0);
+  });
 }

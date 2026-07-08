@@ -164,7 +164,9 @@ void main() {
       await lists.rename(list.id, 'Home');
 
       expect((await lists.getById(list.id))!.name, 'Home');
-      expect((await clocksFor(list.id)).keys, hasLength(4));
+      // name/color/sortOrder/groupId/deleted — every synced list field
+      // stamped at create (groupId joined in schema v4, TASKS 8.2).
+      expect((await clocksFor(list.id)).keys, hasLength(5));
 
       await lists.archive(list.id);
       expect(await lists.watchAll().first, isEmpty);
