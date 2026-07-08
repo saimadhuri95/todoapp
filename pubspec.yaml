@@ -54,6 +54,9 @@ dependencies:
   intl: ^0.20.2
   mobile_scanner: ^7.2.0
   url_launcher: ^6.3.0
+  # WebDAV PROPFIND responses are XML (TASKS 8.11); already in the tree
+  # transitively, declared so lib can import it.
+  xml: ^6.6.1
 
 dev_dependencies:
   flutter_test:

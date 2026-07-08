@@ -6,11 +6,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:todoapp/app/providers.dart';
 import 'package:todoapp/app/sync_service.dart';
 import 'package:todoapp/core/cloud_folder.dart';
+import 'package:todoapp/data/cloud/cloud_providers.dart';
 import 'package:todoapp/data/db/database.dart';
 import 'package:todoapp/data/sync/device_identity.dart';
 import 'package:todoapp/features/cloud/cloud_connect_screen.dart';
 import 'package:todoapp/features/cloud/cloud_onboarding.dart';
 import 'package:todoapp/main.dart';
+
+import '../support/fake_http.dart';
 
 /// Same drift-safe teardown as the other widget tests.
 void testApp(String description, Future<void> Function(WidgetTester) body) {
@@ -111,7 +114,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Connect'));
+      await tester.tap(
+        find.descendant(
+          of: find.widgetWithText(ListTile, 'iCloud Drive'),
+          matching: find.text('Connect'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       final container = ProviderScope.containerOf(
@@ -133,13 +141,73 @@ void main() {
       expect(find.text('No cloud connected'), findsOneWidget);
     });
 
+    testApp('WebDAV connects through the credentials form', (tester) async {
+      final http = FakeHttp()
+        ..on(
+          'PROPFIND',
+          'https://nas.example/dav/knot-mailbox/',
+          '<?xml version="1.0"?><d:multistatus xmlns:d="DAV:">'
+              '<d:response><d:href>/dav/knot-mailbox/</d:href>'
+              '<d:propstat><d:prop><d:resourcetype><d:collection/>'
+              '</d:resourcetype></d:prop></d:propstat></d:response>'
+              '</d:multistatus>',
+          status: 207,
+        );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            ...overrides(),
+            cloudHttpProvider.overrideWithValue(http),
+          ],
+          child: const MaterialApp(home: CloudConnectScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.descendant(
+          of: find.widgetWithText(ListTile, 'WebDAV'),
+          matching: find.text('Connect'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Connect WebDAV'), findsOneWidget);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Server URL'),
+        'https://nas.example/dav/',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Username'),
+        'alice',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Password'),
+        's3cret',
+      );
+      await tester.tap(find.text('Connect').last);
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(CloudConnectScreen)),
+      );
+      expect(container.read(cloudAccountProvider), CloudProviderId.webdav);
+      expect(find.text('Connected to nas.example'), findsOneWidget);
+      expect(find.text('Connected'), findsOneWidget);
+    });
+
     testApp('iCloud unavailable explains instead of connecting', (
       tester,
     ) async {
       await tester.pumpWidget(screen());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Connect'));
+      await tester.tap(
+        find.descendant(
+          of: find.widgetWithText(ListTile, 'iCloud Drive'),
+          matching: find.text('Connect'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(

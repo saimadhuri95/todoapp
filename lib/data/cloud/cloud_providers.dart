@@ -1,9 +1,10 @@
 import 'oauth.dart';
 
 /// Storage providers the connect screen offers. iCloud Drive needs no
-/// OAuth (the OS account + ubiquity container do the work); the other
+/// OAuth (the OS account + ubiquity container do the work); WebDAV needs
+/// no OAuth either (server URL + Basic auth, TASKS 8.11); the other
 /// three are OAuth/PKCE + REST ([MailboxStore] impls in this folder).
-enum CloudProviderId { icloud, dropbox, googleDrive, oneDrive }
+enum CloudProviderId { icloud, webdav, dropbox, googleDrive, oneDrive }
 
 /// OAuth client ids are *app registrations the developer creates* in each
 /// provider's console (see docs/cloud-providers.md) and are injected at
@@ -21,17 +22,21 @@ const knotRedirect = 'knot://oauth';
 extension CloudProviderInfo on CloudProviderId {
   String get displayName => switch (this) {
     CloudProviderId.icloud => 'iCloud Drive',
+    CloudProviderId.webdav => 'WebDAV',
     CloudProviderId.dropbox => 'Dropbox',
     CloudProviderId.googleDrive => 'Google Drive',
     CloudProviderId.oneDrive => 'OneDrive',
   };
 
-  bool get needsOAuth => this != CloudProviderId.icloud;
+  bool get needsOAuth => switch (this) {
+    CloudProviderId.icloud || CloudProviderId.webdav => false,
+    _ => true,
+  };
 
-  /// null for iCloud (no OAuth); `isConfigured == false` when the client
-  /// id hasn't been registered/injected yet.
+  /// null for iCloud and WebDAV (no OAuth); `isConfigured == false` when
+  /// the client id hasn't been registered/injected yet.
   OAuthConfig? get oauthConfig => switch (this) {
-    CloudProviderId.icloud => null,
+    CloudProviderId.icloud || CloudProviderId.webdav => null,
     CloudProviderId.dropbox => OAuthConfig(
       authorizationEndpoint: Uri.parse(
         'https://www.dropbox.com/oauth2/authorize',

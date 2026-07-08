@@ -5,7 +5,6 @@ import 'package:cryptography/cryptography.dart' show Sha256;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:todoapp/core/clock.dart';
 import 'package:todoapp/data/cloud/cloud_account_service.dart';
-import 'package:todoapp/data/cloud/cloud_http.dart';
 import 'package:todoapp/data/cloud/cloud_providers.dart';
 import 'package:todoapp/data/cloud/dropbox_store.dart';
 import 'package:todoapp/data/cloud/gdrive_store.dart';
@@ -13,44 +12,7 @@ import 'package:todoapp/data/cloud/oauth.dart';
 import 'package:todoapp/data/cloud/onedrive_store.dart';
 import 'package:todoapp/data/sync/device_identity.dart';
 
-/// Scripted HTTP double: each expectation matches on method + URL prefix
-/// and hands back a canned response, recording what was sent.
-class FakeHttp implements CloudHttp {
-  final _script = <(bool Function(String, Uri), CloudHttpResponse)>[];
-  final requests =
-      <
-        (String method, Uri url, Map<String, String> headers, List<int>? body)
-      >[];
-
-  void on(
-    String method,
-    String urlPrefix,
-    Object response, {
-    int status = 200,
-  }) {
-    _script.add((
-      (m, u) => m == method && u.toString().startsWith(urlPrefix),
-      CloudHttpResponse(
-        status,
-        response is List<int> ? response : utf8.encode(jsonEncode(response)),
-      ),
-    ));
-  }
-
-  @override
-  Future<CloudHttpResponse> send(
-    String method,
-    Uri url, {
-    Map<String, String> headers = const {},
-    List<int>? body,
-  }) async {
-    requests.add((method, url, headers, body));
-    for (final (matches, response) in _script) {
-      if (matches(method, url)) return response;
-    }
-    fail('Unscripted request: $method $url');
-  }
-}
+import '../support/fake_http.dart';
 
 OAuthConfig testConfig({Map<String, String> extra = const {}}) => OAuthConfig(
   authorizationEndpoint: Uri.parse('https://auth.example/authorize'),

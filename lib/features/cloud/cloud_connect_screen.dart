@@ -98,6 +98,17 @@ class _CloudConnectScreenState extends ConsumerState<CloudConnectScreen> {
             onConnect: _connectIcloud,
             onDisconnect: _disconnectIcloud,
           ),
+          // WebDAV (TASKS 8.11): the zero-registration backend — Nextcloud,
+          // NAS boxes, Koofr… server URL + app-password, no OAuth.
+          _ProviderTile(
+            id: CloudProviderId.webdav,
+            icon: Icons.dns_outlined,
+            active: connected == CloudProviderId.webdav,
+            busy: _busy == CloudProviderId.webdav,
+            enabled: _busy == null,
+            onConnect: _connectWebDav,
+            onDisconnect: _disconnectOAuth,
+          ),
           for (final id in const [
             CloudProviderId.dropbox,
             CloudProviderId.googleDrive,
@@ -144,6 +155,32 @@ class _CloudConnectScreenState extends ConsumerState<CloudConnectScreen> {
       ref.read(cloudAccountProvider.notifier).state = id;
       unawaitedSync(ref);
       _toast('Connected to ${id.displayName}');
+    } on Exception catch (e) {
+      _toast('Could not connect: $e');
+    } finally {
+      if (mounted) setState(() => _busy = null);
+    }
+  }
+
+  Future<void> _connectWebDav() async {
+    final creds = await showDialog<(Uri, String, String)>(
+      context: context,
+      builder: (context) => const _WebDavDialog(),
+    );
+    if (creds == null) return;
+    setState(() => _busy = CloudProviderId.webdav);
+    try {
+      await ref
+          .read(cloudAccountServiceProvider)
+          .connectWebDav(
+            serverUrl: creds.$1,
+            username: creds.$2,
+            password: creds.$3,
+          );
+      await ref.read(pairingServiceProvider).loadOrCreateGroupKey();
+      ref.read(cloudAccountProvider.notifier).state = CloudProviderId.webdav;
+      unawaitedSync(ref);
+      _toast('Connected to ${creds.$1.host}');
     } on Exception catch (e) {
       _toast('Could not connect: $e');
     } finally {
@@ -247,6 +284,84 @@ void unawaitedSync(WidgetRef ref) {
   ref.read(syncServiceProvider).syncSoon();
 }
 
+/// Server URL + username + app-password form for WebDAV (TASKS 8.11).
+/// Pops `(serverUrl, username, password)`; validation beyond URL shape
+/// happens in [CloudAccountService.connectWebDav]'s server probe.
+class _WebDavDialog extends StatefulWidget {
+  const _WebDavDialog();
+
+  @override
+  State<_WebDavDialog> createState() => _WebDavDialogState();
+}
+
+class _WebDavDialogState extends State<_WebDavDialog> {
+  final _url = TextEditingController();
+  final _user = TextEditingController();
+  final _password = TextEditingController();
+
+  @override
+  void dispose() {
+    _url.dispose();
+    _user.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final url = Uri.tryParse(_url.text.trim());
+    if (url == null || !(url.isScheme('https') || url.isScheme('http'))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enter the full server URL, starting with https://'),
+        ),
+      );
+      return;
+    }
+    Navigator.of(context).pop((url, _user.text.trim(), _password.text));
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Connect WebDAV'),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextField(
+          controller: _url,
+          autofocus: true,
+          keyboardType: TextInputType.url,
+          autocorrect: false,
+          decoration: const InputDecoration(
+            labelText: 'Server URL',
+            hintText: 'https://cloud.example.com/remote.php/dav/files/you/',
+          ),
+        ),
+        TextField(
+          controller: _user,
+          autocorrect: false,
+          decoration: const InputDecoration(labelText: 'Username'),
+        ),
+        TextField(
+          controller: _password,
+          obscureText: true,
+          onSubmitted: (_) => _submit(),
+          decoration: const InputDecoration(
+            labelText: 'Password',
+            helperText: 'Use an app password if your server offers them',
+          ),
+        ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(onPressed: _submit, child: const Text('Connect')),
+    ],
+  );
+}
+
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader(this.title, this.subtitle);
 
@@ -302,9 +417,12 @@ class _ProviderTile extends StatelessWidget {
           ? 'Connected'
           : _needsSetup
           ? 'Setup required'
-          : id == CloudProviderId.icloud
-          ? 'Uses your device’s iCloud account'
-          : 'Sign in with your ${id.displayName} account',
+          : switch (id) {
+              CloudProviderId.icloud => 'Uses your device’s iCloud account',
+              CloudProviderId.webdav =>
+                'Nextcloud, NAS, Koofr… — no account with us, ever',
+              _ => 'Sign in with your ${id.displayName} account',
+            },
     ),
     trailing: busy
         ? const SizedBox.square(
