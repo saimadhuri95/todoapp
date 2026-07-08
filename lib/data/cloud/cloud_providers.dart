@@ -78,4 +78,7 @@ extension CloudProviderInfo on CloudProviderId {
 }
 
 /// `123-abc.apps.googleusercontent.com` → `com.googleusercontent.apps.123-abc`.
-String _reverseDns(String clientId) => clientId.split('.').reversed.join('.');
+/// A placeholder keeps the Uri parseable while no client id is injected
+/// (the row shows "setup required" and never reaches the browser).
+String _reverseDns(String clientId) =>
+    clientId.isEmpty ? 'unconfigured' : clientId.split('.').reversed.join('.');

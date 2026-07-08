@@ -11,6 +11,7 @@ import '../../app/providers.dart';
 import '../../data/backup_service.dart';
 import '../../data/export_service.dart';
 import '../../data/import_parsers.dart';
+import '../cloud/cloud_connect_screen.dart';
 import 'sync_settings_screen.dart';
 
 enum _ExportFormat {
@@ -72,6 +73,16 @@ class SettingsScreen extends ConsumerWidget {
           ),
           value: ref.watch(alarmsEnabledProvider),
           onChanged: (enabled) => _setAlarmsEnabled(context, ref, enabled),
+        ),
+        ListTile(
+          leading: const Icon(Icons.cloud_outlined),
+          title: const Text('Cloud storage'),
+          subtitle: const Text(
+            'iCloud Drive, Dropbox, Google Drive, or OneDrive',
+          ),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const CloudConnectScreen()),
+          ),
         ),
         ListTile(
           leading: const Icon(Icons.sync),

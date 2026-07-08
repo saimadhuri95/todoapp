@@ -16,6 +16,7 @@ import 'data/cloud/cloud_account_service.dart';
 import 'data/cloud/cloud_http.dart';
 import 'data/db/database.dart';
 import 'data/sync/device_identity.dart';
+import 'features/cloud/cloud_onboarding.dart';
 import 'features/todos/todo_list_screen.dart';
 import 'l10n/generated/app_localizations.dart';
 
@@ -85,6 +86,12 @@ Future<void> main() async {
       // keychain; this mirrors just the provider choice for the UI).
       if (cloudProvider != null)
         cloudAccountProvider.overrideWith((_) => cloudProvider),
+      // One-time "where should your todos live?" sheet — only on a fresh
+      // install with nothing configured yet.
+      if (!(prefs.getBool('cloudOnboarded') ?? false) &&
+          cloudProvider == null &&
+          mailboxPath == null)
+        cloudOnboardingDueProvider.overrideWith((_) => true),
       alarmsEnabledProvider.overrideWith((_) => alarmsEnabled),
       themeModeProvider.overrideWith((_) => themeMode),
       displayDensityProvider.overrideWith((_) => density),
@@ -145,6 +152,6 @@ class TodoApp extends ConsumerWidget {
         brightness: Brightness.dark,
       ),
     ),
-    home: const TodoListScreen(),
+    home: const CloudOnboarding(child: TodoListScreen()),
   );
 }
