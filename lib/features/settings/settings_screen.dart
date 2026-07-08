@@ -9,6 +9,7 @@ import '../../app/alarm_service.dart';
 import '../../app/notification_scheduler.dart';
 import '../../app/providers.dart';
 import '../../data/export_service.dart';
+import '../../data/import_parsers.dart';
 import 'sync_settings_screen.dart';
 
 enum _ExportFormat {
@@ -89,7 +90,9 @@ class SettingsScreen extends ConsumerWidget {
         ListTile(
           leading: const Icon(Icons.download),
           title: const Text('Import todos'),
-          subtitle: const Text('Restore from a Knot export file'),
+          subtitle: const Text(
+            'Knot backup, todo.txt, or CSV (Todoist, TickTick)',
+          ),
           onTap: () => _import(context, ref),
         ),
         const AboutListTile(
@@ -158,16 +161,31 @@ class SettingsScreen extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     final file = await openFile(
       acceptedTypeGroups: const [
-        XTypeGroup(label: 'Knot export', extensions: ['json']),
+        XTypeGroup(label: 'Todos', extensions: ['json', 'txt', 'csv', 'tsv']),
       ],
     );
     if (file == null) return;
+    final service = _service(ref);
+    final content = await file.readAsString();
+    final name = file.name.toLowerCase();
     try {
-      final (lists, todos) = await _service(
-        ref,
-      ).importJson(await file.readAsString());
+      if (name.endsWith('.json')) {
+        final (lists, todos) = await service.importJson(content);
+        messenger.showSnackBar(
+          SnackBar(content: Text('Imported $todos todos, $lists lists')),
+        );
+        return;
+      }
+      final parsed = name.endsWith('.txt')
+          ? parseTodoTxt(content)
+          : parseCsv(content);
+      final count = await service.importParsed(parsed);
       messenger.showSnackBar(
-        SnackBar(content: Text('Imported $todos todos, $lists lists')),
+        SnackBar(
+          content: Text(
+            count == 0 ? 'No todos found in file' : 'Imported $count todos',
+          ),
+        ),
       );
     } on FormatException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
