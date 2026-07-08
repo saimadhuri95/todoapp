@@ -1,7 +1,7 @@
 # Cloud provider setup (Dropbox / Google Drive / OneDrive)
 
 Knot signs into storage providers with OAuth 2.0 + PKCE — no client
-secret, no server, no SDKs (ADR 0002). Each provider needs a **free app
+secret, no server, no SDKs (ADR 0003). Each provider needs a **free app
 registration** owned by the developer; its *client id* (not a secret) is
 baked into the build with `--dart-define`. Until then the provider's row
 in Settings → Cloud storage shows "setup required".

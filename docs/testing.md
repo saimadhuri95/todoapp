@@ -88,6 +88,13 @@ The things automation cannot reach live under `docs/releases/`.
 - Copy it forward for the next release and keep notes in the release file.
 - Cover alarms with the app closed, permission flows, QR pairing between real
   platform pairs, real cloud-folder sync, and reboot behavior.
+- Include the R13.9 zero-config gate in every release checklist:
+  fresh install / first launch must stay one plain usable list with no
+  mandatory onboarding, pairing, sync setup, or permission prompt needed to
+  add and complete a todo.
+- For every R13-R15 feature shipped in that release, add an explicit manual
+  check that the default state stays opt-in, off, hidden, or otherwise quiet
+  until the user deliberately enables or enters it.
 
 ## 8. Performance and battery (Phase 5)
 

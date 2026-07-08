@@ -59,7 +59,9 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **Session 2026-07-07 (iPhone cloud accounts, ADR 0002):** user direction executed in worktree `todoapp-wt-iphone`, branch `feature/iphone-cloud-storage`, PR #91. New: `MailboxStore` seam (mailbox protocol over any file store; `FolderMailboxStore` = old behavior), `lib/data/cloud/` (PkceFlow OAuth2+PKCE no-SDK, TokenSet in keychain, `CloudAccountService`, Dropbox/GDrive-appdata/OneDrive-approot REST stores, scripted-HTTP unit tests), solo-device sync (`buildOrchestrator` creates group key when a mailbox is configured, pairing shares it later), Settings → Cloud storage connect screen + "Your data" source overview + first-launch sheet (skippable, invariant 1), iOS `knot://` scheme + AppDelegate → `OAuthCallbackChannel`. Verified: iPhone 17 Pro sim boots + onboarding renders + integration smoke passes; 301 tests, lib/data 85.8%, DST green; 3 local fails = pre-existing macOS-host class (also on clean main). **Remaining: 7.8 provider app registrations (user, free) → end-to-end OAuth; 7.9 account labels; 7.10 Android/desktop redirect parity.** See docs/decisions/0002-cloud-provider-accounts.md + docs/cloud-providers.md.
+- **Session 2026-07-07 (iPhone cloud accounts, ADR 0003):** user direction executed in worktree `todoapp-wt-iphone`, branch `feature/iphone-cloud-storage`, PR #91. New: `MailboxStore` seam (mailbox protocol over any file store; `FolderMailboxStore` = old behavior), `lib/data/cloud/` (PkceFlow OAuth2+PKCE no-SDK, TokenSet in keychain, `CloudAccountService`, Dropbox/GDrive-appdata/OneDrive-approot REST stores, scripted-HTTP unit tests), solo-device sync (`buildOrchestrator` creates group key when a mailbox is configured, pairing shares it later), Settings → Cloud storage connect screen + "Your data" source overview + first-launch sheet (skippable, invariant 1), iOS `knot://` scheme + AppDelegate → `OAuthCallbackChannel`. Verified: iPhone 17 Pro sim boots + onboarding renders + integration smoke passes; 301 tests, lib/data 85.8%, DST green; 3 local fails = pre-existing macOS-host class (also on clean main). **Remaining: 7.8 provider app registrations (user, free) → end-to-end OAuth; 7.9 account labels; 7.10 Android/desktop redirect parity.** See docs/decisions/0003-cloud-provider-accounts.md + docs/cloud-providers.md.
+- **Session 2026-07-07 (attachments design, 6.47):** 6.47 done (design-doc deliverable). New ADR `docs/decisions/0002-attachments.md`: split small synced metadata rows (new `attachments` table, per-field LWW + tombstone) from large immutable bytes; content-addressed local blob store (`<appSupport>/attachments/<sha256>`), 25 MB/attachment + 500 MB soft device cap; lazy out-of-band blob fetch over the mailbox (`blobs/<hash>.bin`, group-key sealed, reusing the 6.45 allowlist) and a LAN `GET blob`; ciphertext-only in transit, plaintext at rest (matching the local DB); tombstone + grace-period GC. Implementation slices (schema, BlobStore, transport hooks, UI) are the follow-up tail, gated on sign-off. Docs-only PR, isolated worktree.
+- **Session 2026-07-07 (Syncthing-tolerant mailbox, 6.45):** 6.45 done. `MailboxTransport.consume`/`compactIfNeeded` now allowlist only our own changeset files (`^\d{15}_[0-9a-f]{4,}_[^.\s()~]+\.bin$`, the `_fileNameFor` shape) and treat only non-dot subdirs as peer outboxes, so third-party artifacts are ignored: Syncthing `*.sync-conflict-*` + `.stversions`/`.stfolder`, Dropbox "(conflicted copy)", iCloud `.icloud`, `~`/`.tmp`. Fixes a latent bug where a conflict copy could sort past a real file and advance the cursor, stranding later changesets; also stops compaction from counting/deleting foreign files. New tests in `test/data/mailbox_transport_test.dart` (consume-ignores-artifacts + compaction-ignores-artifacts, both green with the full 10-case file). docs/sync.md gains a "Third-party tolerance" bullet. Sync-layer only, no UI. Isolated worktree/branch.
 - **Session 2026-07-07 (encrypted backup, 6.41):** 6.41 done. New `lib/data/backup_service.dart` (`BackupService`): passphrase → PBKDF2-HMAC-SHA256 (210k rounds, overridable for tests) → XChaCha20-Poly1305 via `PairingCrypto.seal/open` over the JSON export, wrapped in a versioned JSON envelope (`app/kind/v/kdf/iterations/salt/payload`). `restoreBackup` decrypts + `importJson`; wrong passphrase/tamper → `BackupPassphraseError`, non-backup files → `FormatException`. Settings gains "Encrypted backup"/"Restore encrypted backup" tiles + a `_PassphraseDialog` (confirm on create). docs/sync.md gains a "mailbox is a transport, not a backup" subsection. New `test/data/backup_service_test.dart` (7 cases: roundtrip, no-plaintext envelope, wrong-passphrase, tamper, empty-passphrase, bad-file, default work factor). Isolated worktree/branch, parallel to the other loop.
 - **Session 2026-07-07 (external import, 6.40):** 6.40 done. New pure `lib/data/import_parsers.dart` (`ImportedTodo` + `parseTodoTxt`/`parseCsv`) parses todo.txt, generic CSV, and Todoist/TickTick CSV exports — hand-rolled RFC-4180 tokenizer (quotes/embedded newlines, comma/tab autodetect), alias-based column matching, TickTick preamble skip, source-specific priority maps (Todoist 1–4, TickTick 0/1/3/5 → Knot 0–3). `ExportService.importParsed()` writes fresh uuid-v7 rows with one batch HLC stamp (mirrors `importJson`); Settings import now accepts json/txt/csv/tsv and dispatches by extension. New `test/data/import_parsers_test.dart` (19 cases); `lib/data/import_parsers.dart` + `export_service.dart` 100% covered, `lib/data` 88.1%. Analyzer/format/DST clean. Only failure locally is the pre-existing macOS `settings_screen_test` "Sync now" fold (also fails on base; tracked by PR #17). Done in an isolated worktree/branch to run in parallel with the 6.33 loop.
 - **Session 2026-07-07 (completion recap):** 6.33 done. New pure `completionRecap()` + `CompletionRecap` in `todo_sections.dart` buckets completed todos into Today / Earlier this week (Mon-first) / Older, preserving repo order, unstamped rows → Older. List screen's flat "Completed (N)" ExpansionTile replaced by `_CompletedRecapTile`: subtitle "`X done today · Y this week`" (week folds in today), items grouped under labelled subheaders. New `test/features/completion_recap_test.dart` (5 unit + 1 widget). Full suite green except the pre-existing macOS-local `settings_screen_test` "Sync now" fold failure (also fails on clean `main`; tracked by PR #17). Analyzer clean; coverage 85.7% on lib/data; DST pass. Optional end-of-day shutdown ritual deferred as a follow-up. Pure Dart/UI, no platform paths → integration smoke via CI.
@@ -177,9 +179,15 @@ metadata in App Store Connect is blocked on the Apple Developer account (4.3).
 - [x] 4.10 Subtitle: **"Collaborative Task Manager"** (26 chars, no name-word repeats); recorded in docs/packaging.md
 - [x] 4.11 Keyword field pruned against final name/subtitle (95 chars, docs/packaging.md): `shared,checklist,organizer,p2p,private,group,team,family,planner,grocery,reminders,productivity` — enter in App Store Connect with 4.3
 - [ ] 4.12 Screenshot set for conversion: first 3 shots show the sync/pairing UI with a value-prop caption overlay ("Instant Sync, Zero Cloud Accounts"); produce required iPhone/iPad/Mac sizes (can stage from simulators before the dev account exists)
-- [ ] 4.13 Google Play counterpart: title (30), short description (80, indexed), full description written for keyword coverage — Play indexes the description, unlike Apple, so the no-repeat rule doesn't apply there
-- [ ] 4.14 Launch-velocity plan: time the store release with a Product Hunt / Hacker News / r/selfhosted post so the download spike lands while the listing is fresh (velocity drives rank for competitive terms)
-- [ ] 4.15 Post-launch ASO loop: watch search rank for "todo app"/"shared todo list" + impression→download conversion in App Store Connect analytics; iterate keyword field each release (it's updatable without an app review... but only alongside a new build)
+- [x] 4.13 Google Play counterpart documented in [docs/launch.md](docs/launch.md):
+  title (30), short description (80), and full description written for keyword
+  coverage; Play can lean on description indexing more than Apple
+- [x] 4.14 Launch-velocity plan documented in [docs/launch.md](docs/launch.md):
+  store release timed with Product Hunt / Hacker News / r/selfhosted as one
+  coordinated spike instead of a dribbled multi-day launch
+- [x] 4.15 Post-launch ASO loop documented in [docs/launch.md](docs/launch.md):
+  App Store Connect acquisition metrics, release-over-release hypotheses, and
+  keyword iteration bundled into the next version's metadata pass
 
 ### macOS sandbox fixes (manual-test findings 2026-07-06)
 
@@ -348,7 +356,7 @@ driver/dispatcher scenario and Apple-first direction.
 - [ ] 6.42 (R12.4) Perf budgets: cold start <2 s, quick-add <500 ms, 5k-task
   scroll without jank — measure (extends 5.7), automate what CI can hold
 
-**Cloud provider accounts — iPhone-first (user direction 2026-07-07, ADR 0002)**
+**Cloud provider accounts — iPhone-first (user direction 2026-07-07, ADR 0003)**
 
 - [x] 7.1 `MailboxStore` seam: mailbox protocol over any file store;
   `FolderMailboxStore` keeps the original behavior
@@ -383,11 +391,14 @@ driver/dispatcher scenario and Apple-first direction.
 
 **P3 — optional tail (one line each; expand into subtasks when picked up)**
 
-- [ ] 6.45 (R1.6) Syncthing-tolerant mailbox: audit format for third-party
+- [x] 6.45 (R1.6) Syncthing-tolerant mailbox: audit format for third-party
   folder replication (conflicted-copy filenames), document in docs/sync.md
 - [ ] 6.46 (R2.4) Voice input via platform speech APIs (on-device only)
-- [ ] 6.47 (R3.8) Attachments — design doc first (size caps, lazy fetch in
+- [x] 6.47 (R3.8) Attachments — design doc first (size caps, lazy fetch in
   encrypted mailbox), implementation only after sign-off
+  — design landed as `docs/decisions/0002-attachments.md`; implementation
+  (schema + BlobStore + mailbox/LAN blob transport + UI) is the follow-up
+  tail, gated on sign-off
 - [ ] 6.48 (R4.4) Configurable swipe actions (complete/snooze/delete)
 - [ ] 6.49 (R5.5/R5.6) Kanban board (sections as columns) + Eisenhower view
 - [ ] 6.50 (R6.4/R6.5) Location reminders (on-device geofencing only) +

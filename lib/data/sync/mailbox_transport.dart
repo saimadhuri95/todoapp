@@ -87,13 +87,17 @@ class MailboxTransport {
   /// Returns the number of field writes that won LWW.
   Future<int> consume() async {
     var applied = 0;
-    final dirs = (await store.listDeviceDirs()).where((d) => d != deviceId);
+    // Only real device outboxes are peers. Skip our own, and skip the
+    // dot-prefixed metadata folders third-party sync tools leave behind
+    // (Syncthing .stfolder/.stversions, .Trash-*, cloud caches) — 6.45.
+    final dirs = (await store.listDeviceDirs()).where(
+      (d) => d != deviceId && !d.startsWith('.'),
+    );
     for (final dir in dirs) {
       final cursor = await _cursorFor(dir);
       final files =
           (await store.listFiles(dir))
-              .where((name) => name.endsWith('.bin'))
-              .where((name) => name != _vectorFile)
+              .where(_isChangesetName)
               .where((name) => cursor == null || name.compareTo(cursor) > 0)
               .toList()
             ..sort();
@@ -122,8 +126,7 @@ class MailboxTransport {
   /// (its name sorts ≤ their cursor).
   Future<bool> compactIfNeeded({int threshold = 20}) async {
     final deltas = (await store.listFiles(deviceId))
-        .where((name) => name.endsWith('.bin'))
-        .where((name) => name != _vectorFile)
+        .where(_isChangesetName)
         .toList();
     if (deltas.length < threshold) return false;
 
@@ -151,6 +154,20 @@ class MailboxTransport {
     final max = changeset.writes.last.hlc.encode().replaceAll(':', '_');
     return '$max.bin';
   }
+
+  /// Our own changeset shape only (see [_fileNameFor]): HLC millis, counter,
+  /// and a nodeId joined by `_`, with a `.bin` suffix. Third-party sync
+  /// tools drop artifacts alongside them — Syncthing `*.sync-conflict-*`
+  /// copies, Dropbox "(conflicted copy)" files, iCloud `.icloud`
+  /// placeholders, `~`/`.tmp` temp files. Each introduces a `.`, space,
+  /// `(`, `)`, or `~` this pattern rejects, so consumption and compaction
+  /// ignore them (TASKS.md 6.45). `vector.bin` is excluded too — it carries
+  /// no HLC prefix.
+  static final _changesetName = RegExp(
+    r'^\d{15}_[0-9a-f]{4,}_[^.\s()~]+\.bin$',
+  );
+
+  static bool _isChangesetName(String name) => _changesetName.hasMatch(name);
 
   Future<Map<String, String>> _readVector() async {
     final bytes = await store.read(deviceId, _vectorFile);

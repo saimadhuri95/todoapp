@@ -164,4 +164,73 @@ void main() {
       expect(await b.dump(), await a.dump());
     },
   );
+
+  test('consume ignores third-party sync artifacts (TASKS.md 6.45)', () async {
+    await a.todos.create(title: 'Buy milk');
+    await transportFor(a).publish();
+
+    final outboxA = Directory('${root.path}/aa');
+    final real = outboxA.listSync().whereType<File>().firstWhere(
+      (f) => !f.path.endsWith('vector.bin'),
+    );
+    final base = real.path.split(Platform.pathSeparator).last;
+    final stem = base.substring(0, base.length - '.bin'.length);
+    final copy = await real.readAsBytes();
+
+    // Artifacts a cloud-drive tool might drop next to our files:
+    File(
+      '${outboxA.path}/$stem.sync-conflict-20260101-120000-ABCDEF.bin',
+    ).writeAsBytesSync(copy); // Syncthing conflict copy
+    File(
+      '${outboxA.path}/$stem (conflicted copy 2026-01-01).bin',
+    ).writeAsBytesSync(copy); // Dropbox conflicted copy
+    File('${outboxA.path}/~$base.tmp').writeAsBytesSync(copy); // temp
+    File('${outboxA.path}/.$base.icloud').writeAsBytesSync(const [0, 1, 2]);
+    final versions = Directory('${root.path}/.stversions')..createSync();
+    File('${versions.path}/$base').writeAsBytesSync(copy);
+    Directory('${root.path}/.stfolder').createSync();
+
+    // b still converges on the one real changeset, and the cursor advances to
+    // it — never past it onto a foreign name (which would strand later data).
+    expect(await transportFor(b).consume(), greaterThan(0));
+    expect((await b.db.todos.all().getSingle()).title, 'Buy milk');
+    final cursor =
+        await (b.db.syncLog.select()
+              ..where((s) => s.peerId.equals('mailbox:aa')))
+            .getSingleOrNull();
+    expect(cursor?.lastAppliedHlc, base);
+
+    // Re-consuming sees nothing new (idempotent, cursor unmoved).
+    expect(await transportFor(b).consume(), 0);
+  });
+
+  test('compaction ignores third-party artifacts in the outbox', () async {
+    await a.todos.create(title: 'one');
+    await transportFor(a).publish();
+    await a.todos.create(title: 'two');
+    await transportFor(a).publish();
+
+    final outboxA = Directory('${root.path}/aa');
+    final real = outboxA.listSync().whereType<File>().firstWhere(
+      (f) => !f.path.endsWith('vector.bin'),
+    );
+    final copy = await real.readAsBytes();
+    // Ten conflict copies must not inflate the delta count toward the
+    // threshold, nor be deleted by compaction.
+    for (var i = 0; i < 10; i++) {
+      File(
+        '${outboxA.path}/${real.path.split(Platform.pathSeparator).last}'
+        '.sync-conflict-2026010$i.bin',
+      ).writeAsBytesSync(copy);
+    }
+
+    // Only the 2 real deltas count — below the threshold of 3, so no compaction.
+    expect(await transportFor(a).compactIfNeeded(threshold: 3), isFalse);
+    final surviving = outboxA
+        .listSync()
+        .whereType<File>()
+        .where((f) => f.path.contains('.sync-conflict-'))
+        .length;
+    expect(surviving, 10);
+  });
 }

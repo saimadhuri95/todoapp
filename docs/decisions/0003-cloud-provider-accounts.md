@@ -1,4 +1,4 @@
-# ADR 0002: Cloud provider accounts as a mailbox backend (iPhone-first)
+# ADR 0003: Cloud provider accounts as a mailbox backend (iPhone-first)
 
 - **Status:** accepted (user direction 2026-07-07)
 - **Context:** PLAN.md "two transports" decision; extends, does not replace

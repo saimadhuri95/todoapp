@@ -61,7 +61,7 @@ devices over pluggable transports, merged with CRDT semantics.
   snapshot once all peers' cursors have passed them.
 - Folder access: iCloud container via native channel (iOS/macOS), Storage
   Access Framework (Android), plain directory picker (Windows/Linux).
-- **Provider-API backends (ADR 0002):** the same protocol also runs over a
+- **Provider-API backends (ADR 0003):** the same protocol also runs over a
   storage provider's REST API behind the `MailboxStore` seam — Dropbox app
   folder, Google Drive `appDataFolder`, OneDrive Graph approot — signed in
   from Settings → Cloud storage with OAuth/PKCE (docs/cloud-providers.md).
@@ -71,6 +71,15 @@ devices over pluggable transports, merged with CRDT semantics.
   the first device creates the group key itself and publishes from day one;
   pairing later hands that key to new devices, which then join the same
   mailbox with full history.
+- Third-party tolerance (TASKS.md 6.45): the folder is shared with whatever
+  tool the user syncs it with, and those tools litter it with their own files —
+  Syncthing `*.sync-conflict-*` copies and `.stversions`/`.stfolder` dirs,
+  Dropbox "(conflicted copy)" files, iCloud `.icloud` placeholders, and `~`/
+  `.tmp` temp files. Consumption and compaction accept **only** files whose
+  name matches our exact `<hlc>.bin` shape and treat only non-dot subdirectories
+  as peer outboxes, so foreign artifacts are ignored rather than decrypted,
+  re-applied, or (in the case of a conflict copy sorting past a real file)
+  allowed to advance a cursor and strand later changesets.
 
 ### The mailbox is a transport, not a backup
 
