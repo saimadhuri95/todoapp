@@ -417,13 +417,18 @@ you a peer of someone else's storage without sharing credentials.
   `removeAccount` guarded by `sync_groups.local_account_ref`, primary
   account = personal mailbox (back-compat), accounts section on the
   connect screen
-- [ ] 8.5 Per-group keys + invites: group key creation/storage/rotation
-  per group; invite QR payload `{groupId, name, groupKey, backend hint}`
-  over the existing X25519 pairing handshake; join flow wiring
-- [ ] 8.6 Multi-mailbox orchestrator: one `MailboxTransport` per
-  configured group per pass (own store/key/cursors); per-group
-  `SyncReport` + sync-health rows; soft-fail isolation (one group's
-  network error must not block the others)
+- [x] 8.5 (issue #97) Per-group keys + invites: `group_key:<gid>`
+  keychain slots (create/load/rotate per group, personal key untouched);
+  v2 group invitation `{payload, group{id,name,backendKind}, gk}` with
+  create/accept flows — joiner adopts the key, materializes the group row
+  unstamped (inviter history stays authoritative), memberships recorded
+  on both sides, same fingerprint confirmation as personal pairing
+- [x] 8.6 (issue #98) Multi-mailbox orchestrator: `SyncOrchestrator`
+  runs the personal mailbox + one transport per joined group per pass
+  (own store/key/scope/cursors, resolved via `localAccountRef` →
+  account or folder); per-transport soft-fail isolation with
+  `mailbox[<group>]` error entries; unjoined/unwired groups skipped
+  silently. Per-group health rows land with the 8.8 screen.
 - [ ] 8.7 Shared-folder backends: Dropbox shared-folder mode behind
   incremental consent (broader scopes requested only when creating or
   joining a shared group; personal mailbox keeps the app folder); iCloud

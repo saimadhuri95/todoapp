@@ -11,7 +11,7 @@ class MailboxTransport {
     required Object db,
     required String deviceId,
     required Object groupKey,
-    String? groupId,
+    this.groupId,
   });
 
   MailboxTransport.withStore({
@@ -20,8 +20,10 @@ class MailboxTransport {
     required Object db,
     required String deviceId,
     required Object groupKey,
-    String? groupId,
+    this.groupId,
   });
+
+  final String? groupId;
 
   Future<int> pendingOutboundCount() async => 0;
 }

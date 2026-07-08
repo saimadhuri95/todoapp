@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -33,10 +34,48 @@ Future<SyncOrchestrator?> buildOrchestrator(
       ? null
       : await ref.read(cloudAccountServiceProvider).mailboxStore();
   final mailboxPath = ref.read(mailboxPathProvider);
-  final hasMailbox = cloudStore != null || mailboxPath != null;
-  if (!hasMailbox && !await pairing.hasGroupKey()) return null;
-  final groupKey = await pairing.loadOrCreateGroupKey();
+  final db = ref.read(databaseProvider);
+  final deviceId = ref.read(deviceIdProvider);
   final engine = ref.read(syncEngineProvider);
+
+  // One transport per joined sharing group (TASKS 8.6, ADR 0004): its own
+  // store (resolved through the group's device-local account/folder ref),
+  // its own key, its own scope and cursors. Groups without a key (not
+  // joined) or without a local backend ref (not wired up yet) are skipped
+  // this pass — never an error.
+  final groups =
+      await (db.syncGroups.select()..where((g) => g.deleted.equals(false)))
+          .get();
+  final groupMailboxes = <MailboxTransport>[];
+  for (final group in groups) {
+    final key = await pairing.groupKeyFor(group.id);
+    final backendRef = group.localAccountRef;
+    if (key == null || backendRef == null || backendRef.isEmpty) continue;
+    final store = switch (group.backendKind) {
+      'folder' || 'icloud' => FolderMailboxStore(Directory(backendRef)),
+      _ =>
+        await ref
+            .read(cloudAccountServiceProvider)
+            .mailboxStore(accountId: backendRef),
+    };
+    if (store == null) continue; // Account removed; group needs re-pointing.
+    groupMailboxes.add(
+      MailboxTransport.withStore(
+        store: store,
+        engine: engine,
+        db: db,
+        deviceId: deviceId,
+        groupKey: key,
+        groupId: group.id,
+      ),
+    );
+  }
+
+  final hasMailbox = cloudStore != null || mailboxPath != null;
+  if (!hasMailbox && groupMailboxes.isEmpty && !await pairing.hasGroupKey()) {
+    return null;
+  }
+  final groupKey = await pairing.loadOrCreateGroupKey();
   // The OAuth account wins when both it and a folder are configured; the
   // folder remains for desktop and iCloud Drive setups.
   final store =
@@ -50,10 +89,11 @@ Future<SyncOrchestrator?> buildOrchestrator(
         : MailboxTransport.withStore(
             store: store,
             engine: engine,
-            db: ref.read(databaseProvider),
-            deviceId: ref.read(deviceIdProvider),
+            db: db,
+            deviceId: deviceId,
             groupKey: groupKey,
           ),
+    groupMailboxes: groupMailboxes,
     discoverPeers: discoverPeers,
     notifications: notifications,
     notificationsEnabled: notificationsEnabled,

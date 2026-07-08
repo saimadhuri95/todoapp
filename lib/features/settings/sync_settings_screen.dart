@@ -425,7 +425,7 @@ class SyncSettingsScreen extends ConsumerWidget {
       );
       return;
     }
-    if (orchestrator.mailbox == null) {
+    if (orchestrator.mailboxes.isEmpty) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Pick a sync folder first')),
       );
