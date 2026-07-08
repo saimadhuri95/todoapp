@@ -254,7 +254,7 @@ class _TodoListPane extends ConsumerWidget {
     );
   }
 
-  static const _completedMarker = ' completed ';
+  static const _completedMarker = ' completed ';
 }
 
 class _SectionHeader extends StatelessWidget {
