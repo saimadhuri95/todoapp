@@ -417,9 +417,12 @@ you a peer of someone else's storage without sharing credentials.
   `removeAccount` guarded by `sync_groups.local_account_ref`, primary
   account = personal mailbox (back-compat), accounts section on the
   connect screen
-- [ ] 8.5 Per-group keys + invites: group key creation/storage/rotation
-  per group; invite QR payload `{groupId, name, groupKey, backend hint}`
-  over the existing X25519 pairing handshake; join flow wiring
+- [x] 8.5 (issue #97) Per-group keys + invites: `group_key:<gid>`
+  keychain slots (create/load/rotate per group, personal key untouched);
+  v2 group invitation `{payload, group{id,name,backendKind}, gk}` with
+  create/accept flows — joiner adopts the key, materializes the group row
+  unstamped (inviter history stays authoritative), memberships recorded
+  on both sides, same fingerprint confirmation as personal pairing
 - [ ] 8.6 Multi-mailbox orchestrator: one `MailboxTransport` per
   configured group per pass (own store/key/cursors); per-group
   `SyncReport` + sync-health rows; soft-fail isolation (one group's
