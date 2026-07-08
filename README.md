@@ -46,6 +46,29 @@ Flutter - Riverpod - SQLite (drift) - hand-rolled per-field LWW CRDT with
 hybrid logical clocks ([ADR 0001](docs/decisions/0001-crdt-choice.md)) -
 X25519 + XChaCha20-Poly1305 for device pairing and payload encryption.
 
+## System requirements
+
+Minimum supported platform versions (TASKS.md 6.39). These follow the pinned
+Flutter toolchain's defaults and the project's deployment targets:
+
+| Platform | Minimum | Set in |
+|----------|---------|--------|
+| Android  | 7.0 (API 24) | Flutter default `minSdkVersion` (`android/app/build.gradle.kts`) |
+| iOS      | 13.0 | `IPHONEOS_DEPLOYMENT_TARGET` (`ios/Runner.xcodeproj`) |
+| macOS    | 10.15 Catalina | `MACOSX_DEPLOYMENT_TARGET` (`macos/Runner.xcodeproj`) |
+| Windows  | 10 (64-bit) | Flutter desktop baseline |
+| Linux    | 64-bit with GTK 3 / glibc 2.28+ | Flutter desktop baseline |
+
+**Old-hardware floor.** The app is local-first and does no background number
+crunching, so the practical constraint is RAM for the SQLite working set and
+the Flutter engine. The target floor is a ~2 GB-RAM Android device on the
+oldest supported OS; the 5k-task performance guard
+(`test/perf/large_dataset_test.dart`, see [docs/testing.md](docs/testing.md))
+keeps the data layer within budget at that scale. Real-device verification on
+low-RAM hardware and the oldest OS builds is still pending (tracked in the
+`RESUME` section of [TASKS.md](TASKS.md)); raise these minimums only with an
+ADR, since doing so drops users.
+
 ## Building
 
 ```sh
