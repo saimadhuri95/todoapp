@@ -823,6 +823,20 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
       'REFERENCES todo_lists (id)',
     ),
   );
+  static const VerificationMeta _parentIdMeta = const VerificationMeta(
+    'parentId',
+  );
+  @override
+  late final GeneratedColumn<String> parentId = GeneratedColumn<String>(
+    'parent_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES todos (id)',
+    ),
+  );
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
   @override
   late final GeneratedColumn<String> title = GeneratedColumn<String>(
@@ -899,6 +913,29 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
     requiredDuringInsert: false,
     defaultValue: const Constant('[]'),
   );
+  static const VerificationMeta _sectionMeta = const VerificationMeta(
+    'section',
+  );
+  @override
+  late final GeneratedColumn<String> section = GeneratedColumn<String>(
+    'section',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sortKeyMeta = const VerificationMeta(
+    'sortKey',
+  );
+  @override
+  late final GeneratedColumn<String> sortKey = GeneratedColumn<String>(
+    'sort_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _alarmOffsetsJsonMeta = const VerificationMeta(
     'alarmOffsetsJson',
   );
@@ -952,6 +989,7 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
   List<GeneratedColumn> get $columns => [
     id,
     listId,
+    parentId,
     title,
     notes,
     dueAtMs,
@@ -959,6 +997,8 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
     completedAtMs,
     priority,
     tagsJson,
+    section,
+    sortKey,
     alarmOffsetsJson,
     lastDismissedMs,
     snoozeUntilMs,
@@ -985,6 +1025,12 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
       context.handle(
         _listIdMeta,
         listId.isAcceptableOrUnknown(data['list_id']!, _listIdMeta),
+      );
+    }
+    if (data.containsKey('parent_id')) {
+      context.handle(
+        _parentIdMeta,
+        parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta),
       );
     }
     if (data.containsKey('title')) {
@@ -1037,6 +1083,18 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
         tagsJson.isAcceptableOrUnknown(data['tags_json']!, _tagsJsonMeta),
       );
     }
+    if (data.containsKey('section')) {
+      context.handle(
+        _sectionMeta,
+        section.isAcceptableOrUnknown(data['section']!, _sectionMeta),
+      );
+    }
+    if (data.containsKey('sort_key')) {
+      context.handle(
+        _sortKeyMeta,
+        sortKey.isAcceptableOrUnknown(data['sort_key']!, _sortKeyMeta),
+      );
+    }
     if (data.containsKey('alarm_offsets_json')) {
       context.handle(
         _alarmOffsetsJsonMeta,
@@ -1087,6 +1145,10 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
         DriftSqlType.string,
         data['${effectivePrefix}list_id'],
       ),
+      parentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parent_id'],
+      ),
       title: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}title'],
@@ -1114,6 +1176,14 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
       tagsJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}tags_json'],
+      )!,
+      section: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}section'],
+      ),
+      sortKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sort_key'],
       )!,
       alarmOffsetsJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -1143,6 +1213,10 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
 class Todo extends DataClass implements Insertable<Todo> {
   final String id;
   final String? listId;
+
+  /// Subtasks/checklist items are ordinary synced todo rows (schema v5).
+  /// A null parent is a top-level task; child rows keep their own LWW clocks.
+  final String? parentId;
   final String title;
   final String notes;
   final int? dueAtMs;
@@ -1150,6 +1224,12 @@ class Todo extends DataClass implements Insertable<Todo> {
   final int? completedAtMs;
   final int priority;
   final String tagsJson;
+
+  /// User-defined section within a list, null for date-driven grouping.
+  final String? section;
+
+  /// Fractional, lexicographically sortable order key for manual ordering.
+  final String sortKey;
 
   /// Alarms (schema v3): JSON array of minute-offsets before [dueAtMs]
   /// (0 = at due time). LWW fields on the todo so they sync like
@@ -1166,6 +1246,7 @@ class Todo extends DataClass implements Insertable<Todo> {
   const Todo({
     required this.id,
     this.listId,
+    this.parentId,
     required this.title,
     required this.notes,
     this.dueAtMs,
@@ -1173,6 +1254,8 @@ class Todo extends DataClass implements Insertable<Todo> {
     this.completedAtMs,
     required this.priority,
     required this.tagsJson,
+    this.section,
+    required this.sortKey,
     required this.alarmOffsetsJson,
     this.lastDismissedMs,
     this.snoozeUntilMs,
@@ -1184,6 +1267,9 @@ class Todo extends DataClass implements Insertable<Todo> {
     map['id'] = Variable<String>(id);
     if (!nullToAbsent || listId != null) {
       map['list_id'] = Variable<String>(listId);
+    }
+    if (!nullToAbsent || parentId != null) {
+      map['parent_id'] = Variable<String>(parentId);
     }
     map['title'] = Variable<String>(title);
     map['notes'] = Variable<String>(notes);
@@ -1198,6 +1284,10 @@ class Todo extends DataClass implements Insertable<Todo> {
     }
     map['priority'] = Variable<int>(priority);
     map['tags_json'] = Variable<String>(tagsJson);
+    if (!nullToAbsent || section != null) {
+      map['section'] = Variable<String>(section);
+    }
+    map['sort_key'] = Variable<String>(sortKey);
     map['alarm_offsets_json'] = Variable<String>(alarmOffsetsJson);
     if (!nullToAbsent || lastDismissedMs != null) {
       map['last_dismissed_ms'] = Variable<int>(lastDismissedMs);
@@ -1215,6 +1305,9 @@ class Todo extends DataClass implements Insertable<Todo> {
       listId: listId == null && nullToAbsent
           ? const Value.absent()
           : Value(listId),
+      parentId: parentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentId),
       title: Value(title),
       notes: Value(notes),
       dueAtMs: dueAtMs == null && nullToAbsent
@@ -1228,6 +1321,10 @@ class Todo extends DataClass implements Insertable<Todo> {
           : Value(completedAtMs),
       priority: Value(priority),
       tagsJson: Value(tagsJson),
+      section: section == null && nullToAbsent
+          ? const Value.absent()
+          : Value(section),
+      sortKey: Value(sortKey),
       alarmOffsetsJson: Value(alarmOffsetsJson),
       lastDismissedMs: lastDismissedMs == null && nullToAbsent
           ? const Value.absent()
@@ -1247,6 +1344,7 @@ class Todo extends DataClass implements Insertable<Todo> {
     return Todo(
       id: serializer.fromJson<String>(json['id']),
       listId: serializer.fromJson<String?>(json['listId']),
+      parentId: serializer.fromJson<String?>(json['parentId']),
       title: serializer.fromJson<String>(json['title']),
       notes: serializer.fromJson<String>(json['notes']),
       dueAtMs: serializer.fromJson<int?>(json['dueAtMs']),
@@ -1254,6 +1352,8 @@ class Todo extends DataClass implements Insertable<Todo> {
       completedAtMs: serializer.fromJson<int?>(json['completedAtMs']),
       priority: serializer.fromJson<int>(json['priority']),
       tagsJson: serializer.fromJson<String>(json['tagsJson']),
+      section: serializer.fromJson<String?>(json['section']),
+      sortKey: serializer.fromJson<String>(json['sortKey']),
       alarmOffsetsJson: serializer.fromJson<String>(json['alarmOffsetsJson']),
       lastDismissedMs: serializer.fromJson<int?>(json['lastDismissedMs']),
       snoozeUntilMs: serializer.fromJson<int?>(json['snoozeUntilMs']),
@@ -1266,6 +1366,7 @@ class Todo extends DataClass implements Insertable<Todo> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'listId': serializer.toJson<String?>(listId),
+      'parentId': serializer.toJson<String?>(parentId),
       'title': serializer.toJson<String>(title),
       'notes': serializer.toJson<String>(notes),
       'dueAtMs': serializer.toJson<int?>(dueAtMs),
@@ -1273,6 +1374,8 @@ class Todo extends DataClass implements Insertable<Todo> {
       'completedAtMs': serializer.toJson<int?>(completedAtMs),
       'priority': serializer.toJson<int>(priority),
       'tagsJson': serializer.toJson<String>(tagsJson),
+      'section': serializer.toJson<String?>(section),
+      'sortKey': serializer.toJson<String>(sortKey),
       'alarmOffsetsJson': serializer.toJson<String>(alarmOffsetsJson),
       'lastDismissedMs': serializer.toJson<int?>(lastDismissedMs),
       'snoozeUntilMs': serializer.toJson<int?>(snoozeUntilMs),
@@ -1283,6 +1386,7 @@ class Todo extends DataClass implements Insertable<Todo> {
   Todo copyWith({
     String? id,
     Value<String?> listId = const Value.absent(),
+    Value<String?> parentId = const Value.absent(),
     String? title,
     String? notes,
     Value<int?> dueAtMs = const Value.absent(),
@@ -1290,6 +1394,8 @@ class Todo extends DataClass implements Insertable<Todo> {
     Value<int?> completedAtMs = const Value.absent(),
     int? priority,
     String? tagsJson,
+    Value<String?> section = const Value.absent(),
+    String? sortKey,
     String? alarmOffsetsJson,
     Value<int?> lastDismissedMs = const Value.absent(),
     Value<int?> snoozeUntilMs = const Value.absent(),
@@ -1297,6 +1403,7 @@ class Todo extends DataClass implements Insertable<Todo> {
   }) => Todo(
     id: id ?? this.id,
     listId: listId.present ? listId.value : this.listId,
+    parentId: parentId.present ? parentId.value : this.parentId,
     title: title ?? this.title,
     notes: notes ?? this.notes,
     dueAtMs: dueAtMs.present ? dueAtMs.value : this.dueAtMs,
@@ -1308,6 +1415,8 @@ class Todo extends DataClass implements Insertable<Todo> {
         : this.completedAtMs,
     priority: priority ?? this.priority,
     tagsJson: tagsJson ?? this.tagsJson,
+    section: section.present ? section.value : this.section,
+    sortKey: sortKey ?? this.sortKey,
     alarmOffsetsJson: alarmOffsetsJson ?? this.alarmOffsetsJson,
     lastDismissedMs: lastDismissedMs.present
         ? lastDismissedMs.value
@@ -1321,6 +1430,7 @@ class Todo extends DataClass implements Insertable<Todo> {
     return Todo(
       id: data.id.present ? data.id.value : this.id,
       listId: data.listId.present ? data.listId.value : this.listId,
+      parentId: data.parentId.present ? data.parentId.value : this.parentId,
       title: data.title.present ? data.title.value : this.title,
       notes: data.notes.present ? data.notes.value : this.notes,
       dueAtMs: data.dueAtMs.present ? data.dueAtMs.value : this.dueAtMs,
@@ -1332,6 +1442,8 @@ class Todo extends DataClass implements Insertable<Todo> {
           : this.completedAtMs,
       priority: data.priority.present ? data.priority.value : this.priority,
       tagsJson: data.tagsJson.present ? data.tagsJson.value : this.tagsJson,
+      section: data.section.present ? data.section.value : this.section,
+      sortKey: data.sortKey.present ? data.sortKey.value : this.sortKey,
       alarmOffsetsJson: data.alarmOffsetsJson.present
           ? data.alarmOffsetsJson.value
           : this.alarmOffsetsJson,
@@ -1350,6 +1462,7 @@ class Todo extends DataClass implements Insertable<Todo> {
     return (StringBuffer('Todo(')
           ..write('id: $id, ')
           ..write('listId: $listId, ')
+          ..write('parentId: $parentId, ')
           ..write('title: $title, ')
           ..write('notes: $notes, ')
           ..write('dueAtMs: $dueAtMs, ')
@@ -1357,6 +1470,8 @@ class Todo extends DataClass implements Insertable<Todo> {
           ..write('completedAtMs: $completedAtMs, ')
           ..write('priority: $priority, ')
           ..write('tagsJson: $tagsJson, ')
+          ..write('section: $section, ')
+          ..write('sortKey: $sortKey, ')
           ..write('alarmOffsetsJson: $alarmOffsetsJson, ')
           ..write('lastDismissedMs: $lastDismissedMs, ')
           ..write('snoozeUntilMs: $snoozeUntilMs, ')
@@ -1369,6 +1484,7 @@ class Todo extends DataClass implements Insertable<Todo> {
   int get hashCode => Object.hash(
     id,
     listId,
+    parentId,
     title,
     notes,
     dueAtMs,
@@ -1376,6 +1492,8 @@ class Todo extends DataClass implements Insertable<Todo> {
     completedAtMs,
     priority,
     tagsJson,
+    section,
+    sortKey,
     alarmOffsetsJson,
     lastDismissedMs,
     snoozeUntilMs,
@@ -1387,6 +1505,7 @@ class Todo extends DataClass implements Insertable<Todo> {
       (other is Todo &&
           other.id == this.id &&
           other.listId == this.listId &&
+          other.parentId == this.parentId &&
           other.title == this.title &&
           other.notes == this.notes &&
           other.dueAtMs == this.dueAtMs &&
@@ -1394,6 +1513,8 @@ class Todo extends DataClass implements Insertable<Todo> {
           other.completedAtMs == this.completedAtMs &&
           other.priority == this.priority &&
           other.tagsJson == this.tagsJson &&
+          other.section == this.section &&
+          other.sortKey == this.sortKey &&
           other.alarmOffsetsJson == this.alarmOffsetsJson &&
           other.lastDismissedMs == this.lastDismissedMs &&
           other.snoozeUntilMs == this.snoozeUntilMs &&
@@ -1403,6 +1524,7 @@ class Todo extends DataClass implements Insertable<Todo> {
 class TodosCompanion extends UpdateCompanion<Todo> {
   final Value<String> id;
   final Value<String?> listId;
+  final Value<String?> parentId;
   final Value<String> title;
   final Value<String> notes;
   final Value<int?> dueAtMs;
@@ -1410,6 +1532,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
   final Value<int?> completedAtMs;
   final Value<int> priority;
   final Value<String> tagsJson;
+  final Value<String?> section;
+  final Value<String> sortKey;
   final Value<String> alarmOffsetsJson;
   final Value<int?> lastDismissedMs;
   final Value<int?> snoozeUntilMs;
@@ -1418,6 +1542,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
   const TodosCompanion({
     this.id = const Value.absent(),
     this.listId = const Value.absent(),
+    this.parentId = const Value.absent(),
     this.title = const Value.absent(),
     this.notes = const Value.absent(),
     this.dueAtMs = const Value.absent(),
@@ -1425,6 +1550,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     this.completedAtMs = const Value.absent(),
     this.priority = const Value.absent(),
     this.tagsJson = const Value.absent(),
+    this.section = const Value.absent(),
+    this.sortKey = const Value.absent(),
     this.alarmOffsetsJson = const Value.absent(),
     this.lastDismissedMs = const Value.absent(),
     this.snoozeUntilMs = const Value.absent(),
@@ -1434,6 +1561,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
   TodosCompanion.insert({
     required String id,
     this.listId = const Value.absent(),
+    this.parentId = const Value.absent(),
     required String title,
     this.notes = const Value.absent(),
     this.dueAtMs = const Value.absent(),
@@ -1441,6 +1569,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     this.completedAtMs = const Value.absent(),
     this.priority = const Value.absent(),
     this.tagsJson = const Value.absent(),
+    this.section = const Value.absent(),
+    this.sortKey = const Value.absent(),
     this.alarmOffsetsJson = const Value.absent(),
     this.lastDismissedMs = const Value.absent(),
     this.snoozeUntilMs = const Value.absent(),
@@ -1451,6 +1581,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
   static Insertable<Todo> custom({
     Expression<String>? id,
     Expression<String>? listId,
+    Expression<String>? parentId,
     Expression<String>? title,
     Expression<String>? notes,
     Expression<int>? dueAtMs,
@@ -1458,6 +1589,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     Expression<int>? completedAtMs,
     Expression<int>? priority,
     Expression<String>? tagsJson,
+    Expression<String>? section,
+    Expression<String>? sortKey,
     Expression<String>? alarmOffsetsJson,
     Expression<int>? lastDismissedMs,
     Expression<int>? snoozeUntilMs,
@@ -1467,6 +1600,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (listId != null) 'list_id': listId,
+      if (parentId != null) 'parent_id': parentId,
       if (title != null) 'title': title,
       if (notes != null) 'notes': notes,
       if (dueAtMs != null) 'due_at_ms': dueAtMs,
@@ -1474,6 +1608,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
       if (completedAtMs != null) 'completed_at_ms': completedAtMs,
       if (priority != null) 'priority': priority,
       if (tagsJson != null) 'tags_json': tagsJson,
+      if (section != null) 'section': section,
+      if (sortKey != null) 'sort_key': sortKey,
       if (alarmOffsetsJson != null) 'alarm_offsets_json': alarmOffsetsJson,
       if (lastDismissedMs != null) 'last_dismissed_ms': lastDismissedMs,
       if (snoozeUntilMs != null) 'snooze_until_ms': snoozeUntilMs,
@@ -1485,6 +1621,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
   TodosCompanion copyWith({
     Value<String>? id,
     Value<String?>? listId,
+    Value<String?>? parentId,
     Value<String>? title,
     Value<String>? notes,
     Value<int?>? dueAtMs,
@@ -1492,6 +1629,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     Value<int?>? completedAtMs,
     Value<int>? priority,
     Value<String>? tagsJson,
+    Value<String?>? section,
+    Value<String>? sortKey,
     Value<String>? alarmOffsetsJson,
     Value<int?>? lastDismissedMs,
     Value<int?>? snoozeUntilMs,
@@ -1501,6 +1640,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     return TodosCompanion(
       id: id ?? this.id,
       listId: listId ?? this.listId,
+      parentId: parentId ?? this.parentId,
       title: title ?? this.title,
       notes: notes ?? this.notes,
       dueAtMs: dueAtMs ?? this.dueAtMs,
@@ -1508,6 +1648,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
       completedAtMs: completedAtMs ?? this.completedAtMs,
       priority: priority ?? this.priority,
       tagsJson: tagsJson ?? this.tagsJson,
+      section: section ?? this.section,
+      sortKey: sortKey ?? this.sortKey,
       alarmOffsetsJson: alarmOffsetsJson ?? this.alarmOffsetsJson,
       lastDismissedMs: lastDismissedMs ?? this.lastDismissedMs,
       snoozeUntilMs: snoozeUntilMs ?? this.snoozeUntilMs,
@@ -1524,6 +1666,9 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     }
     if (listId.present) {
       map['list_id'] = Variable<String>(listId.value);
+    }
+    if (parentId.present) {
+      map['parent_id'] = Variable<String>(parentId.value);
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
@@ -1545,6 +1690,12 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     }
     if (tagsJson.present) {
       map['tags_json'] = Variable<String>(tagsJson.value);
+    }
+    if (section.present) {
+      map['section'] = Variable<String>(section.value);
+    }
+    if (sortKey.present) {
+      map['sort_key'] = Variable<String>(sortKey.value);
     }
     if (alarmOffsetsJson.present) {
       map['alarm_offsets_json'] = Variable<String>(alarmOffsetsJson.value);
@@ -1569,6 +1720,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     return (StringBuffer('TodosCompanion(')
           ..write('id: $id, ')
           ..write('listId: $listId, ')
+          ..write('parentId: $parentId, ')
           ..write('title: $title, ')
           ..write('notes: $notes, ')
           ..write('dueAtMs: $dueAtMs, ')
@@ -1576,6 +1728,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
           ..write('completedAtMs: $completedAtMs, ')
           ..write('priority: $priority, ')
           ..write('tagsJson: $tagsJson, ')
+          ..write('section: $section, ')
+          ..write('sortKey: $sortKey, ')
           ..write('alarmOffsetsJson: $alarmOffsetsJson, ')
           ..write('lastDismissedMs: $lastDismissedMs, ')
           ..write('snoozeUntilMs: $snoozeUntilMs, ')
@@ -4568,6 +4722,7 @@ typedef $$TodosTableCreateCompanionBuilder =
     TodosCompanion Function({
       required String id,
       Value<String?> listId,
+      Value<String?> parentId,
       required String title,
       Value<String> notes,
       Value<int?> dueAtMs,
@@ -4575,6 +4730,8 @@ typedef $$TodosTableCreateCompanionBuilder =
       Value<int?> completedAtMs,
       Value<int> priority,
       Value<String> tagsJson,
+      Value<String?> section,
+      Value<String> sortKey,
       Value<String> alarmOffsetsJson,
       Value<int?> lastDismissedMs,
       Value<int?> snoozeUntilMs,
@@ -4585,6 +4742,7 @@ typedef $$TodosTableUpdateCompanionBuilder =
     TodosCompanion Function({
       Value<String> id,
       Value<String?> listId,
+      Value<String?> parentId,
       Value<String> title,
       Value<String> notes,
       Value<int?> dueAtMs,
@@ -4592,6 +4750,8 @@ typedef $$TodosTableUpdateCompanionBuilder =
       Value<int?> completedAtMs,
       Value<int> priority,
       Value<String> tagsJson,
+      Value<String?> section,
+      Value<String> sortKey,
       Value<String> alarmOffsetsJson,
       Value<int?> lastDismissedMs,
       Value<int?> snoozeUntilMs,
@@ -4614,6 +4774,23 @@ final class $$TodosTableReferences
       $_db.todoLists,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_listIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $TodosTable _parentIdTable(_$AppDatabase db) =>
+      db.todos.createAlias('todos__parent_id__todos__id');
+
+  $$TodosTableProcessedTableManager? get parentId {
+    final $_column = $_itemColumn<String>('parent_id');
+    if ($_column == null) return null;
+    final manager = $$TodosTableTableManager(
+      $_db,
+      $_db.todos,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_parentIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -4687,6 +4864,16 @@ class $$TodosTableFilterComposer extends Composer<_$AppDatabase, $TodosTable> {
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get section => $composableBuilder(
+    column: $table.section,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sortKey => $composableBuilder(
+    column: $table.sortKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get alarmOffsetsJson => $composableBuilder(
     column: $table.alarmOffsetsJson,
     builder: (column) => ColumnFilters(column),
@@ -4721,6 +4908,29 @@ class $$TodosTableFilterComposer extends Composer<_$AppDatabase, $TodosTable> {
           }) => $$TodoListsTableFilterComposer(
             $db: $db,
             $table: $db.todoLists,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TodosTableFilterComposer get parentId {
+    final $$TodosTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.parentId,
+      referencedTable: $db.todos,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TodosTableFilterComposer(
+            $db: $db,
+            $table: $db.todos,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -4805,6 +5015,16 @@ class $$TodosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get section => $composableBuilder(
+    column: $table.section,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sortKey => $composableBuilder(
+    column: $table.sortKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get alarmOffsetsJson => $composableBuilder(
     column: $table.alarmOffsetsJson,
     builder: (column) => ColumnOrderings(column),
@@ -4839,6 +5059,29 @@ class $$TodosTableOrderingComposer
           }) => $$TodoListsTableOrderingComposer(
             $db: $db,
             $table: $db.todoLists,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TodosTableOrderingComposer get parentId {
+    final $$TodosTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.parentId,
+      referencedTable: $db.todos,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TodosTableOrderingComposer(
+            $db: $db,
+            $table: $db.todos,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -4886,6 +5129,12 @@ class $$TodosTableAnnotationComposer
   GeneratedColumn<String> get tagsJson =>
       $composableBuilder(column: $table.tagsJson, builder: (column) => column);
 
+  GeneratedColumn<String> get section =>
+      $composableBuilder(column: $table.section, builder: (column) => column);
+
+  GeneratedColumn<String> get sortKey =>
+      $composableBuilder(column: $table.sortKey, builder: (column) => column);
+
   GeneratedColumn<String> get alarmOffsetsJson => $composableBuilder(
     column: $table.alarmOffsetsJson,
     builder: (column) => column,
@@ -4918,6 +5167,29 @@ class $$TodosTableAnnotationComposer
           }) => $$TodoListsTableAnnotationComposer(
             $db: $db,
             $table: $db.todoLists,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TodosTableAnnotationComposer get parentId {
+    final $$TodosTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.parentId,
+      referencedTable: $db.todos,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TodosTableAnnotationComposer(
+            $db: $db,
+            $table: $db.todos,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -4966,7 +5238,11 @@ class $$TodosTableTableManager
           $$TodosTableUpdateCompanionBuilder,
           (Todo, $$TodosTableReferences),
           Todo,
-          PrefetchHooks Function({bool listId, bool todoAlarmsRefs})
+          PrefetchHooks Function({
+            bool listId,
+            bool parentId,
+            bool todoAlarmsRefs,
+          })
         > {
   $$TodosTableTableManager(_$AppDatabase db, $TodosTable table)
     : super(
@@ -4983,6 +5259,7 @@ class $$TodosTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String?> listId = const Value.absent(),
+                Value<String?> parentId = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String> notes = const Value.absent(),
                 Value<int?> dueAtMs = const Value.absent(),
@@ -4990,6 +5267,8 @@ class $$TodosTableTableManager
                 Value<int?> completedAtMs = const Value.absent(),
                 Value<int> priority = const Value.absent(),
                 Value<String> tagsJson = const Value.absent(),
+                Value<String?> section = const Value.absent(),
+                Value<String> sortKey = const Value.absent(),
                 Value<String> alarmOffsetsJson = const Value.absent(),
                 Value<int?> lastDismissedMs = const Value.absent(),
                 Value<int?> snoozeUntilMs = const Value.absent(),
@@ -4998,6 +5277,7 @@ class $$TodosTableTableManager
               }) => TodosCompanion(
                 id: id,
                 listId: listId,
+                parentId: parentId,
                 title: title,
                 notes: notes,
                 dueAtMs: dueAtMs,
@@ -5005,6 +5285,8 @@ class $$TodosTableTableManager
                 completedAtMs: completedAtMs,
                 priority: priority,
                 tagsJson: tagsJson,
+                section: section,
+                sortKey: sortKey,
                 alarmOffsetsJson: alarmOffsetsJson,
                 lastDismissedMs: lastDismissedMs,
                 snoozeUntilMs: snoozeUntilMs,
@@ -5015,6 +5297,7 @@ class $$TodosTableTableManager
               ({
                 required String id,
                 Value<String?> listId = const Value.absent(),
+                Value<String?> parentId = const Value.absent(),
                 required String title,
                 Value<String> notes = const Value.absent(),
                 Value<int?> dueAtMs = const Value.absent(),
@@ -5022,6 +5305,8 @@ class $$TodosTableTableManager
                 Value<int?> completedAtMs = const Value.absent(),
                 Value<int> priority = const Value.absent(),
                 Value<String> tagsJson = const Value.absent(),
+                Value<String?> section = const Value.absent(),
+                Value<String> sortKey = const Value.absent(),
                 Value<String> alarmOffsetsJson = const Value.absent(),
                 Value<int?> lastDismissedMs = const Value.absent(),
                 Value<int?> snoozeUntilMs = const Value.absent(),
@@ -5030,6 +5315,7 @@ class $$TodosTableTableManager
               }) => TodosCompanion.insert(
                 id: id,
                 listId: listId,
+                parentId: parentId,
                 title: title,
                 notes: notes,
                 dueAtMs: dueAtMs,
@@ -5037,6 +5323,8 @@ class $$TodosTableTableManager
                 completedAtMs: completedAtMs,
                 priority: priority,
                 tagsJson: tagsJson,
+                section: section,
+                sortKey: sortKey,
                 alarmOffsetsJson: alarmOffsetsJson,
                 lastDismissedMs: lastDismissedMs,
                 snoozeUntilMs: snoozeUntilMs,
@@ -5049,59 +5337,79 @@ class $$TodosTableTableManager
                     (e.readTable(table), $$TodosTableReferences(db, table, e)),
               )
               .toList(),
-          prefetchHooksCallback: ({listId = false, todoAlarmsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (todoAlarmsRefs) db.todoAlarms],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (listId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.listId,
-                                referencedTable: $$TodosTableReferences
-                                    ._listIdTable(db),
-                                referencedColumn: $$TodosTableReferences
-                                    ._listIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
+          prefetchHooksCallback:
+              ({listId = false, parentId = false, todoAlarmsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [if (todoAlarmsRefs) db.todoAlarms],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (listId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.listId,
+                                    referencedTable: $$TodosTableReferences
+                                        ._listIdTable(db),
+                                    referencedColumn: $$TodosTableReferences
+                                        ._listIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (parentId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.parentId,
+                                    referencedTable: $$TodosTableReferences
+                                        ._parentIdTable(db),
+                                    referencedColumn: $$TodosTableReferences
+                                        ._parentIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (todoAlarmsRefs)
+                        await $_getPrefetchedData<Todo, $TodosTable, TodoAlarm>(
+                          currentTable: table,
+                          referencedTable: $$TodosTableReferences
+                              ._todoAlarmsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TodosTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).todoAlarmsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.todoId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (todoAlarmsRefs)
-                    await $_getPrefetchedData<Todo, $TodosTable, TodoAlarm>(
-                      currentTable: table,
-                      referencedTable: $$TodosTableReferences
-                          ._todoAlarmsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$TodosTableReferences(db, table, p0).todoAlarmsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.todoId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -5118,7 +5426,7 @@ typedef $$TodosTableProcessedTableManager =
       $$TodosTableUpdateCompanionBuilder,
       (Todo, $$TodosTableReferences),
       Todo,
-      PrefetchHooks Function({bool listId, bool todoAlarmsRefs})
+      PrefetchHooks Function({bool listId, bool parentId, bool todoAlarmsRefs})
     >;
 typedef $$TodoAlarmsTableCreateCompanionBuilder =
     TodoAlarmsCompanion Function({

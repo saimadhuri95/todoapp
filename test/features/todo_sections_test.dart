@@ -8,6 +8,7 @@ Todo todo(
   String title = 't',
   String notes = '',
   String tagsJson = '[]',
+  String? section,
 }) => Todo(
   id: id,
   title: title,
@@ -15,6 +16,8 @@ Todo todo(
   dueAtMs: dueAtMs,
   priority: 0,
   tagsJson: tagsJson,
+  section: section,
+  sortKey: '',
   alarmOffsetsJson: '[]',
   deleted: false,
 );
@@ -55,6 +58,21 @@ void main() {
         todo('x', dueAtMs: now.millisecondsSinceEpoch),
       ], now);
       expect(sections.single.title, 'Today');
+    });
+
+    test('user-defined sections are their own buckets', () {
+      final sections = sectionize([
+        todo('today', dueAtMs: at(5, 18)),
+        todo('waiting-a', section: 'Waiting'),
+        todo('waiting-b', section: 'Waiting'),
+      ], now);
+
+      expect(sections.map((s) => s.title), ['Today', 'Waiting']);
+      expect(sections.last.userSection, 'Waiting');
+      expect(sections.last.items.map((todo) => todo.id), [
+        'waiting-a',
+        'waiting-b',
+      ]);
     });
   });
 

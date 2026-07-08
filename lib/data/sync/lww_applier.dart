@@ -49,6 +49,7 @@ class LwwApplier {
   /// write would fail before the referenced row's own writes arrive.
   static const _fkSpring = {
     ('todos', 'listId'): 'todo_lists',
+    ('todos', 'parentId'): 'todos',
     ('todo_lists', 'groupId'): 'sync_groups',
     ('group_members', 'groupId'): 'sync_groups',
     ('group_members', 'deviceId'): 'devices',

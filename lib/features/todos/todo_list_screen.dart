@@ -253,6 +253,7 @@ class _TodoListPane extends ConsumerWidget {
               final filtered = filterTodos(items, query);
               return _buildList(
                 context,
+                ref,
                 sectionize(filtered, now),
                 completionRecap(
                   somedayView ? const [] : filterTodos(completed, query),
@@ -271,6 +272,7 @@ class _TodoListPane extends ConsumerWidget {
 
   Widget _buildList(
     BuildContext context,
+    WidgetRef ref,
     List<TodoSection> sections,
     CompletionRecap recap, {
     required bool somedayView,
@@ -315,22 +317,74 @@ class _TodoListPane extends ConsumerWidget {
       if (somedayView)
         for (final section in sections) ...section.items
       else
-        for (final section in sections) ...[section.title, ...section.items],
+        for (final section in sections) ...[
+          _SectionHeaderRow(section.title, section.userSection),
+          ...section.items,
+        ],
       if (!somedayView && !recap.isEmpty) _completedMarker,
     ];
-    return ListView.builder(
+    return ReorderableListView.builder(
+      buildDefaultDragHandles: false,
+      onReorderItem: (oldIndex, newIndex) =>
+          _reorderRows(ref, rows, oldIndex, newIndex),
       itemCount: rows.length,
       itemBuilder: (context, i) => switch (rows[i]) {
         final String title when title == _completedMarker =>
-          _CompletedRecapTile(recap: recap),
-        final String title => _SectionHeader(title),
-        final Todo todo => _TodoTile(todo: todo),
+          _CompletedRecapTile(key: const ValueKey('completed'), recap: recap),
+        final _SectionHeaderRow row => _SectionHeader(
+          key: ValueKey('section-${row.title}-${row.userSection ?? ''}-$i'),
+          title: row.title,
+        ),
+        final Todo todo => _TodoTile(
+          key: ValueKey(todo.id),
+          todo: todo,
+          dragIndex: i,
+        ),
         _ => const SizedBox.shrink(),
       },
     );
   }
 
   static const _completedMarker = ' completed ';
+}
+
+class _SectionHeaderRow {
+  const _SectionHeaderRow(this.title, this.userSection);
+
+  final String title;
+  final String? userSection;
+}
+
+Future<void> _reorderRows(
+  WidgetRef ref,
+  List<Object> rows,
+  int oldIndex,
+  int newIndex,
+) async {
+  if (oldIndex < 0 || oldIndex >= rows.length || rows[oldIndex] is! Todo) {
+    return;
+  }
+  if (newIndex > rows.length) newIndex = rows.length;
+
+  final moved = rows.removeAt(oldIndex) as Todo;
+  rows.insert(newIndex, moved);
+
+  final ordered = <Todo>[];
+  final sectionsById = <String, String?>{};
+  String? currentSection;
+  for (final row in rows) {
+    if (row is _SectionHeaderRow) {
+      currentSection = row.userSection;
+    } else if (row is Todo) {
+      ordered.add(row);
+      if (row.id == moved.id) {
+        sectionsById[row.id] = currentSection;
+      }
+    }
+  }
+  await ref
+      .read(todoRepositoryProvider)
+      .replaceVisibleOrder(ordered, sectionsById: sectionsById);
 }
 
 class _ActiveFilterBar extends ConsumerWidget {
@@ -362,7 +416,7 @@ class _ActiveFilterBar extends ConsumerWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.title);
+  const _SectionHeader({required this.title, super.key});
 
   final String title;
 
@@ -395,9 +449,10 @@ class _DetailPane extends ConsumerWidget {
 }
 
 class _TodoTile extends ConsumerWidget {
-  const _TodoTile({required this.todo});
+  const _TodoTile({required this.todo, required this.dragIndex, super.key});
 
   final Todo todo;
+  final int dragIndex;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -431,12 +486,21 @@ class _TodoTile extends ConsumerWidget {
           todo.title,
           style: large ? Theme.of(context).textTheme.titleLarge : null,
         ),
-        subtitle: switch ((overdue, todo.dueAtMs)) {
-          ((final label?, _)) => Text(label),
-          ((_, final ms?)) => Text(_formatDue(ms)),
-          _ => null,
-        },
-        trailing: todo.listId == null ? _MoveToListButton(todo: todo) : null,
+        subtitle: _TodoSubtitle(todo: todo, overdue: overdue),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (todo.listId == null) _MoveToListButton(todo: todo),
+            _TodoActionsButton(todo: todo),
+            ReorderableDragStartListener(
+              index: dragIndex,
+              child: const Padding(
+                padding: EdgeInsets.all(8),
+                child: Icon(Icons.drag_handle),
+              ),
+            ),
+          ],
+        ),
         onTap: () {
           if (wide) {
             ref.read(selectedTodoIdProvider.notifier).state = todo.id;
@@ -458,6 +522,67 @@ class _TodoTile extends ConsumerWidget {
     return 'Due ${due.year}-${two(due.month)}-${two(due.day)} '
         '${two(due.hour)}:${two(due.minute)}';
   }
+}
+
+class _TodoSubtitle extends ConsumerWidget {
+  const _TodoSubtitle({required this.todo, required this.overdue});
+
+  final Todo todo;
+  final String? overdue;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sectionLabel = todo.section == null
+        ? null
+        : 'Section: ${todo.section}';
+    final dueLabel = overdue == null && todo.dueAtMs != null
+        ? _TodoTile._formatDue(todo.dueAtMs!)
+        : null;
+    final lines = <String>[?sectionLabel, ?overdue, ?dueLabel];
+    final subtasks =
+        ref.watch(subtasksProvider(todo.id)).value ?? const <Todo>[];
+    if (subtasks.isNotEmpty) {
+      final done = subtasks
+          .where((subtask) => subtask.completedAtMs != null)
+          .length;
+      lines.add('$done/${subtasks.length} checklist items');
+    }
+    if (lines.isEmpty) return const SizedBox.shrink();
+    return Text(lines.join(' | '));
+  }
+}
+
+class _TodoActionsButton extends ConsumerWidget {
+  const _TodoActionsButton({required this.todo});
+
+  final Todo todo;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => PopupMenuButton<String>(
+    tooltip: 'Todo actions',
+    icon: const Icon(Icons.more_vert),
+    onSelected: (action) async {
+      switch (action) {
+        case 'breakdown':
+          final lines = await showDialog<List<String>>(
+            context: context,
+            builder: (context) => const _TaskBreakdownDialog(),
+          );
+          if (lines == null || lines.isEmpty) return;
+          await ref.read(todoRepositoryProvider).createSubtasks(todo.id, lines);
+          break;
+      }
+    },
+    itemBuilder: (_) => const [
+      PopupMenuItem(
+        value: 'breakdown',
+        child: ListTile(
+          leading: Icon(Icons.splitscreen_outlined),
+          title: Text('Break down'),
+        ),
+      ),
+    ],
+  );
 }
 
 /// One-tap Inbox triage (TASKS.md 6.15): file an unfiled todo into a list
@@ -488,7 +613,7 @@ class _MoveToListButton extends ConsumerWidget {
 /// whose subtitle summarizes what got done today and this week, with the items
 /// grouped by when they were finished.
 class _CompletedRecapTile extends StatelessWidget {
-  const _CompletedRecapTile({required this.recap});
+  const _CompletedRecapTile({required this.recap, super.key});
 
   final CompletionRecap recap;
 
@@ -650,6 +775,11 @@ class _ListsDrawer extends ConsumerWidget {
             title: const Text('Completed archive'),
             onTap: () => openScreen(const CompletedArchiveScreen()),
           ),
+          ListTile(
+            leading: const Icon(Icons.bookmarks_outlined),
+            title: const Text('Checklist templates'),
+            onTap: () => openScreen(const ChecklistTemplatesScreen()),
+          ),
           if (smartFilters.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -685,6 +815,84 @@ class _ListsDrawer extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class ChecklistTemplatesScreen extends ConsumerWidget {
+  const ChecklistTemplatesScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final templates = ref.watch(checklistTemplatesProvider);
+    final activeFilter = ref.watch(listFilterProvider);
+    final listId =
+        activeFilter == null ||
+            activeFilter == kInboxFilter ||
+            activeFilter == kSomedayFilter
+        ? null
+        : activeFilter;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Checklist templates')),
+      body: templates.isEmpty
+          ? const Center(
+              child: Text('Save a task checklist as a template first.'),
+            )
+          : ListView.separated(
+              itemCount: templates.length,
+              separatorBuilder: (_, _) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final template = templates[index];
+                return ListTile(
+                  leading: const Icon(Icons.task_alt_outlined),
+                  title: Text(template.name),
+                  subtitle: Text(
+                    '${template.title} | ${template.subtasks.length} items',
+                  ),
+                  trailing: Wrap(
+                    spacing: 4,
+                    children: [
+                      IconButton(
+                        tooltip: 'Use template',
+                        icon: const Icon(Icons.add_circle_outline),
+                        onPressed: () => _instantiateTemplate(
+                          context,
+                          ref,
+                          template,
+                          listId,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Delete template',
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () => ref
+                            .read(checklistTemplatesProvider.notifier)
+                            .remove(template.id),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+    );
+  }
+
+  Future<void> _instantiateTemplate(
+    BuildContext context,
+    WidgetRef ref,
+    ChecklistTemplate template,
+    String? listId,
+  ) async {
+    final repo = ref.read(todoRepositoryProvider);
+    final parent = await repo.create(
+      title: template.title,
+      notes: template.notes,
+      listId: listId,
+    );
+    await repo.createSubtasks(parent.id, template.subtasks);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Created "${template.name}" checklist')),
     );
   }
 }
@@ -1159,6 +1367,47 @@ class _SplitLinesDialog extends StatelessWidget {
       FilledButton(
         onPressed: () => Navigator.of(context).pop(true),
         child: Text('$count todos'),
+      ),
+    ],
+  );
+}
+
+class _TaskBreakdownDialog extends StatefulWidget {
+  const _TaskBreakdownDialog();
+
+  @override
+  State<_TaskBreakdownDialog> createState() => _TaskBreakdownDialogState();
+}
+
+class _TaskBreakdownDialogState extends State<_TaskBreakdownDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Break task into checklist items'),
+    content: TextField(
+      controller: _controller,
+      autofocus: true,
+      minLines: 5,
+      maxLines: 8,
+      keyboardType: TextInputType.multiline,
+      decoration: const InputDecoration(hintText: 'One step per line'),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: () =>
+            Navigator.of(context).pop(splitTodoLines(_controller.text)),
+        child: const Text('Create checklist'),
       ),
     ],
   );
