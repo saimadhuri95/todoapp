@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -175,7 +176,11 @@ class SettingsScreen extends ConsumerWidget {
       _ExportFormat.markdown => await service.exportMarkdown(),
       _ExportFormat.todoTxt => await service.exportTodoTxt(),
     };
-    await File(location.path).writeAsString(content);
+    await XFile.fromData(
+      Uint8List.fromList(utf8.encode(content)),
+      name: format.fileName,
+      mimeType: _mimeType(format),
+    ).saveTo(location.path);
     messenger.showSnackBar(
       SnackBar(content: Text('Exported to ${location.path}')),
     );
@@ -231,7 +236,11 @@ class SettingsScreen extends ConsumerWidget {
     final location = await getSaveLocation(suggestedName: 'knot-backup.json');
     if (location == null) return;
     final content = await _backupService(ref).createBackup(passphrase);
-    await File(location.path).writeAsString(content);
+    await XFile.fromData(
+      Uint8List.fromList(utf8.encode(content)),
+      name: 'knot-backup.json',
+      mimeType: 'application/json',
+    ).saveTo(location.path);
     messenger.showSnackBar(
       SnackBar(content: Text('Encrypted backup saved to ${location.path}')),
     );
@@ -294,6 +303,12 @@ class SettingsScreen extends ConsumerWidget {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('alarmsEnabled', enabled);
   }
+
+  String _mimeType(_ExportFormat format) => switch (format) {
+    _ExportFormat.json => 'application/json',
+    _ExportFormat.markdown => 'text/markdown',
+    _ExportFormat.todoTxt => 'text/plain',
+  };
 }
 
 /// Passphrase prompt for encrypted backup/restore (TASKS.md 6.41). Pops the

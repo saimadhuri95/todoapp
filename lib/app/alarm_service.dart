@@ -1,18 +1,16 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/alarm_planner.dart';
+import '../core/platform_info.dart';
 import 'providers.dart';
 
 /// Whether alarms ring on this device: mobile default-on, desktop opt-in
 /// (docs/alarms.md policy). Seeded from prefs in main(); the settings
 /// toggle writes both.
-final alarmsEnabledProvider = StateProvider<bool>(
-  (_) => Platform.isAndroid || Platform.isIOS,
-);
+final alarmsEnabledProvider = StateProvider<bool>((_) => defaultAlarmsEnabled);
 
 /// The platform scheduler; overridden in main() with the real
 /// implementation and in tests with fakes. Defaults to no-op.

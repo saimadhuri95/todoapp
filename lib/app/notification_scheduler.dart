@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -9,6 +8,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../core/alarm_planner.dart';
 import '../core/clock.dart';
+import '../core/platform_info.dart';
 
 /// What a notification action reports back to the app.
 typedef AlarmActionHandler =
@@ -78,7 +78,10 @@ class LocalNotificationsScheduler implements AlarmScheduler {
   /// Called when the user enables alarms on this device (2.5).
   Future<bool> ensurePermissions() async {
     await initialize();
-    if (Platform.isAndroid) {
+    if (platformIsWeb) {
+      return false;
+    }
+    if (platformIsAndroid) {
       final android = _plugin
           .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin
@@ -87,7 +90,7 @@ class LocalNotificationsScheduler implements AlarmScheduler {
       await android?.requestExactAlarmsPermission();
       return notifications ?? false;
     }
-    if (Platform.isIOS) {
+    if (platformIsIOS) {
       return await _plugin
               .resolvePlatformSpecificImplementation<
                 IOSFlutterLocalNotificationsPlugin
@@ -95,7 +98,7 @@ class LocalNotificationsScheduler implements AlarmScheduler {
               ?.requestPermissions(alert: true, badge: true, sound: true) ??
           false;
     }
-    if (Platform.isMacOS) {
+    if (platformIsMacOS) {
       return await _plugin
               .resolvePlatformSpecificImplementation<
                 MacOSFlutterLocalNotificationsPlugin
@@ -115,7 +118,7 @@ class LocalNotificationsScheduler implements AlarmScheduler {
     _linuxTimers.clear();
     await _plugin.cancelAll();
 
-    if (Platform.isLinux) {
+    if (platformIsLinux) {
       _scheduleLinux(alarms);
       return;
     }

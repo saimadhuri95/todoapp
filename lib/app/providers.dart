@@ -1,9 +1,6 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart' show TableOrViewStatements;
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../core/clock.dart';
 import '../core/cloud_folder.dart';
@@ -15,11 +12,12 @@ import '../data/db/database.dart';
 import '../data/repositories/list_repository.dart';
 import '../data/repositories/todo_repository.dart';
 import '../data/sync/device_identity.dart';
-import '../data/sync/mailbox_store.dart';
+import '../data/sync/mailbox_store_factory.dart';
 import '../data/sync/mailbox_transport.dart';
 import '../data/sync/pairing_service.dart';
 import '../data/sync/sync_engine.dart';
 import 'cloud_folder_channel.dart';
+import 'key_store_factory.dart';
 
 /// Bound in main() (and overridden in tests): the real database and the
 /// persistent device id have async setup, so they're injected, not built.
@@ -147,12 +145,7 @@ final listsProvider = StreamProvider<List<TodoList>>(
 
 /// Keychain first; file fallback for ad-hoc-signed builds where the
 /// keychain entitlement is unavailable (TASKS.md 4.17).
-final keyStoreProvider = Provider<KeyStore>(
-  (_) => FallbackKeyStore(
-    primary: const SecureKeyStore(),
-    fallback: FileKeyStore(getApplicationSupportDirectory),
-  ),
-);
+final keyStoreProvider = Provider<KeyStore>((_) => createKeyStore());
 
 final deviceIdentityProvider = FutureProvider<DeviceIdentity>(
   (ref) => DeviceIdentity.loadOrCreate(
@@ -201,7 +194,7 @@ final mailboxPathProvider = StateProvider<String?>((_) => null);
 
 // --- Cloud storage accounts (Dropbox / Google Drive / OneDrive) ---
 
-final cloudHttpProvider = Provider<CloudHttp>((_) => IoCloudHttp());
+final cloudHttpProvider = Provider<CloudHttp>((_) => createCloudHttp());
 
 final cloudAccountServiceProvider = Provider<CloudAccountService>(
   (ref) => CloudAccountService(
@@ -251,9 +244,7 @@ Future<SyncHealthSnapshot> _readSyncHealth(Ref ref) async {
   var pendingOutboundCount = 0;
   final store = cloudProvider != null
       ? await ref.read(cloudAccountServiceProvider).mailboxStore()
-      : (mailboxPath == null
-            ? null
-            : FolderMailboxStore(Directory(mailboxPath)));
+      : (mailboxPath == null ? null : createFolderMailboxStore(mailboxPath));
   if (store != null) {
     final transport = MailboxTransport.withStore(
       store: store,
