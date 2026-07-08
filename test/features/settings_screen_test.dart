@@ -71,6 +71,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Show pairing invitation'), findsOneWidget);
+    // The macOS-only iCloud + scan tiles push the button below the fold.
+    await tester.drag(find.byType(ListView), const Offset(0, -200));
+    await tester.pumpAndSettle();
     expect(find.text('Sync now'), findsOneWidget);
   });
 
