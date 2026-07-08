@@ -125,9 +125,9 @@ class MailboxTransport {
   /// re-apply the snapshot idempotently; peers fully caught up skip it
   /// (its name sorts ≤ their cursor).
   Future<bool> compactIfNeeded({int threshold = 20}) async {
-    final deltas = (await store.listFiles(deviceId))
-        .where(_isChangesetName)
-        .toList();
+    final deltas = (await store.listFiles(
+      deviceId,
+    )).where(_isChangesetName).toList();
     if (deltas.length < threshold) return false;
 
     final snapshot = await engine.changesFor(const {});

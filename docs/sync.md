@@ -81,6 +81,19 @@ devices over pluggable transports, merged with CRDT semantics.
   re-applied, or (in the case of a conflict copy sorting past a real file)
   allowed to advance a cursor and strand later changesets.
 
+### Sharing groups (ADR 0004, design accepted — implementation Phase 8)
+
+Lists are **local by default**. A *sync group* binds a set of lists to a
+mailbox backend (iCloud folder, provider account, plain folder), a
+per-group encryption key, and a member set — so "Family on iCloud" and
+"Friends on Dropbox" run side by side, each with scoped changesets and
+its own cursors. Joining a group (QR invite carrying the group key +
+backend hint) makes a device a peer of someone else's storage; every
+member signs into their *own* provider account. The provider's folder ACL
+is coarse plumbing — the group key is the security boundary, rotated on
+member removal. Full design in
+[ADR 0004](decisions/0004-sharing-groups.md).
+
 ### The mailbox is a transport, not a backup
 
 The cloud-drive mailbox looks like a folder full of files in your Drive, so it
