@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import '../../core/clock.dart';
 import '../sync/device_identity.dart';
 import '../sync/mailbox_store.dart';
@@ -7,6 +10,7 @@ import 'dropbox_store.dart';
 import 'gdrive_store.dart';
 import 'oauth.dart';
 import 'onedrive_store.dart';
+import 'webdav_store.dart';
 
 /// The one connected OAuth storage account (Dropbox / Google Drive /
 /// OneDrive), if any. iCloud Drive is *not* managed here — it needs no
@@ -32,6 +36,7 @@ class CloudAccountService {
 
   static const _providerKey = 'cloud_provider';
   static const _tokensKey = 'cloud_tokens';
+  static const _webdavKey = 'cloud_webdav';
 
   Future<CloudProviderId?> connectedProvider() async {
     final name = await keyStore.read(_providerKey);
@@ -62,11 +67,38 @@ class CloudAccountService {
     await keyStore.write(_providerKey, id.name);
   }
 
+  /// WebDAV needs no OAuth (TASKS 8.11, issue #107): server URL +
+  /// username/app-password over Basic auth. Probes the server before
+  /// saving so bad credentials fail here, not silently at sync time.
+  Future<void> connectWebDav({
+    required Uri serverUrl,
+    required String username,
+    required String password,
+  }) async {
+    if (!serverUrl.isScheme('https') && !serverUrl.isScheme('http')) {
+      throw const FormatException('Server URL must be http(s)://…');
+    }
+    final store = _webdavStore(
+      WebDavCredentials(serverUrl, username, password),
+    );
+    if (!await store.probe()) {
+      throw const HttpException(
+        'Server rejected the credentials or is not a WebDAV server',
+      );
+    }
+    await keyStore.write(
+      _webdavKey,
+      WebDavCredentials(serverUrl, username, password).encode(),
+    );
+    await keyStore.write(_providerKey, CloudProviderId.webdav.name);
+  }
+
   /// Forgets the account and its tokens. Local data is untouched
   /// (local-first, CLAUDE.md invariant 1); the mailbox ciphertext stays in
   /// the user's cloud for reconnection.
   Future<void> disconnect() async {
     await keyStore.write(_tokensKey, '');
+    await keyStore.write(_webdavKey, '');
     await keyStore.write(_providerKey, '');
   }
 
@@ -89,23 +121,75 @@ class CloudAccountService {
   }
 
   /// Mailbox store speaking the connected provider's API, or null when no
-  /// OAuth account is connected.
+  /// API-backed account is connected (iCloud goes through the folder path).
   Future<MailboxStore?> mailboxStore() async {
     final provider = await connectedProvider();
-    return switch (provider) {
-      null || CloudProviderId.icloud => null,
-      CloudProviderId.dropbox => DropboxMailboxStore(
-        http: _http,
-        accessToken: freshAccessToken,
-      ),
-      CloudProviderId.googleDrive => GoogleDriveMailboxStore(
-        http: _http,
-        accessToken: freshAccessToken,
-      ),
-      CloudProviderId.oneDrive => OneDriveMailboxStore(
-        http: _http,
-        accessToken: freshAccessToken,
-      ),
-    };
+    switch (provider) {
+      case null || CloudProviderId.icloud:
+        return null;
+      case CloudProviderId.webdav:
+        final creds = WebDavCredentials.decode(await keyStore.read(_webdavKey));
+        // Provider set but credentials gone (keychain wipe): treat as
+        // disconnected rather than failing every sync pass.
+        return creds == null ? null : _webdavStore(creds);
+      case CloudProviderId.dropbox:
+        return DropboxMailboxStore(http: _http, accessToken: freshAccessToken);
+      case CloudProviderId.googleDrive:
+        return GoogleDriveMailboxStore(
+          http: _http,
+          accessToken: freshAccessToken,
+        );
+      case CloudProviderId.oneDrive:
+        return OneDriveMailboxStore(http: _http, accessToken: freshAccessToken);
+    }
+  }
+
+  WebDavMailboxStore _webdavStore(WebDavCredentials creds) {
+    // Slash-terminate before resolving, or `resolve` would replace the
+    // last path segment ("…/dav/alice" + knot-mailbox → "…/dav/knot-mailbox").
+    final url = creds.serverUrl;
+    final base = url.path.endsWith('/')
+        ? url
+        : url.replace(path: '${url.path}/');
+    return WebDavMailboxStore(
+      http: _http,
+      // Rooted in a dedicated collection so Knot never litters the
+      // user's tree.
+      baseUrl: base.resolve('knot-mailbox/'),
+      username: creds.username,
+      password: creds.password,
+    );
+  }
+}
+
+/// WebDAV account credentials; serialized as JSON into the keychain
+/// beside the OAuth tokens (never anywhere else).
+class WebDavCredentials {
+  const WebDavCredentials(this.serverUrl, this.username, this.password);
+
+  final Uri serverUrl;
+  final String username;
+  final String password;
+
+  String encode() => jsonEncode({
+    'url': serverUrl.toString(),
+    'user': username,
+    'pass': password,
+  });
+
+  static WebDavCredentials? decode(String? json) {
+    if (json == null || json.isEmpty) return null;
+    try {
+      final map = jsonDecode(json) as Map<String, dynamic>;
+      return WebDavCredentials(
+        Uri.parse(map['url'] as String),
+        map['user'] as String,
+        map['pass'] as String,
+      );
+    } on FormatException {
+      return null;
+    } on TypeError {
+      return null;
+    }
   }
 }
