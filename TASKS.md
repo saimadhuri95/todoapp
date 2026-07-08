@@ -59,6 +59,8 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
+- **Session 2026-07-08 (sharing groups design, 8.1):** user direction refined: local-only stays the default; **multiple** cloud storages at once; per-list *sharing groups* — e.g. Local + "Family" list shared with wife over iCloud + "Friends" list shared with a non-Apple friend over Dropbox. Wrote ADR 0004 (`docs/decisions/0004-sharing-groups.md`: group = backend + per-group key + members + lists; scoped changesets subsume 6.28; QR invite = `{groupId, key, backend hint}`; members bring their own accounts; incremental Dropbox consent; per-group rotation; drawer/wizard UI blueprint), docs/sync.md §Sharing groups, TASKS.md Phase 8 (8.1 done, 8.2–8.10 fine-grained implementation slices). Branch `feature/iphone-cloud-storage` merged with latest main (conflicts resolved: 6.45 allowlist ported onto the `MailboxStore` refactor — 303 tests pass, 3 pre-existing macOS-host fails; my ADR renumbered 0002→0003 after the attachments ADR took 0002). GitHub issues filed for 7.8–7.10 + 8.2–8.10; 8.1 tracked in-progress → closes with PR #91. **Next:** merge PR #91 when CI is green, then 8.2 (schema) — own session.
+- **Session 2026-07-07 (iPhone cloud accounts, ADR 0003):** user direction executed in worktree `todoapp-wt-iphone`, branch `feature/iphone-cloud-storage`, PR #91. New: `MailboxStore` seam (mailbox protocol over any file store; `FolderMailboxStore` = old behavior), `lib/data/cloud/` (PkceFlow OAuth2+PKCE no-SDK, TokenSet in keychain, `CloudAccountService`, Dropbox/GDrive-appdata/OneDrive-approot REST stores, scripted-HTTP unit tests), solo-device sync (`buildOrchestrator` creates group key when a mailbox is configured, pairing shares it later), Settings → Cloud storage connect screen + "Your data" source overview + first-launch sheet (skippable, invariant 1), iOS `knot://` scheme + AppDelegate → `OAuthCallbackChannel`. Verified: iPhone 17 Pro sim boots + onboarding renders + integration smoke passes; 301 tests, lib/data 85.8%, DST green; 3 local fails = pre-existing macOS-host class (also on clean main). **Remaining: 7.8 provider app registrations (user, free) → end-to-end OAuth; 7.9 account labels; 7.10 Android/desktop redirect parity.** See docs/decisions/0003-cloud-provider-accounts.md + docs/cloud-providers.md.
 - **Session 2026-07-07 (attachments design, 6.47):** 6.47 done (design-doc deliverable). New ADR `docs/decisions/0002-attachments.md`: split small synced metadata rows (new `attachments` table, per-field LWW + tombstone) from large immutable bytes; content-addressed local blob store (`<appSupport>/attachments/<sha256>`), 25 MB/attachment + 500 MB soft device cap; lazy out-of-band blob fetch over the mailbox (`blobs/<hash>.bin`, group-key sealed, reusing the 6.45 allowlist) and a LAN `GET blob`; ciphertext-only in transit, plaintext at rest (matching the local DB); tombstone + grace-period GC. Implementation slices (schema, BlobStore, transport hooks, UI) are the follow-up tail, gated on sign-off. Docs-only PR, isolated worktree.
 - **Session 2026-07-07 (Syncthing-tolerant mailbox, 6.45):** 6.45 done. `MailboxTransport.consume`/`compactIfNeeded` now allowlist only our own changeset files (`^\d{15}_[0-9a-f]{4,}_[^.\s()~]+\.bin$`, the `_fileNameFor` shape) and treat only non-dot subdirs as peer outboxes, so third-party artifacts are ignored: Syncthing `*.sync-conflict-*` + `.stversions`/`.stfolder`, Dropbox "(conflicted copy)", iCloud `.icloud`, `~`/`.tmp`. Fixes a latent bug where a conflict copy could sort past a real file and advance the cursor, stranding later changesets; also stops compaction from counting/deleting foreign files. New tests in `test/data/mailbox_transport_test.dart` (consume-ignores-artifacts + compaction-ignores-artifacts, both green with the full 10-case file). docs/sync.md gains a "Third-party tolerance" bullet. Sync-layer only, no UI. Isolated worktree/branch.
 - **Session 2026-07-07 (encrypted backup, 6.41):** 6.41 done. New `lib/data/backup_service.dart` (`BackupService`): passphrase → PBKDF2-HMAC-SHA256 (210k rounds, overridable for tests) → XChaCha20-Poly1305 via `PairingCrypto.seal/open` over the JSON export, wrapped in a versioned JSON envelope (`app/kind/v/kdf/iterations/salt/payload`). `restoreBackup` decrypts + `importJson`; wrong passphrase/tamper → `BackupPassphraseError`, non-backup files → `FormatException`. Settings gains "Encrypted backup"/"Restore encrypted backup" tiles + a `_PassphraseDialog` (confirm on create). docs/sync.md gains a "mailbox is a transport, not a backup" subsection. New `test/data/backup_service_test.dart` (7 cases: roundtrip, no-plaintext envelope, wrong-passphrase, tamper, empty-passphrase, bad-file, default work factor). Isolated worktree/branch, parallel to the other loop.
@@ -354,6 +356,88 @@ driver/dispatcher scenario and Apple-first direction.
   a transport, not a backup" in docs/sync.md
 - [ ] 6.42 (R12.4) Perf budgets: cold start <2 s, quick-add <500 ms, 5k-task
   scroll without jank — measure (extends 5.7), automate what CI can hold
+
+**Cloud provider accounts — iPhone-first (user direction 2026-07-07, ADR 0003)**
+
+- [x] 7.1 `MailboxStore` seam: mailbox protocol over any file store;
+  `FolderMailboxStore` keeps the original behavior
+- [x] 7.2 OAuth 2.0 + PKCE (`lib/data/cloud/oauth.dart`): no SDKs, no client
+  secret; tokens in the keychain; injectable HTTP + clock
+- [x] 7.3 Provider mailbox stores: Dropbox app folder, Google Drive
+  `appDataFolder`, OneDrive Graph approot (narrowest scopes each)
+- [x] 7.4 Solo-device sync: configured mailbox creates the group key without
+  pairing; later pairing shares it (buildOrchestrator gate change)
+- [x] 7.5 Connect screen (Settings → Cloud storage): iCloud Drive +
+  three OAuth providers, connect/disconnect, setup-required states,
+  "Your data" source overview (iPhone / cloud / peers)
+- [x] 7.6 First-launch onboarding sheet ("Just this iPhone" / "Also in my
+  cloud") — optional, never a wall (invariant 1)
+- [x] 7.7 iOS plumbing: `knot://` URL scheme, AppDelegate redirect →
+  `OAuthCallbackChannel`; verified app boots + onboarding on iPhone 17 Pro
+  simulator
+- [ ] 7.8 Register the three provider apps (free; docs/cloud-providers.md),
+  inject `KNOT_*_CLIENT_ID` dart-defines, verify OAuth end-to-end on a
+  simulator/device — **blocked on user accounts**
+- [ ] 7.9 Account label on the connect screen (fetch display name/email from
+  the provider after connect)
+- [ ] 7.10 Android/desktop parity for the OAuth redirect (intent filter /
+  loopback listener) — iPhone-first for now
+
+**Phase 8 — Sharing groups & multi-cloud (user direction 2026-07-08,
+ADR 0004; subsumes 6.28).** Target UX: lists live *Local* by default;
+"Family" list shared with wife over an iCloud folder; "Friends" list
+shared with a non-Apple friend over Dropbox — all three side by side in
+one app. A device can hold many groups, each with its own backend,
+per-group key, mailbox, and cursors; joining a group via QR invite makes
+you a peer of someone else's storage without sharing credentials.
+
+- [x] 8.1 Design: ADR 0004 (groups = backend + key + members + lists;
+  local-by-default; scoped changesets; invite/join; per-group rotation;
+  incremental Dropbox consent; UI blueprint) + docs/sync.md update
+- [ ] 8.2 Schema v+1: `sync_groups` table (synced within its own scope),
+  `todo_lists.groupId` nullable FK (null = local-only), per-group device
+  membership, `sync_log` keys `group:<gid>:mailbox:<peer>`; migration +
+  `sync_fields` update; FK/tombstone tests
+- [ ] 8.3 Scoped changesets: `SyncEngine.changesFor(vector, {groupId})`
+  filtering writes through rowId → list → group; per-scope version
+  vectors; convergence property suite must pass *per scope* and across
+  list moves between groups (snapshot republish on move)
+- [ ] 8.4 Multi-account `CloudAccountService`: list of accounts keyed
+  `(provider, accountId)`, keychain tokens namespaced per account,
+  two-Dropbox-accounts test; accounts section in settings
+- [ ] 8.5 Per-group keys + invites: group key creation/storage/rotation
+  per group; invite QR payload `{groupId, name, groupKey, backend hint}`
+  over the existing X25519 pairing handshake; join flow wiring
+- [ ] 8.6 Multi-mailbox orchestrator: one `MailboxTransport` per
+  configured group per pass (own store/key/cursors); per-group
+  `SyncReport` + sync-health rows; soft-fail isolation (one group's
+  network error must not block the others)
+- [ ] 8.7 Shared-folder backends: Dropbox shared-folder mode behind
+  incremental consent (broader scopes requested only when creating or
+  joining a shared group; personal mailbox keeps the app folder); iCloud
+  `UICloudSharingController` via the cloud-folder channel with manual
+  Files-app sharing as the documented fallback
+- [ ] 8.8 UI — Sharing & storage screen (evolves the 7.5 connect screen):
+  "Your groups" cards (Local first, then name + provider chip + member
+  and list counts; invite / manage lists / leave), "New group" wizard
+  (name → backend → sign-in/reuse account → pick lists → invite QR),
+  "Join group" scan flow, accounts list
+- [ ] 8.9 UI — drawer sections per group (people icon + provider glyph,
+  shared-list badges) and a "Sync" selector in list creation/editor
+  (`Local only` default / group names); move-list-between-groups flow
+  with its "past members keep received history" copy
+- [ ] 8.10 Cross-ecosystem validation matrix: Apple↔Apple over a shared
+  iCloud folder; Apple↔non-Apple over a shared Dropbox folder; solo
+  local-only regression — extend the simulated-device convergence
+  harness with per-group scopes before touching real devices
+- [ ] 8.11 WebDAV mailbox backend (issue #107) — zero registration:
+  server URL + username/app-password (Basic auth over TLS, keychain),
+  `WebDavMailboxStore` via PROPFIND/GET/PUT/DELETE/MKCOL over the
+  existing `CloudHttp`; connect form instead of a browser hop; the only
+  backend verifiable end-to-end with no external accounts.
+  **Priority (user decision 2026-07-08): iCloud + WebDAV first; the
+  OAuth provider registrations (7.8/#103) come after the iPhone app is
+  ready.**
 
 **Alarms-phase additions (execute with Phase 2, per execution order)**
 

@@ -61,6 +61,16 @@ devices over pluggable transports, merged with CRDT semantics.
   snapshot once all peers' cursors have passed them.
 - Folder access: iCloud container via native channel (iOS/macOS), Storage
   Access Framework (Android), plain directory picker (Windows/Linux).
+- **Provider-API backends (ADR 0003):** the same protocol also runs over a
+  storage provider's REST API behind the `MailboxStore` seam — Dropbox app
+  folder, Google Drive `appDataFolder`, OneDrive Graph approot — signed in
+  from Settings → Cloud storage with OAuth/PKCE (docs/cloud-providers.md).
+  This is the iPhone path, where those providers expose no filesystem
+  folder. Same layout, same ciphertext, narrowest per-provider scopes.
+- **Solo-device mode:** a configured mailbox no longer requires pairing —
+  the first device creates the group key itself and publishes from day one;
+  pairing later hands that key to new devices, which then join the same
+  mailbox with full history.
 - Third-party tolerance (TASKS.md 6.45): the folder is shared with whatever
   tool the user syncs it with, and those tools litter it with their own files —
   Syncthing `*.sync-conflict-*` copies and `.stversions`/`.stfolder` dirs,
@@ -70,6 +80,19 @@ devices over pluggable transports, merged with CRDT semantics.
   as peer outboxes, so foreign artifacts are ignored rather than decrypted,
   re-applied, or (in the case of a conflict copy sorting past a real file)
   allowed to advance a cursor and strand later changesets.
+
+### Sharing groups (ADR 0004, design accepted — implementation Phase 8)
+
+Lists are **local by default**. A *sync group* binds a set of lists to a
+mailbox backend (iCloud folder, provider account, plain folder), a
+per-group encryption key, and a member set — so "Family on iCloud" and
+"Friends on Dropbox" run side by side, each with scoped changesets and
+its own cursors. Joining a group (QR invite carrying the group key +
+backend hint) makes a device a peer of someone else's storage; every
+member signs into their *own* provider account. The provider's folder ACL
+is coarse plumbing — the group key is the security boundary, rotated on
+member removal. Full design in
+[ADR 0004](decisions/0004-sharing-groups.md).
 
 ### The mailbox is a transport, not a backup
 

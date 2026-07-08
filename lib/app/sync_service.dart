@@ -7,14 +7,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/alarm_planner.dart';
 import '../data/sync/lan_discovery.dart';
 import '../data/sync/lan_transport.dart';
+import '../data/sync/mailbox_store.dart';
 import '../data/sync/mailbox_transport.dart';
 import '../data/sync/sync_orchestrator.dart';
 import 'alarm_service.dart';
 import 'providers.dart';
 
 /// Builds a ready-to-run orchestrator from current app state, or null when
-/// the device isn't paired yet. Shared by the settings screen's "Sync now"
-/// and [SyncService]'s automatic triggers.
+/// nothing is configured (not paired, no cloud account, no mailbox folder).
+/// Shared by the settings screen's "Sync now" and [SyncService]'s
+/// automatic triggers.
+///
+/// A connected cloud account works *without pairing*: a single iPhone
+/// stores its encrypted mailbox in the user's own cloud, and the group key
+/// created here is what later pairing hands to new devices — they join the
+/// same mailbox seamlessly.
 Future<SyncOrchestrator?> buildOrchestrator(
   ProviderContainer ref, {
   Future<List<LanPeer>> Function()? discoverPeers,
@@ -22,17 +29,26 @@ Future<SyncOrchestrator?> buildOrchestrator(
   bool notificationsEnabled = true,
 }) async {
   final pairing = ref.read(pairingServiceProvider);
-  if (!await pairing.hasGroupKey()) return null;
+  final cloudStore = ref.read(cloudAccountProvider) == null
+      ? null
+      : await ref.read(cloudAccountServiceProvider).mailboxStore();
+  final mailboxPath = ref.read(mailboxPathProvider);
+  final hasMailbox = cloudStore != null || mailboxPath != null;
+  if (!hasMailbox && !await pairing.hasGroupKey()) return null;
   final groupKey = await pairing.loadOrCreateGroupKey();
   final engine = ref.read(syncEngineProvider);
-  final mailboxPath = ref.read(mailboxPathProvider);
+  // The OAuth account wins when both it and a folder are configured; the
+  // folder remains for desktop and iCloud Drive setups.
+  final store =
+      cloudStore ??
+      (mailboxPath == null ? null : FolderMailboxStore(Directory(mailboxPath)));
   return SyncOrchestrator(
     engine: engine,
     groupKey: groupKey,
-    mailbox: mailboxPath == null
+    mailbox: store == null
         ? null
-        : MailboxTransport(
-            root: Directory(mailboxPath),
+        : MailboxTransport.withStore(
+            store: store,
             engine: engine,
             db: ref.read(databaseProvider),
             deviceId: ref.read(deviceIdProvider),

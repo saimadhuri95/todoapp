@@ -42,7 +42,12 @@ void main() {
     expect(find.textContaining('Not set'), findsOneWidget);
     // 6.3 status line before any pass this session.
     expect(find.text('No sync pass yet this session'), findsOneWidget);
-    expect(find.textContaining('Pair a device to start sync'), findsOneWidget);
+    // Reworded when cloud accounts arrived (ADR 0003): a solo device can
+    // now start sync by connecting a cloud, not only by pairing.
+    expect(
+      find.textContaining('Connect a cloud or pair a device to start sync'),
+      findsOneWidget,
+    );
   });
 
   testApp('status line shows the last sync pass time', (tester) async {

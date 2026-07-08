@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -10,7 +11,12 @@ import 'app/cloud_folder_channel.dart';
 import 'app/notification_scheduler.dart';
 import 'app/providers.dart';
 import 'app/sync_service.dart';
+import 'core/clock.dart';
+import 'data/cloud/cloud_account_service.dart';
+import 'data/cloud/cloud_http.dart';
 import 'data/db/database.dart';
+import 'data/sync/device_identity.dart';
+import 'features/cloud/cloud_onboarding.dart';
 import 'features/todos/todo_list_screen.dart';
 import 'l10n/generated/app_localizations.dart';
 
@@ -37,6 +43,16 @@ Future<void> main() async {
   }
   final alarmsEnabled =
       prefs.getBool('alarmsEnabled') ?? (Platform.isAndroid || Platform.isIOS);
+  // Connected OAuth cloud account, read back from the keychain-backed
+  // store (the same one CloudAccountService writes).
+  final cloudProvider = await CloudAccountService(
+    keyStore: FallbackKeyStore(
+      primary: const SecureKeyStore(),
+      fallback: FileKeyStore(getApplicationSupportDirectory),
+    ),
+    http: IoCloudHttp(),
+    clock: const SystemClock(),
+  ).connectedProvider();
   final themeMode =
       ThemeMode.values.asNameMap()[prefs.getString('themeMode')] ??
       ThemeMode.system;
@@ -66,6 +82,16 @@ Future<void> main() async {
       deviceIdProvider.overrideWithValue(deviceId),
       if (mailboxPath != null)
         mailboxPathProvider.overrideWith((_) => mailboxPath),
+      // Reflect a previously connected cloud account (tokens are in the
+      // keychain; this mirrors just the provider choice for the UI).
+      if (cloudProvider != null)
+        cloudAccountProvider.overrideWith((_) => cloudProvider),
+      // One-time "where should your todos live?" sheet — only on a fresh
+      // install with nothing configured yet.
+      if (!(prefs.getBool('cloudOnboarded') ?? false) &&
+          cloudProvider == null &&
+          mailboxPath == null)
+        cloudOnboardingDueProvider.overrideWith((_) => true),
       alarmsEnabledProvider.overrideWith((_) => alarmsEnabled),
       themeModeProvider.overrideWith((_) => themeMode),
       displayDensityProvider.overrideWith((_) => density),
@@ -126,6 +152,6 @@ class TodoApp extends ConsumerWidget {
         brightness: Brightness.dark,
       ),
     ),
-    home: const TodoListScreen(),
+    home: const CloudOnboarding(child: TodoListScreen()),
   );
 }
