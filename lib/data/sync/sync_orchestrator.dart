@@ -81,8 +81,10 @@ class SyncOrchestrator {
           mailboxApplied = await box.consume();
           mailboxPublished = await box.publish();
           await box.compactIfNeeded();
-        } on FileSystemException catch (e) {
-          errors.add('mailbox: ${e.message}');
+        } on IOException catch (e) {
+          // Folder stores throw FileSystemException; provider-API stores
+          // throw HttpException/SocketException. All soft: retry next pass.
+          errors.add('mailbox: $e');
         }
       }
 
