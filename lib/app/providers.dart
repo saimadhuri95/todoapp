@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart' show TableOrViewStatements;
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/clock.dart';
 import '../core/cloud_folder.dart';
@@ -97,8 +100,123 @@ class SyncHealthSnapshot {
 const kInboxFilter = '';
 const kSomedayFilter = '__someday__';
 
+enum SmartDateFilter { any, today, upcoming, someday }
+
+class SavedSmartFilter {
+  const SavedSmartFilter({
+    required this.id,
+    required this.name,
+    this.listId,
+    this.tag,
+    this.minPriority = 0,
+    this.dateFilter = SmartDateFilter.any,
+  });
+
+  final String id;
+  final String name;
+  final String? listId;
+  final String? tag;
+  final int minPriority;
+  final SmartDateFilter dateFilter;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'listId': listId,
+    'tag': tag,
+    'minPriority': minPriority,
+    'dateFilter': dateFilter.name,
+  };
+
+  factory SavedSmartFilter.fromJson(Map<String, Object?> json) {
+    return SavedSmartFilter(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      listId: json['listId'] as String?,
+      tag: json['tag'] as String?,
+      minPriority: json['minPriority'] as int? ?? 0,
+      dateFilter:
+          SmartDateFilter.values.asNameMap()[json['dateFilter'] as String?] ??
+          SmartDateFilter.any,
+    );
+  }
+
+  SavedSmartFilter copyWith({required String id}) => SavedSmartFilter(
+    id: id,
+    name: name,
+    listId: listId,
+    tag: tag,
+    minPriority: minPriority,
+    dateFilter: dateFilter,
+  );
+}
+
+class SavedSmartFiltersController
+    extends StateNotifier<List<SavedSmartFilter>> {
+  SavedSmartFiltersController() : super(const []) {
+    _load();
+  }
+
+  static const storageKey = 'savedSmartFilters';
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(storageKey);
+    if (raw == null || raw.isEmpty) return;
+    final decoded = jsonDecode(raw) as List<dynamic>;
+    state = [
+      for (final entry in decoded)
+        SavedSmartFilter.fromJson((entry as Map).cast<String, Object?>()),
+    ];
+  }
+
+  Future<SavedSmartFilter> add(SavedSmartFilter draft) async {
+    final filter = draft.copyWith(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+    );
+    state = [...state, filter];
+    await _save();
+    return filter;
+  }
+
+  Future<void> remove(String id) async {
+    state = [
+      for (final filter in state)
+        if (filter.id != id) filter,
+    ];
+    await _save();
+  }
+
+  Future<void> _save() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      storageKey,
+      jsonEncode([for (final filter in state) filter.toJson()]),
+    );
+  }
+}
+
 /// Currently selected list filter (null = all lists, [kInboxFilter] = Inbox).
 final listFilterProvider = StateProvider<String?>((_) => null);
+
+/// Exact day selected from the calendar view. Null means no calendar filter.
+final dateFilterProvider = StateProvider<DateTime?>((_) => null);
+
+final savedSmartFiltersProvider =
+    StateNotifierProvider<SavedSmartFiltersController, List<SavedSmartFilter>>(
+      (_) => SavedSmartFiltersController(),
+    );
+
+final activeSmartFilterIdProvider = StateProvider<String?>((_) => null);
+
+final activeSmartFilterProvider = Provider<SavedSmartFilter?>((ref) {
+  final id = ref.watch(activeSmartFilterIdProvider);
+  if (id == null) return null;
+  for (final filter in ref.watch(savedSmartFiltersProvider)) {
+    if (filter.id == id) return filter;
+  }
+  return null;
+});
 
 /// Search text applied to the active list (client-side filter).
 final searchQueryProvider = StateProvider<String>((_) => '');
@@ -106,20 +224,83 @@ final searchQueryProvider = StateProvider<String>((_) => '');
 /// Selected todo id for the wide-layout detail pane.
 final selectedTodoIdProvider = StateProvider<String?>((_) => null);
 
+final allActiveTodosProvider = StreamProvider<List<Todo>>(
+  (ref) => ref.watch(todoRepositoryProvider).watchActive(),
+);
+
 final activeTodosProvider = StreamProvider<List<Todo>>((ref) {
   final filter = ref.watch(listFilterProvider);
+  final smartFilter = ref.watch(activeSmartFilterProvider);
+  final exactDate = ref.watch(dateFilterProvider);
+  final now = ref.watch(clockProvider).now();
   return ref
       .watch(todoRepositoryProvider)
       .watchActive(
-        listId: filter == kInboxFilter ? null : filter,
-        unfiledOnly: filter == kInboxFilter,
-        somedayOnly: filter == kSomedayFilter,
+        listId: smartFilter?.listId ?? (filter == kInboxFilter ? null : filter),
+        unfiledOnly: smartFilter == null && filter == kInboxFilter,
+        somedayOnly: smartFilter == null && filter == kSomedayFilter,
+      )
+      .map(
+        (todos) => _applyActiveFilters(
+          todos: todos,
+          smartFilter: smartFilter,
+          exactDate: exactDate,
+          now: now,
+        ),
       );
 });
 
 final completedTodosProvider = StreamProvider<List<Todo>>(
   (ref) => ref.watch(todoRepositoryProvider).watchCompleted(),
 );
+
+List<Todo> _applyActiveFilters({
+  required List<Todo> todos,
+  required SavedSmartFilter? smartFilter,
+  required DateTime? exactDate,
+  required DateTime now,
+}) {
+  return [
+    for (final todo in todos)
+      if (_matchesSmartFilter(todo, smartFilter, now) &&
+          _matchesExactDate(todo, exactDate))
+        todo,
+  ];
+}
+
+bool _matchesSmartFilter(Todo todo, SavedSmartFilter? filter, DateTime now) {
+  if (filter == null) return true;
+  final tag = filter.tag?.trim().toLowerCase();
+  if (tag != null &&
+      tag.isNotEmpty &&
+      !todo.tags.any((value) => value.toLowerCase() == tag)) {
+    return false;
+  }
+  if (todo.priority < filter.minPriority) return false;
+  return switch (filter.dateFilter) {
+    SmartDateFilter.any => true,
+    SmartDateFilter.today => _isSameDayMs(todo.dueAtMs, now),
+    SmartDateFilter.upcoming =>
+      todo.dueAtMs != null &&
+          !DateTime.fromMillisecondsSinceEpoch(
+            todo.dueAtMs!,
+          ).isBefore(DateTime(now.year, now.month, now.day + 1)),
+    SmartDateFilter.someday => todo.dueAtMs == null,
+  };
+}
+
+bool _matchesExactDate(Todo todo, DateTime? date) {
+  if (date == null) return true;
+  return _isSameDayMs(todo.dueAtMs, date);
+}
+
+bool _isSameDayMs(int? ms, DateTime date) {
+  if (ms == null) return false;
+  final value = DateTime.fromMillisecondsSinceEpoch(ms);
+  return value.year == date.year &&
+      value.month == date.month &&
+      value.day == date.day;
+}
 
 final overdueTodosProvider = Provider<List<Todo>>((ref) {
   if (ref.watch(listFilterProvider) == kSomedayFilter) return const [];
