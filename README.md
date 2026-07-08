@@ -38,6 +38,7 @@ See [PLAN.md](PLAN.md) for the plan and [docs/](docs/) for design docs:
 - [docs/alarms.md](docs/alarms.md) - per-platform alarm behavior
 - [docs/testing.md](docs/testing.md) - testing strategy
 - [docs/packaging.md](docs/packaging.md) - signing, stores, release pipeline
+- [docs/launch.md](docs/launch.md) - store copy, launch sequencing, ASO loop
 
 ## Stack
 

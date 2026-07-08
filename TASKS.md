@@ -176,9 +176,15 @@ metadata in App Store Connect is blocked on the Apple Developer account (4.3).
 - [x] 4.10 Subtitle: **"Collaborative Task Manager"** (26 chars, no name-word repeats); recorded in docs/packaging.md
 - [x] 4.11 Keyword field pruned against final name/subtitle (95 chars, docs/packaging.md): `shared,checklist,organizer,p2p,private,group,team,family,planner,grocery,reminders,productivity` — enter in App Store Connect with 4.3
 - [ ] 4.12 Screenshot set for conversion: first 3 shots show the sync/pairing UI with a value-prop caption overlay ("Instant Sync, Zero Cloud Accounts"); produce required iPhone/iPad/Mac sizes (can stage from simulators before the dev account exists)
-- [ ] 4.13 Google Play counterpart: title (30), short description (80, indexed), full description written for keyword coverage — Play indexes the description, unlike Apple, so the no-repeat rule doesn't apply there
-- [ ] 4.14 Launch-velocity plan: time the store release with a Product Hunt / Hacker News / r/selfhosted post so the download spike lands while the listing is fresh (velocity drives rank for competitive terms)
-- [ ] 4.15 Post-launch ASO loop: watch search rank for "todo app"/"shared todo list" + impression→download conversion in App Store Connect analytics; iterate keyword field each release (it's updatable without an app review... but only alongside a new build)
+- [x] 4.13 Google Play counterpart documented in [docs/launch.md](docs/launch.md):
+  title (30), short description (80), and full description written for keyword
+  coverage; Play can lean on description indexing more than Apple
+- [x] 4.14 Launch-velocity plan documented in [docs/launch.md](docs/launch.md):
+  store release timed with Product Hunt / Hacker News / r/selfhosted as one
+  coordinated spike instead of a dribbled multi-day launch
+- [x] 4.15 Post-launch ASO loop documented in [docs/launch.md](docs/launch.md):
+  App Store Connect acquisition metrics, release-over-release hypotheses, and
+  keyword iteration bundled into the next version's metadata pass
 
 ### macOS sandbox fixes (manual-test findings 2026-07-06)
 
