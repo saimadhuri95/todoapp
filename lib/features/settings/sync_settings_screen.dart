@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/providers.dart';
 import '../../app/sync_service.dart';
+import '../../core/file_system.dart';
+import '../../core/platform_info.dart';
 import '../../data/db/database.dart';
 import 'scan_invitation_screen.dart';
 
@@ -16,8 +16,8 @@ import 'scan_invitation_screen.dart';
 class SyncSettingsScreen extends ConsumerWidget {
   const SyncSettingsScreen({super.key});
 
-  static String get _deviceName => Platform.localHostname;
-  static String get _platformName => Platform.operatingSystem;
+  static String get _deviceName => platformDeviceName;
+  static String get _platformName => platformName;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -48,7 +48,7 @@ class SyncSettingsScreen extends ConsumerWidget {
           // file_selector has no directory picker on iOS; iCloud Drive is
           // the folder story there. macOS gets both (picker for third-party
           // drives, iCloud for the managed container).
-          if (!Platform.isIOS)
+          if (!platformIsIOS)
             ListTile(
               leading: const Icon(Icons.folder_outlined),
               title: const Text('Sync folder'),
@@ -64,7 +64,7 @@ class SyncSettingsScreen extends ConsumerWidget {
               leading: const Icon(Icons.cloud_outlined),
               title: const Text('Use iCloud Drive'),
               subtitle: Text(
-                Platform.isIOS && mailboxPath != null
+                platformIsIOS && mailboxPath != null
                     ? mailboxPath
                     : 'Sync through this app’s iCloud Drive folder',
               ),
@@ -79,7 +79,7 @@ class SyncSettingsScreen extends ConsumerWidget {
           ),
           // mobile_scanner covers iOS/Android/macOS (webcam scans the
           // phone's QR); Windows/Linux keep paste-only.
-          if (Platform.isIOS || Platform.isAndroid || Platform.isMacOS)
+          if (platformSupportsCameraScanner)
             ListTile(
               leading: const Icon(Icons.qr_code_scanner),
               title: const Text('Scan invitation'),
@@ -209,10 +209,7 @@ class SyncSettingsScreen extends ConsumerWidget {
     if (confirmed != true) return;
     await ref.read(pairingServiceProvider).revoke(device.id);
     final mailboxPath = ref.read(mailboxPathProvider);
-    if (mailboxPath != null && Directory(mailboxPath).existsSync()) {
-      await Directory(mailboxPath).delete(recursive: true);
-      await Directory(mailboxPath).create(recursive: true);
-    }
+    if (mailboxPath != null) await resetDirectory(mailboxPath);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Revoked. Re-pair your other devices.')),

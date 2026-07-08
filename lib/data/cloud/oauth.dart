@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:cryptography/cryptography.dart' show Sha256;
@@ -89,8 +88,13 @@ class PkceAttempt {
   final String state;
 }
 
-class OAuthException extends HttpException {
-  OAuthException(super.message);
+class OAuthException implements Exception {
+  OAuthException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
 }
 
 class PkceFlow {

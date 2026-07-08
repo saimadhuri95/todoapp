@@ -1,8 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter/services.dart';
 
 import '../core/cloud_folder.dart';
+import '../core/platform_info.dart';
 
 /// iCloud Drive ubiquity container via a method channel (TASKS.md 3.12).
 /// Swift handlers live in ios/Runner/AppDelegate.swift and
@@ -44,6 +43,6 @@ class IcloudFolderChannel implements CloudFolderLocator {
 
 /// The locator for the platform we're running on. Used by the provider and
 /// by main()'s startup bookmark resolution (which runs before providers).
-CloudFolderLocator platformCloudFolder() => Platform.isIOS || Platform.isMacOS
+CloudFolderLocator platformCloudFolder() => platformSupportsIcloud
     ? const IcloudFolderChannel()
     : const UnsupportedCloudFolder();
