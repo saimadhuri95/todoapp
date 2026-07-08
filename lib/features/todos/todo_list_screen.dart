@@ -10,6 +10,7 @@ import '../../data/repositories/todo_repository.dart';
 import '../settings/settings_screen.dart';
 import '../settings/sync_settings_screen.dart';
 import 'linkified_text.dart';
+import 'planning_views.dart';
 import 'todo_editor.dart';
 import 'todo_sections.dart';
 import 'todo_undo.dart';
@@ -135,10 +136,11 @@ Future<void> _showAddDialog(BuildContext context, WidgetRef ref) async {
 
   final now = ref.read(clockProvider).now();
   final filter = ref.read(listFilterProvider);
+  final smartFilter = ref.read(activeSmartFilterProvider);
   // All-todos and Inbox views both capture into the Inbox (no list).
-  final listId = filter == kInboxFilter || filter == kSomedayFilter
-      ? null
-      : filter;
+  final listId =
+      smartFilter?.listId ??
+      (filter == kInboxFilter || filter == kSomedayFilter ? null : filter);
   final repo = ref.read(todoRepositoryProvider);
 
   if (perLine) {
@@ -215,6 +217,8 @@ class _TodoListPane extends ConsumerWidget {
     final query = ref.watch(searchQueryProvider);
     final now = ref.watch(clockProvider).now();
     final somedayView = ref.watch(listFilterProvider) == kSomedayFilter;
+    final dateFilter = ref.watch(dateFilterProvider);
+    final smartFilter = ref.watch(activeSmartFilterProvider);
     final promptTodos = [
       for (final todo in overdue)
         if (!dismissedPromptIds.contains(todo.id)) todo,
@@ -230,6 +234,14 @@ class _TodoListPane extends ConsumerWidget {
             onChanged: (q) => ref.read(searchQueryProvider.notifier).state = q,
           ),
         ),
+        if (dateFilter != null || smartFilter != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: _ActiveFilterBar(
+              dateFilter: dateFilter,
+              smartFilter: smartFilter,
+            ),
+          ),
         if (!somedayView && promptTodos.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
@@ -294,16 +306,6 @@ class _TodoListPane extends ConsumerWidget {
               'Tap + to add a todo. Ctrl/Cmd+N works too.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.sync),
-              label: const Text('Pair another device'),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const SyncSettingsScreen(),
-                ),
-              ),
-            ),
           ],
         ),
       );
@@ -329,6 +331,34 @@ class _TodoListPane extends ConsumerWidget {
   }
 
   static const _completedMarker = ' completed ';
+}
+
+class _ActiveFilterBar extends ConsumerWidget {
+  const _ActiveFilterBar({required this.dateFilter, required this.smartFilter});
+
+  final DateTime? dateFilter;
+  final SavedSmartFilter? smartFilter;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final smart = smartFilter;
+    final label = smart != null
+        ? 'Smart list: ${smart.name}'
+        : 'Calendar: ${_formatDay(dateFilter!)}';
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: InputChip(
+        avatar: Icon(
+          smart != null ? Icons.auto_awesome_motion : Icons.calendar_month,
+        ),
+        label: Text(label),
+        onDeleted: () {
+          ref.read(activeSmartFilterIdProvider.notifier).state = null;
+          ref.read(dateFilterProvider.notifier).state = null;
+        },
+      ),
+    );
+  }
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -518,9 +548,42 @@ class _ListsDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lists = ref.watch(listsProvider).value ?? const <TodoList>[];
     final filter = ref.watch(listFilterProvider);
+    final smartFilters = ref.watch(savedSmartFiltersProvider);
+    final activeSmartId = ref.watch(activeSmartFilterIdProvider);
     void select(String? id) {
+      ref.read(activeSmartFilterIdProvider.notifier).state = null;
+      ref.read(dateFilterProvider.notifier).state = null;
       ref.read(listFilterProvider.notifier).state = id;
       Navigator.of(context).pop();
+    }
+
+    void openScreen(Widget screen) {
+      Navigator.of(context).pop();
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => screen));
+    }
+
+    void selectSmartFilter(String id) {
+      ref.read(activeSmartFilterIdProvider.notifier).state = id;
+      ref.read(dateFilterProvider.notifier).state = null;
+      ref.read(listFilterProvider.notifier).state = null;
+      Navigator.of(context).pop();
+    }
+
+    Future<void> createSmartFilter() async {
+      final draft = await showDialog<SavedSmartFilter>(
+        context: context,
+        builder: (context) => const NewSmartFilterDialog(),
+      );
+      if (draft == null) return;
+      final saved = await ref
+          .read(savedSmartFiltersProvider.notifier)
+          .add(draft);
+      ref.read(activeSmartFilterIdProvider.notifier).state = saved.id;
+      ref.read(dateFilterProvider.notifier).state = null;
+      ref.read(listFilterProvider.notifier).state = null;
+      if (context.mounted) Navigator.of(context).pop();
     }
 
     return Drawer(
@@ -535,7 +598,7 @@ class _ListsDrawer extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.all_inbox),
             title: const Text('All todos'),
-            selected: filter == null,
+            selected: filter == null && activeSmartId == null,
             onTap: () => select(null),
           ),
           ListTile(
@@ -557,7 +620,6 @@ class _ListsDrawer extends ConsumerWidget {
               selected: filter == list.id,
               onTap: () => select(list.id),
             ),
-          const Divider(),
           ListTile(
             leading: const Icon(Icons.add),
             title: const Text('New list'),
@@ -571,6 +633,55 @@ class _ListsDrawer extends ConsumerWidget {
                 await ref.read(listRepositoryProvider).create(name: trimmed);
               }
             },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.calendar_month_outlined),
+            title: const Text('Calendar'),
+            onTap: () => openScreen(const TodoCalendarScreen()),
+          ),
+          ListTile(
+            leading: const Icon(Icons.fact_check_outlined),
+            title: const Text('Weekly review'),
+            onTap: () => openScreen(const WeeklyReviewScreen()),
+          ),
+          ListTile(
+            leading: const Icon(Icons.inventory_2_outlined),
+            title: const Text('Completed archive'),
+            onTap: () => openScreen(const CompletedArchiveScreen()),
+          ),
+          if (smartFilters.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Text(
+                'Smart lists',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ),
+          for (final smartFilter in smartFilters)
+            ListTile(
+              leading: const Icon(Icons.auto_awesome_motion),
+              title: Text(smartFilter.name),
+              selected: activeSmartId == smartFilter.id,
+              onTap: () => selectSmartFilter(smartFilter.id),
+              trailing: IconButton(
+                tooltip: 'Delete smart list',
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () => ref
+                    .read(savedSmartFiltersProvider.notifier)
+                    .remove(smartFilter.id),
+              ),
+            ),
+          ListTile(
+            leading: const Icon(Icons.filter_alt_outlined),
+            title: const Text('New smart list'),
+            onTap: createSmartFilter,
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.sync),
+            title: const Text('Sync settings'),
+            onTap: () => openScreen(const SyncSettingsScreen()),
           ),
         ],
       ),
@@ -963,6 +1074,9 @@ String _staleSnackBarMessage(String title, _StaleAction action) {
     _StaleAction.delete => '$subject deleted',
   };
 }
+
+String _formatDay(DateTime day) =>
+    '${day.year}-${_two(day.month)}-${_two(day.day)}';
 
 String _two(int value) => value.toString().padLeft(2, '0');
 
