@@ -46,13 +46,41 @@ class ListRepository {
   );
 
   /// Assigns the list to a sharing group, or back to local-only (null) —
-  /// ADR 0004. Which changesets carry the list afterwards is scoping's
-  /// job (8.3); this just writes the synced field.
-  Future<void> setGroup(String id, String? groupId) => _write(
-    id,
-    TodoListsCompanion(groupId: Value(groupId)),
-    const ['groupId'],
-  );
+  /// ADR 0004/TASKS 8.3. **Re-stamps every synced field of the list and
+  /// of all its todos** with one fresh HLC: rows *entering* a scope must
+  /// carry stamps newer than any vector marker a group mailbox has
+  /// already published, or the group's members would never receive the
+  /// pre-move history (scoped `changesFor` soundness). The re-stamp is
+  /// CRDT-safe — fresh stamps with this device's nodeId win LWW
+  /// deterministically, which is exactly "the move happened last".
+  Future<void> setGroup(String id, String? groupId) async {
+    final hlc = _hlc.send();
+    await _db.transaction(() async {
+      final updated =
+          await (_db.todoLists.update()..where((l) => l.id.equals(id))).write(
+            TodoListsCompanion(groupId: Value(groupId)),
+          );
+      if (updated == 0) throw StateError('No list with id $id');
+      await stampFields(
+        db: _db,
+        entity: 'todo_lists',
+        rowId: id,
+        fields: syncColumns['todo_lists']!.keys,
+        hlc: hlc,
+      );
+      final todos =
+          await (_db.todos.select()..where((t) => t.listId.equals(id))).get();
+      for (final todo in todos) {
+        await stampFields(
+          db: _db,
+          entity: 'todos',
+          rowId: todo.id,
+          fields: syncColumns['todos']!.keys,
+          hlc: hlc,
+        );
+      }
+    });
+  }
 
   /// Tombstone. Todos keep their listId; views resolve a deleted list as
   /// "no list" rather than cascading.
