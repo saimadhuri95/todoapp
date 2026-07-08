@@ -23,6 +23,8 @@ class WebSyncReport {
 class WebSyncOrchestrator {
   Object? get mailbox => null;
 
+  List<Object> get mailboxes => const [];
+
   Future<WebSyncReport> syncNow() async => const WebSyncReport();
 }
 
