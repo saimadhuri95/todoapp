@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../app/alarm_service.dart';
 import '../../app/notification_scheduler.dart';
 import '../../app/providers.dart';
+import '../../data/backup_service.dart';
 import '../../data/export_service.dart';
 import '../../data/import_parsers.dart';
 import 'sync_settings_screen.dart';
@@ -94,6 +95,18 @@ class SettingsScreen extends ConsumerWidget {
             'Knot backup, todo.txt, or CSV (Todoist, TickTick)',
           ),
           onTap: () => _import(context, ref),
+        ),
+        ListTile(
+          leading: const Icon(Icons.lock_outline),
+          title: const Text('Encrypted backup'),
+          subtitle: const Text('Password-protected snapshot to store anywhere'),
+          onTap: () => _backup(context, ref),
+        ),
+        ListTile(
+          leading: const Icon(Icons.lock_open_outlined),
+          title: const Text('Restore encrypted backup'),
+          subtitle: const Text('Import from a password-protected backup'),
+          onTap: () => _restore(context, ref),
         ),
         const AboutListTile(
           icon: Icon(Icons.info_outline),
@@ -192,6 +205,62 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
+  BackupService _backupService(WidgetRef ref) =>
+      BackupService(export: _service(ref));
+
+  Future<void> _backup(BuildContext context, WidgetRef ref) async {
+    final passphrase = await _askPassphrase(
+      context,
+      title: 'Encrypt backup',
+      confirm: true,
+    );
+    if (passphrase == null) return;
+    if (!context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final location = await getSaveLocation(suggestedName: 'knot-backup.json');
+    if (location == null) return;
+    final content = await _backupService(ref).createBackup(passphrase);
+    await File(location.path).writeAsString(content);
+    messenger.showSnackBar(
+      SnackBar(content: Text('Encrypted backup saved to ${location.path}')),
+    );
+  }
+
+  Future<void> _restore(BuildContext context, WidgetRef ref) async {
+    final file = await openFile(
+      acceptedTypeGroups: const [
+        XTypeGroup(label: 'Knot backup', extensions: ['json']),
+      ],
+    );
+    if (file == null || !context.mounted) return;
+    final passphrase = await _askPassphrase(context, title: 'Restore backup');
+    if (passphrase == null || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final (lists, todos) = await _backupService(
+        ref,
+      ).restoreBackup(await file.readAsString(), passphrase);
+      messenger.showSnackBar(
+        SnackBar(content: Text('Restored $todos todos, $lists lists')),
+      );
+    } on BackupPassphraseError catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    } on FormatException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  /// Prompts for a passphrase; when [confirm] is set, a second field must
+  /// match before the dialog returns. Returns null if the user cancels.
+  Future<String?> _askPassphrase(
+    BuildContext context, {
+    required String title,
+    bool confirm = false,
+  }) => showDialog<String>(
+    context: context,
+    builder: (context) => _PassphraseDialog(title: title, confirm: confirm),
+  );
+
   Future<void> _setAlarmsEnabled(
     BuildContext context,
     WidgetRef ref,
@@ -214,4 +283,82 @@ class SettingsScreen extends ConsumerWidget {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('alarmsEnabled', enabled);
   }
+}
+
+/// Passphrase prompt for encrypted backup/restore (TASKS.md 6.41). Pops the
+/// entered passphrase, or null on cancel. With [confirm], a second field must
+/// match — a mistyped backup password would otherwise be unrecoverable.
+class _PassphraseDialog extends StatefulWidget {
+  const _PassphraseDialog({required this.title, required this.confirm});
+
+  final String title;
+  final bool confirm;
+
+  @override
+  State<_PassphraseDialog> createState() => _PassphraseDialogState();
+}
+
+class _PassphraseDialogState extends State<_PassphraseDialog> {
+  final _passphrase = TextEditingController();
+  final _repeat = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _passphrase.dispose();
+    _repeat.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final value = _passphrase.text;
+    if (value.isEmpty) {
+      setState(() => _error = 'Passphrase must not be empty');
+      return;
+    }
+    if (widget.confirm && value != _repeat.text) {
+      setState(() => _error = 'Passphrases do not match');
+      return;
+    }
+    Navigator.of(context).pop(value);
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(widget.title),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextField(
+          controller: _passphrase,
+          obscureText: true,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Passphrase'),
+          onSubmitted: (_) => _submit(),
+        ),
+        if (widget.confirm)
+          TextField(
+            controller: _repeat,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Confirm passphrase'),
+            onSubmitted: (_) => _submit(),
+          ),
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(
+              _error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(onPressed: _submit, child: const Text('OK')),
+    ],
+  );
 }
