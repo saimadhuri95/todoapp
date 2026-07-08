@@ -14,6 +14,8 @@ part 'database.g.dart';
     SyncLog,
     AlarmDismissals,
     FieldClocks,
+    SyncGroups,
+    GroupMembers,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -23,7 +25,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.open() => AppDatabase(openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -36,6 +38,13 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(todos, todos.alarmOffsetsJson);
         await m.addColumn(todos, todos.lastDismissedMs);
         await m.addColumn(todos, todos.snoozeUntilMs);
+      }
+      if (from < 4) {
+        // Sharing groups (ADR 0004): existing lists keep groupId = null,
+        // i.e. stay local-only — migration changes nothing user-visible.
+        await m.createTable(syncGroups);
+        await m.createTable(groupMembers);
+        await m.addColumn(todoLists, todoLists.groupId);
       }
     },
     beforeOpen: (details) async {

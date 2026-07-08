@@ -45,6 +45,15 @@ class ListRepository {
     const ['sortOrder'],
   );
 
+  /// Assigns the list to a sharing group, or back to local-only (null) —
+  /// ADR 0004. Which changesets carry the list afterwards is scoping's
+  /// job (8.3); this just writes the synced field.
+  Future<void> setGroup(String id, String? groupId) => _write(
+    id,
+    TodoListsCompanion(groupId: Value(groupId)),
+    const ['groupId'],
+  );
+
   /// Tombstone. Todos keep their listId; views resolve a deleted list as
   /// "no list" rather than cascading.
   Future<void> archive(String id) => _write(

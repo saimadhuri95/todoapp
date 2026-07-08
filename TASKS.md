@@ -395,10 +395,13 @@ you a peer of someone else's storage without sharing credentials.
 - [x] 8.1 Design: ADR 0004 (groups = backend + key + members + lists;
   local-by-default; scoped changesets; invite/join; per-group rotation;
   incremental Dropbox consent; UI blueprint) + docs/sync.md update
-- [ ] 8.2 Schema v+1: `sync_groups` table (synced within its own scope),
-  `todo_lists.groupId` nullable FK (null = local-only), per-group device
-  membership, `sync_log` keys `group:<gid>:mailbox:<peer>`; migration +
-  `sync_fields` update; FK/tombstone tests
+- [x] 8.2 (issue #94) Schema v4: `sync_groups` (+ device-local
+  `local_account_ref`, never synced), `group_members` with deterministic
+  `<groupId>:<deviceId>` row ids, `todo_lists.groupId` nullable FK (null =
+  local-only default), per-group `sync_log` cursor keys
+  (`group:<gid>:mailbox:<peer>` via `MailboxTransport.groupId`),
+  generalized FK row-springing in `LwwApplier`, `GroupRepository` +
+  `ListRepository.setGroup`, v3→v4 migration; 13 new tests
 - [ ] 8.3 Scoped changesets: `SyncEngine.changesFor(vector, {groupId})`
   filtering writes through rowId → list → group; per-scope version
   vectors; convergence property suite must pass *per scope* and across
