@@ -29,6 +29,7 @@ void main() {
     priority: 0,
     tagsJson: '[]',
     alarmOffsetsJson: '[0]',
+    pinned: false,
     deleted: false,
   );
 

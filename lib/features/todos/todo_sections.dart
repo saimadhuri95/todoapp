@@ -10,17 +10,23 @@ class TodoSection {
   final List<Todo> items;
 }
 
-/// Groups active todos into Today / Upcoming / Someday, dropping empty
-/// sections. Overdue items fold into Today — oldest first via the
-/// repository's due-date ordering — and tiles tag them with [overdueLabel]
-/// instead of a shaming red "Overdue" section (TASKS.md 6.16, R13.1).
-/// Input order is preserved.
+/// Groups active todos into Top 3 / Today / Upcoming / Someday, dropping empty
+/// sections. Pinned todos (TASKS.md 6.34) are pulled into a "Top 3" section
+/// above everything and are not repeated in their due-date section. Overdue
+/// items fold into Today — oldest first via the repository's due-date ordering
+/// — and tiles tag them with [overdueLabel] instead of a shaming red "Overdue"
+/// section (TASKS.md 6.16, R13.1). Input order is preserved.
 List<TodoSection> sectionize(List<Todo> todos, DateTime now) {
   final startOfTomorrow = DateTime(now.year, now.month, now.day + 1);
+  final pinned = <Todo>[];
   final today = <Todo>[];
   final upcoming = <Todo>[];
   final someday = <Todo>[];
   for (final todo in todos) {
+    if (todo.pinned) {
+      pinned.add(todo);
+      continue;
+    }
     final ms = todo.dueAtMs;
     if (ms == null) {
       someday.add(todo);
@@ -30,6 +36,7 @@ List<TodoSection> sectionize(List<Todo> todos, DateTime now) {
     (due.isBefore(startOfTomorrow) ? today : upcoming).add(todo);
   }
   return [
+    if (pinned.isNotEmpty) TodoSection('Top 3', pinned),
     if (today.isNotEmpty) TodoSection('Today', today),
     if (upcoming.isNotEmpty) TodoSection('Upcoming', upcoming),
     if (someday.isNotEmpty) TodoSection('Someday', someday),

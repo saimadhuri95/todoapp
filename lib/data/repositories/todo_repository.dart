@@ -161,6 +161,11 @@ class TodoRepository {
     const ['completedAtMs'],
   );
 
+  /// Pins/unpins a todo for the "Top 3" section (TASKS.md 6.34). A synced
+  /// LWW field write; the 3-item cap is enforced in the UI, not here.
+  Future<void> setPinned(String id, bool pinned) =>
+      _write(id, TodosCompanion(pinned: Value(pinned)), const ['pinned']);
+
   /// Tombstone, never a row delete (CLAUDE.md invariant 5).
   Future<void> softDelete(String id) =>
       _write(id, const TodosCompanion(deleted: Value(true)), const ['deleted']);

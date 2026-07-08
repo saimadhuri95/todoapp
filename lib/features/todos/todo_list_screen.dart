@@ -332,7 +332,13 @@ class _TodoTile extends ConsumerWidget {
           ((_, final ms?)) => Text(_formatDue(ms)),
           _ => null,
         },
-        trailing: todo.listId == null ? _MoveToListButton(todo: todo) : null,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _PinButton(todo: todo),
+            if (todo.listId == null) _MoveToListButton(todo: todo),
+          ],
+        ),
         onTap: () {
           if (wide) {
             ref.read(selectedTodoIdProvider.notifier).state = todo.id;
@@ -354,6 +360,39 @@ class _TodoTile extends ConsumerWidget {
     return 'Due ${due.year}-${two(due.month)}-${two(due.day)} '
         '${two(due.hour)}:${two(due.minute)}';
   }
+}
+
+/// Most pinned "Top 3" must-dos allowed at once (TASKS.md 6.34).
+const kMaxPins = 3;
+
+/// Pin toggle for the "Top 3" section (TASKS.md 6.34, R14.1). Pinning is
+/// capped at [kMaxPins]; attempting a fourth surfaces a hint instead.
+class _PinButton extends ConsumerWidget {
+  const _PinButton({required this.todo});
+
+  final Todo todo;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => IconButton(
+    tooltip: todo.pinned ? 'Unpin' : 'Pin to Top 3',
+    icon: Icon(todo.pinned ? Icons.push_pin : Icons.push_pin_outlined),
+    color: todo.pinned ? Theme.of(context).colorScheme.primary : null,
+    onPressed: () {
+      final repo = ref.read(todoRepositoryProvider);
+      if (todo.pinned) {
+        repo.setPinned(todo.id, false);
+        return;
+      }
+      final active = ref.read(activeTodosProvider).value ?? const <Todo>[];
+      if (active.where((t) => t.pinned).length >= kMaxPins) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You can pin up to $kMaxPins todos')),
+        );
+        return;
+      }
+      repo.setPinned(todo.id, true);
+    },
+  );
 }
 
 /// One-tap Inbox triage (TASKS.md 6.15): file an unfiled todo into a list

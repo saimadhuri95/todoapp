@@ -20,6 +20,7 @@ const Map<String, Map<String, String>> syncColumns = {
     'alarmOffsetsJson': 'alarm_offsets_json',
     'lastDismissedMs': 'last_dismissed_ms',
     'snoozeUntilMs': 'snooze_until_ms',
+    'pinned': 'pinned',
     'deleted': 'deleted',
   },
   'todo_lists': {

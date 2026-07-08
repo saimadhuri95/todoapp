@@ -16,6 +16,7 @@ Todo todo(String id, {int? completedAtMs}) => Todo(
   tagsJson: '[]',
   alarmOffsetsJson: '[]',
   completedAtMs: completedAtMs,
+  pinned: false,
   deleted: false,
 );
 
