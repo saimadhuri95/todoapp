@@ -8,10 +8,14 @@ import 'package:path_provider/path_provider.dart';
 import '../core/clock.dart';
 import '../core/cloud_folder.dart';
 import '../core/hlc.dart';
+import '../data/cloud/cloud_account_service.dart';
+import '../data/cloud/cloud_http.dart';
+import '../data/cloud/cloud_providers.dart';
 import '../data/db/database.dart';
 import '../data/repositories/list_repository.dart';
 import '../data/repositories/todo_repository.dart';
 import '../data/sync/device_identity.dart';
+import '../data/sync/mailbox_store.dart';
 import '../data/sync/mailbox_transport.dart';
 import '../data/sync/pairing_service.dart';
 import '../data/sync/sync_engine.dart';
@@ -164,6 +168,23 @@ final syncLogProvider = StreamProvider<Map<String, SyncLogData>>(
 /// Mailbox folder path; seeded from prefs in main(), persisted on change.
 final mailboxPathProvider = StateProvider<String?>((_) => null);
 
+// --- Cloud storage accounts (Dropbox / Google Drive / OneDrive) ---
+
+final cloudHttpProvider = Provider<CloudHttp>((_) => IoCloudHttp());
+
+final cloudAccountServiceProvider = Provider<CloudAccountService>(
+  (ref) => CloudAccountService(
+    keyStore: ref.watch(keyStoreProvider),
+    http: ref.watch(cloudHttpProvider),
+    clock: ref.watch(clockProvider),
+  ),
+);
+
+/// Connected OAuth storage provider, mirrored out of the keychain for UI
+/// reactivity (null = none). Seeded in main(), written by the connect
+/// screen after connect/disconnect.
+final cloudAccountProvider = StateProvider<CloudProviderId?>((_) => null);
+
 /// Quiet sync-health summary for 6.27: active transport(s) and unpublished
 /// mailbox changes, recomputed whenever local tables move.
 final syncHealthProvider = StreamProvider.autoDispose<SyncHealthSnapshot>((
@@ -186,18 +207,25 @@ final cloudFolderProvider = Provider<CloudFolderLocator>(
 Future<SyncHealthSnapshot> _readSyncHealth(Ref ref) async {
   final pairing = ref.read(pairingServiceProvider);
   final mailboxPath = ref.read(mailboxPathProvider);
+  final cloudProvider = ref.read(cloudAccountProvider);
   final paired = await pairing.hasGroupKey();
-  if (!paired) {
+  final hasMailbox = cloudProvider != null || mailboxPath != null;
+  if (!paired && !hasMailbox) {
     return const SyncHealthSnapshot(
-      transportLabel: 'Pair a device to start sync',
+      transportLabel: 'Connect a cloud or pair a device to start sync',
       isSyncReady: false,
     );
   }
 
   var pendingOutboundCount = 0;
-  if (mailboxPath != null) {
-    final transport = MailboxTransport(
-      root: Directory(mailboxPath),
+  final store = cloudProvider != null
+      ? await ref.read(cloudAccountServiceProvider).mailboxStore()
+      : (mailboxPath == null
+            ? null
+            : FolderMailboxStore(Directory(mailboxPath)));
+  if (store != null) {
+    final transport = MailboxTransport.withStore(
+      store: store,
       engine: ref.read(syncEngineProvider),
       db: ref.read(databaseProvider),
       deviceId: ref.read(deviceIdProvider),
@@ -207,7 +235,11 @@ Future<SyncHealthSnapshot> _readSyncHealth(Ref ref) async {
   }
 
   return SyncHealthSnapshot(
-    transportLabel: mailboxPath == null ? 'Using LAN' : 'Using LAN + mailbox',
+    transportLabel: switch ((cloudProvider, mailboxPath)) {
+      (final p?, _) => 'Using ${p.displayName}',
+      (null, String()) => 'Using LAN + mailbox',
+      _ => 'Using LAN',
+    },
     isSyncReady: true,
     pendingOutboundCount: pendingOutboundCount,
   );

@@ -22,18 +22,29 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.sai.knot.oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>knot</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>NSCameraUsageDescription</key>
-	<string>Knot uses the camera only to scan another device’s pairing QR code.</string>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>Knot finds your other devices on this network to sync your todos directly, without any server.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_todosync._tcp</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Knot uses the camera only to scan another device’s pairing QR code.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Knot finds your other devices on this network to sync your todos directly, without any server.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

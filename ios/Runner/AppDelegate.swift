@@ -3,6 +3,9 @@ import UIKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+  /// Set once the engine is up; used to forward OAuth redirects into Dart.
+  private var oauthChannel: FlutterMethodChannel?
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -10,8 +13,29 @@ import UIKit
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
+  /// OAuth custom-scheme redirects (knot://oauth and the Google
+  /// reversed-client-id scheme, both registered in Info.plist) — forwarded
+  /// to lib/app/oauth_callback_channel.dart.
+  override func application(
+    _ app: UIApplication,
+    open url: URL,
+    options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+  ) -> Bool {
+    let scheme = url.scheme?.lowercased() ?? ""
+    if scheme == "knot" || scheme.hasPrefix("com.googleusercontent.apps.") {
+      oauthChannel?.invokeMethod("redirect", arguments: url.absoluteString)
+      return true
+    }
+    return super.application(app, open: url, options: options)
+  }
+
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
+    if let oauthRegistrar = engineBridge.pluginRegistry.registrar(forPlugin: "OAuthCallback") {
+      oauthChannel = FlutterMethodChannel(
+        name: "com.sai.knot/oauth_callback", binaryMessenger: oauthRegistrar.messenger())
+    }
 
     guard let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "CloudFolder")
     else { return }
