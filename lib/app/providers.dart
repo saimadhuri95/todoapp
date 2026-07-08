@@ -196,6 +196,95 @@ class SavedSmartFiltersController
   }
 }
 
+class ChecklistTemplate {
+  const ChecklistTemplate({
+    required this.id,
+    required this.name,
+    required this.title,
+    this.notes = '',
+    this.subtasks = const [],
+  });
+
+  final String id;
+  final String name;
+  final String title;
+  final String notes;
+  final List<String> subtasks;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'title': title,
+    'notes': notes,
+    'subtasks': subtasks,
+  };
+
+  factory ChecklistTemplate.fromJson(Map<String, Object?> json) =>
+      ChecklistTemplate(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        title: json['title'] as String,
+        notes: json['notes'] as String? ?? '',
+        subtasks: [
+          for (final item in json['subtasks'] as List<dynamic>? ?? const [])
+            item as String,
+        ],
+      );
+
+  ChecklistTemplate copyWith({required String id}) => ChecklistTemplate(
+    id: id,
+    name: name,
+    title: title,
+    notes: notes,
+    subtasks: subtasks,
+  );
+}
+
+class ChecklistTemplatesController
+    extends StateNotifier<List<ChecklistTemplate>> {
+  ChecklistTemplatesController() : super(const []) {
+    _load();
+  }
+
+  static const storageKey = 'checklistTemplates';
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(storageKey);
+    if (raw == null || raw.isEmpty) return;
+    final decoded = jsonDecode(raw) as List<dynamic>;
+    state = [
+      for (final entry in decoded)
+        ChecklistTemplate.fromJson((entry as Map).cast<String, Object?>()),
+    ];
+  }
+
+  Future<ChecklistTemplate> add(ChecklistTemplate draft) async {
+    final template = draft.copyWith(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+    );
+    state = [...state, template];
+    await _save();
+    return template;
+  }
+
+  Future<void> remove(String id) async {
+    state = [
+      for (final template in state)
+        if (template.id != id) template,
+    ];
+    await _save();
+  }
+
+  Future<void> _save() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      storageKey,
+      jsonEncode([for (final template in state) template.toJson()]),
+    );
+  }
+}
+
 /// Currently selected list filter (null = all lists, [kInboxFilter] = Inbox).
 final listFilterProvider = StateProvider<String?>((_) => null);
 
@@ -208,6 +297,12 @@ final savedSmartFiltersProvider =
     );
 
 final activeSmartFilterIdProvider = StateProvider<String?>((_) => null);
+
+final checklistTemplatesProvider =
+    StateNotifierProvider<
+      ChecklistTemplatesController,
+      List<ChecklistTemplate>
+    >((_) => ChecklistTemplatesController());
 
 final activeSmartFilterProvider = Provider<SavedSmartFilter?>((ref) {
   final id = ref.watch(activeSmartFilterIdProvider);
@@ -252,6 +347,10 @@ final activeTodosProvider = StreamProvider<List<Todo>>((ref) {
 
 final completedTodosProvider = StreamProvider<List<Todo>>(
   (ref) => ref.watch(todoRepositoryProvider).watchCompleted(),
+);
+
+final subtasksProvider = StreamProvider.family<List<Todo>, String>(
+  (ref, parentId) => ref.watch(todoRepositoryProvider).watchSubtasks(parentId),
 );
 
 List<Todo> _applyActiveFilters({

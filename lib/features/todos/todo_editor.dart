@@ -37,6 +37,7 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
   late final _title = TextEditingController(text: widget.todo.title);
   late final _notes = TextEditingController(text: widget.todo.notes);
   late final _tags = TextEditingController(text: widget.todo.tags.join(', '));
+  late final _section = TextEditingController(text: widget.todo.section ?? '');
   late DateTime? _dueAt = widget.todo.dueAtMs == null
       ? null
       : DateTime.fromMillisecondsSinceEpoch(widget.todo.dueAtMs!);
@@ -67,6 +68,7 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
     _title.dispose();
     _notes.dispose();
     _tags.dispose();
+    _section.dispose();
     super.dispose();
   }
 
@@ -111,6 +113,7 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
       recurrenceRule: Value(_recurrence),
       priority: Value(_priority),
       tags: Value(tags),
+      section: Value(_section.text),
       alarmOffsetsMinutes: Value(
         _dueAt == null ? const [] : (_alarmOffsets.toList()..sort()),
       ),
@@ -230,6 +233,14 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
           ],
           onChanged: (v) => setState(() => _listId = v),
         ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _section,
+          decoration: const InputDecoration(
+            labelText: 'Section',
+            hintText: 'Optional, e.g. Errands or Waiting',
+          ),
+        ),
         const SizedBox(height: 16),
         SegmentedButton<int>(
           segments: [
@@ -239,6 +250,8 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
           selected: {_priority},
           onSelectionChanged: (s) => setState(() => _priority = s.first),
         ),
+        const SizedBox(height: 16),
+        FilledButton(onPressed: _save, child: const Text('Save')),
         const SizedBox(height: 12),
         TextField(
           controller: _tags,
@@ -247,8 +260,10 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
             hintText: 'comma, separated',
           ),
         ),
-        const SizedBox(height: 24),
-        FilledButton(onPressed: _save, child: const Text('Save')),
+        if (widget.todo.parentId == null) ...[
+          const SizedBox(height: 16),
+          _SubtaskChecklist(parent: widget.todo),
+        ],
       ],
     );
   }
@@ -259,3 +274,279 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
         '${two(due.hour)}:${two(due.minute)}';
   }
 }
+
+class _SubtaskChecklist extends ConsumerStatefulWidget {
+  const _SubtaskChecklist({required this.parent});
+
+  final Todo parent;
+
+  @override
+  ConsumerState<_SubtaskChecklist> createState() => _SubtaskChecklistState();
+}
+
+class _SubtaskChecklistState extends ConsumerState<_SubtaskChecklist> {
+  final _newSubtask = TextEditingController();
+
+  @override
+  void dispose() {
+    _newSubtask.dispose();
+    super.dispose();
+  }
+
+  Future<void> _addSubtask() async {
+    final title = _newSubtask.text.trim();
+    if (title.isEmpty) return;
+    await ref.read(todoRepositoryProvider).createSubtasks(widget.parent.id, [
+      title,
+    ]);
+    _newSubtask.clear();
+  }
+
+  Future<void> _breakDown() async {
+    final lines = await showDialog<List<String>>(
+      context: context,
+      builder: (context) => const _BreakdownDialog(),
+    );
+    if (lines == null || lines.isEmpty) return;
+    await ref
+        .read(todoRepositoryProvider)
+        .createSubtasks(widget.parent.id, lines);
+  }
+
+  Future<void> _saveTemplate(List<Todo> subtasks) async {
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) =>
+          _TemplateNameDialog(initialName: widget.parent.title),
+    );
+    final trimmed = name?.trim() ?? '';
+    if (trimmed.isEmpty) return;
+    await ref
+        .read(checklistTemplatesProvider.notifier)
+        .add(
+          ChecklistTemplate(
+            id: '',
+            name: trimmed,
+            title: widget.parent.title,
+            notes: widget.parent.notes,
+            subtasks: [for (final subtask in subtasks) subtask.title],
+          ),
+        );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved "$trimmed" as a checklist template')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final subtasks = ref.watch(subtasksProvider(widget.parent.id));
+    final templates = ref.watch(checklistTemplatesProvider);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Checklist',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _breakDown,
+                  icon: const Icon(Icons.splitscreen_outlined),
+                  label: const Text('Break down'),
+                ),
+                PopupMenuButton<ChecklistTemplate>(
+                  tooltip: 'Apply template',
+                  enabled: templates.isNotEmpty,
+                  icon: const Icon(Icons.bookmarks_outlined),
+                  onSelected: (template) => ref
+                      .read(todoRepositoryProvider)
+                      .createSubtasks(widget.parent.id, template.subtasks),
+                  itemBuilder: (_) => [
+                    for (final template in templates)
+                      PopupMenuItem(
+                        value: template,
+                        child: Text(template.name),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            switch (subtasks) {
+              AsyncData(value: final items) => _SubtaskList(
+                subtasks: items,
+                onSaveTemplate: () => _saveTemplate(items),
+              ),
+              AsyncError(error: final e) => Text('Checklist error: $e'),
+              _ => const LinearProgressIndicator(),
+            },
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _newSubtask,
+                    decoration: const InputDecoration(
+                      labelText: 'New checklist item',
+                    ),
+                    onSubmitted: (_) => _addSubtask(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  tooltip: 'Add checklist item',
+                  onPressed: _addSubtask,
+                  icon: const Icon(Icons.add),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SubtaskList extends ConsumerWidget {
+  const _SubtaskList({required this.subtasks, required this.onSaveTemplate});
+
+  final List<Todo> subtasks;
+  final VoidCallback onSaveTemplate;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final done = subtasks.where((todo) => todo.completedAtMs != null).length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          subtasks.isEmpty
+              ? 'Add steps manually, paste a breakdown, or apply a template.'
+              : '$done of ${subtasks.length} complete',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        for (final subtask in subtasks)
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            value: subtask.completedAtMs != null,
+            title: Text(
+              subtask.title,
+              style: subtask.completedAtMs == null
+                  ? null
+                  : const TextStyle(decoration: TextDecoration.lineThrough),
+            ),
+            onChanged: (_) {
+              final repo = ref.read(todoRepositoryProvider);
+              subtask.completedAtMs == null
+                  ? repo.complete(subtask.id)
+                  : repo.uncomplete(subtask.id);
+            },
+          ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: onSaveTemplate,
+            icon: const Icon(Icons.bookmark_add_outlined),
+            label: const Text('Save as template'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BreakdownDialog extends StatefulWidget {
+  const _BreakdownDialog();
+
+  @override
+  State<_BreakdownDialog> createState() => _BreakdownDialogState();
+}
+
+class _BreakdownDialogState extends State<_BreakdownDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Break into checklist items'),
+    content: TextField(
+      controller: _controller,
+      autofocus: true,
+      minLines: 5,
+      maxLines: 8,
+      keyboardType: TextInputType.multiline,
+      decoration: const InputDecoration(
+        hintText: 'One step per line\nDraft outline\nBook room\nSend invite',
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: () =>
+            Navigator.of(context).pop(_splitLines(_controller.text)),
+        child: const Text('Create checklist'),
+      ),
+    ],
+  );
+}
+
+class _TemplateNameDialog extends StatefulWidget {
+  const _TemplateNameDialog({required this.initialName});
+
+  final String initialName;
+
+  @override
+  State<_TemplateNameDialog> createState() => _TemplateNameDialogState();
+}
+
+class _TemplateNameDialogState extends State<_TemplateNameDialog> {
+  late final _controller = TextEditingController(text: widget.initialName);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Save checklist template'),
+    content: TextField(
+      controller: _controller,
+      autofocus: true,
+      decoration: const InputDecoration(labelText: 'Template name'),
+      onSubmitted: (value) => Navigator.of(context).pop(value),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.of(context).pop(_controller.text),
+        child: const Text('Save'),
+      ),
+    ],
+  );
+}
+
+List<String> _splitLines(String input) => input
+    .split(RegExp(r'\r\n|\r|\n'))
+    .map((line) => line.trim())
+    .where((line) => line.isNotEmpty)
+    .toList();

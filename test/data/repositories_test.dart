@@ -55,8 +55,11 @@ void main() {
       expect(todo.priority, 2);
 
       final stamps = await clocksFor(todo.id);
-      expect(stamps.keys, hasLength(12)); // every todos entry in syncColumns
+      expect(stamps.keys, hasLength(15)); // every todos entry in syncColumns
       expect(stamps.keys, contains('title'));
+      expect(stamps.keys, contains('parentId'));
+      expect(stamps.keys, contains('section'));
+      expect(stamps.keys, contains('sortKey'));
       expect(stamps.keys, contains('deleted'));
     });
 
@@ -126,6 +129,64 @@ void main() {
       final todo = await todos.create(title: 't');
       await todos.edit(todo.id, tags: const Value(['home', 'urgent']));
       expect((await todos.getById(todo.id))!.tags, ['home', 'urgent']);
+    });
+
+    test(
+      'subtasks are synced rows but hidden from the top-level list',
+      () async {
+        final parent = await todos.create(
+          title: 'Launch',
+          section: ' Projects ',
+        );
+
+        final children = await todos.createSubtasks(parent.id, [
+          'Draft outline',
+          'Send invite',
+        ]);
+
+        expect(children, hasLength(2));
+        expect(children.map((todo) => todo.parentId), [parent.id, parent.id]);
+        expect(children.map((todo) => todo.listId), [
+          parent.listId,
+          parent.listId,
+        ]);
+        expect(children.first.section, 'Projects');
+
+        final active = await todos.watchActive().first;
+        expect(active.map((todo) => todo.id), [parent.id]);
+
+        final checklist = await todos.watchSubtasks(parent.id).first;
+        expect(checklist.map((todo) => todo.title), [
+          'Draft outline',
+          'Send invite',
+        ]);
+
+        final childStamps = await clocksFor(children.first.id);
+        expect(childStamps.keys, containsAll(['parentId', 'sortKey']));
+        expect(childStamps.keys, hasLength(15));
+      },
+    );
+
+    test('replaceVisibleOrder stores string keys and section moves', () async {
+      final first = await todos.create(title: 'first');
+      final second = await todos.create(title: 'second');
+
+      await todos.replaceVisibleOrder(
+        [second, first],
+        sectionsById: {second.id: 'Doing'},
+      );
+
+      final moved = (await todos.getById(second.id))!;
+      final trailing = (await todos.getById(first.id))!;
+      expect(moved.section, 'Doing');
+      expect(moved.sortKey.compareTo(trailing.sortKey), lessThan(0));
+
+      final active = await todos.watchActive().first;
+      expect(active.map((todo) => todo.id), [second.id, first.id]);
+      expect(
+        (await clocksFor(second.id)).keys,
+        containsAll(['section', 'sortKey']),
+      );
     });
 
     test('staleCandidates skips fresh, completed, and Someday todos', () async {

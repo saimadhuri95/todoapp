@@ -101,4 +101,19 @@ void main() {
 
     expect(await db.alarmDismissals.all().get(), hasLength(2));
   });
+
+  test('schema migration v4 to v5 adds task organization columns', () async {
+    await db.customStatement('PRAGMA foreign_keys = OFF');
+    await db.customStatement('ALTER TABLE todos DROP COLUMN parent_id');
+    await db.customStatement('ALTER TABLE todos DROP COLUMN section');
+    await db.customStatement('ALTER TABLE todos DROP COLUMN sort_key');
+    await db.todos.insertOne(TodosCompanion.insert(id: 't1', title: 'Pre-v5'));
+
+    await db.migration.onUpgrade(db.createMigrator(), 4, 5);
+
+    final migrated = await db.todos.all().getSingle();
+    expect(migrated.parentId, isNull);
+    expect(migrated.section, isNull);
+    expect(migrated.sortKey, '');
+  });
 }

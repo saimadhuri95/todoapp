@@ -67,6 +67,11 @@ class GroupMembers extends Table {
 class Todos extends Table {
   TextColumn get id => text()();
   TextColumn get listId => text().nullable().references(TodoLists, #id)();
+
+  /// Subtasks/checklist items are ordinary synced todo rows (schema v5).
+  /// A null parent is a top-level task; child rows keep their own LWW clocks.
+  TextColumn get parentId => text().nullable().references(Todos, #id)();
+
   TextColumn get title => text()();
   TextColumn get notes => text().withDefault(const Constant(''))();
   IntColumn get dueAtMs => integer().nullable()();
@@ -74,6 +79,12 @@ class Todos extends Table {
   IntColumn get completedAtMs => integer().nullable()();
   IntColumn get priority => integer().withDefault(const Constant(0))();
   TextColumn get tagsJson => text().withDefault(const Constant('[]'))();
+
+  /// User-defined section within a list, null for date-driven grouping.
+  TextColumn get section => text().nullable()();
+
+  /// Fractional, lexicographically sortable order key for manual ordering.
+  TextColumn get sortKey => text().withDefault(const Constant(''))();
 
   /// Alarms (schema v3): JSON array of minute-offsets before [dueAtMs]
   /// (0 = at due time). LWW fields on the todo so they sync like

@@ -10,6 +10,7 @@ import '../db/database.dart';
 const Map<String, Map<String, String>> syncColumns = {
   'todos': {
     'listId': 'list_id',
+    'parentId': 'parent_id',
     'title': 'title',
     'notes': 'notes',
     'dueAtMs': 'due_at_ms',
@@ -17,6 +18,8 @@ const Map<String, Map<String, String>> syncColumns = {
     'completedAtMs': 'completed_at_ms',
     'priority': 'priority',
     'tagsJson': 'tags_json',
+    'section': 'section',
+    'sortKey': 'sort_key',
     'alarmOffsetsJson': 'alarm_offsets_json',
     'lastDismissedMs': 'last_dismissed_ms',
     'snoozeUntilMs': 'snooze_until_ms',
