@@ -395,6 +395,8 @@ final cloudAccountServiceProvider = Provider<CloudAccountService>(
     keyStore: ref.watch(keyStoreProvider),
     http: ref.watch(cloudHttpProvider),
     clock: ref.watch(clockProvider),
+    // Guards account removal while a sharing group references it (8.4).
+    db: ref.watch(databaseProvider),
   ),
 );
 
@@ -402,6 +404,12 @@ final cloudAccountServiceProvider = Provider<CloudAccountService>(
 /// reactivity (null = none). Seeded in main(), written by the connect
 /// screen after connect/disconnect.
 final cloudAccountProvider = StateProvider<CloudProviderId?>((_) => null);
+
+/// All signed-in storage accounts (TASKS 8.4). Invalidate after
+/// connect/disconnect/remove to refresh the accounts section.
+final cloudAccountsProvider = FutureProvider<List<CloudAccount>>(
+  (ref) => ref.watch(cloudAccountServiceProvider).accounts(),
+);
 
 /// Quiet sync-health summary for 6.27: active transport(s) and unpublished
 /// mailbox changes, recomputed whenever local tables move.

@@ -1,33 +1,56 @@
 import '../../core/clock.dart';
+import '../db/database.dart';
 import '../sync/device_identity.dart';
 import '../sync/mailbox_store.dart';
 import 'cloud_http.dart';
 import 'cloud_providers.dart';
 
+/// See the native implementation for semantics.
+class CloudAccount {
+  const CloudAccount({
+    required this.id,
+    required this.provider,
+    required this.label,
+  });
+
+  final String id;
+  final CloudProviderId provider;
+  final String label;
+}
+
+/// Web placeholder: cloud accounts are unavailable until a browser-safe
+/// transport exists; everything reads as signed-out.
 class CloudAccountService {
   CloudAccountService({
     required KeyStore keyStore,
     required CloudHttp http,
     required Clock clock,
+    AppDatabase? db,
   });
+
+  Future<List<CloudAccount>> accounts() async => const [];
+
+  Future<CloudAccount?> primaryAccount() async => null;
 
   Future<CloudProviderId?> connectedProvider() async => null;
 
-  Future<void> connect(
+  Future<CloudAccount> connect(
     CloudProviderId id, {
     required Future<Uri> Function(Uri authorizationUrl) authenticate,
   }) => throw UnsupportedError('Cloud sign-in is unavailable on web.');
 
-  Future<void> connectWebDav({
+  Future<CloudAccount> connectWebDav({
     required Uri serverUrl,
     required String username,
     required String password,
   }) => throw UnsupportedError('WebDAV sync is unavailable on web.');
 
+  Future<void> removeAccount(String accountId) async {}
+
   Future<void> disconnect() async {}
 
-  Future<String> freshAccessToken() =>
+  Future<String> freshAccessToken([String? accountId]) =>
       throw StateError('No cloud account connected');
 
-  Future<MailboxStore?> mailboxStore() async => null;
+  Future<MailboxStore?> mailboxStore({String? accountId}) async => null;
 }

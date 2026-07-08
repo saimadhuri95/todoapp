@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../app/oauth_callback_channel.dart';
 import '../../app/providers.dart';
 import '../../app/sync_service.dart';
+import '../../data/cloud/cloud_account_service.dart';
 import '../../data/cloud/cloud_providers.dart';
 import '../todos/linkified_text.dart' show urlOpenerProvider;
 
@@ -36,6 +37,8 @@ class _CloudConnectScreenState extends ConsumerState<CloudConnectScreen> {
   @override
   Widget build(BuildContext context) {
     final connected = ref.watch(cloudAccountProvider);
+    final accounts =
+        ref.watch(cloudAccountsProvider).value ?? const <CloudAccount>[];
     final mailboxPath = ref.watch(mailboxPathProvider);
     final devices = ref.watch(devicesProvider).value ?? const [];
     final peerCount = (devices.length - 1).clamp(0, 999);
@@ -127,9 +130,44 @@ class _CloudConnectScreenState extends ConsumerState<CloudConnectScreen> {
               onConnect: () => _connectOAuth(id),
               onDisconnect: _disconnectOAuth,
             ),
+          if (accounts.isNotEmpty) ...[
+            const Divider(),
+            _SectionHeader(
+              'Signed-in accounts',
+              'Sharing groups can use any of these (each member brings '
+                  'their own)',
+            ),
+            for (final account in accounts)
+              ListTile(
+                leading: const Icon(Icons.account_circle_outlined),
+                title: Text(account.label),
+                subtitle: Text(account.provider.displayName),
+                trailing: IconButton(
+                  tooltip: 'Remove account',
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: _busy == null
+                      ? () => _removeAccount(account)
+                      : null,
+                ),
+              ),
+          ],
         ],
       ),
     );
+  }
+
+  Future<void> _removeAccount(CloudAccount account) async {
+    try {
+      await ref.read(cloudAccountServiceProvider).removeAccount(account.id);
+      // The primary may have gone with it; refresh the mirrors.
+      ref.read(cloudAccountProvider.notifier).state = await ref
+          .read(cloudAccountServiceProvider)
+          .connectedProvider();
+      ref.invalidate(cloudAccountsProvider);
+      _toast('Removed ${account.label}');
+    } on StateError catch (e) {
+      _toast(e.message);
+    }
   }
 
   Future<void> _connectOAuth(CloudProviderId id) async {
@@ -153,6 +191,7 @@ class _CloudConnectScreenState extends ConsumerState<CloudConnectScreen> {
       // is what pairing later shares with new devices.
       await ref.read(pairingServiceProvider).loadOrCreateGroupKey();
       ref.read(cloudAccountProvider.notifier).state = id;
+      ref.invalidate(cloudAccountsProvider);
       unawaitedSync(ref);
       _toast('Connected to ${id.displayName}');
     } on Exception catch (e) {
@@ -179,6 +218,7 @@ class _CloudConnectScreenState extends ConsumerState<CloudConnectScreen> {
           );
       await ref.read(pairingServiceProvider).loadOrCreateGroupKey();
       ref.read(cloudAccountProvider.notifier).state = CloudProviderId.webdav;
+      ref.invalidate(cloudAccountsProvider);
       unawaitedSync(ref);
       _toast('Connected to ${creds.$1.host}');
     } on Exception catch (e) {
@@ -193,6 +233,7 @@ class _CloudConnectScreenState extends ConsumerState<CloudConnectScreen> {
     if (id == null || !await _confirmDisconnect(id)) return;
     await ref.read(cloudAccountServiceProvider).disconnect();
     ref.read(cloudAccountProvider.notifier).state = null;
+    ref.invalidate(cloudAccountsProvider);
     _toast('Disconnected — your todos stay on this ${deviceWord()}');
   }
 

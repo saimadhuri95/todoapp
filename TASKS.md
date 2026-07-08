@@ -410,9 +410,13 @@ you a peer of someone else's storage without sharing credentials.
   *entering* a scope always outrun published vector markers (that is the
   snapshot-republish-on-move mechanism); group transports publish scoped;
   per-scope convergence gate + move-in/move-out/leak tests
-- [ ] 8.4 Multi-account `CloudAccountService`: list of accounts keyed
-  `(provider, accountId)`, keychain tokens namespaced per account,
-  two-Dropbox-accounts test; accounts section in settings
+- [x] 8.4 (issue #96) Multi-account `CloudAccountService`: accounts
+  registry in the keychain, per-account secret namespacing
+  (`cloud_tokens:<id>`/`cloud_webdav:<id>`), same-provider coexistence,
+  per-account refresh, legacy single-account migration (no re-auth),
+  `removeAccount` guarded by `sync_groups.local_account_ref`, primary
+  account = personal mailbox (back-compat), accounts section on the
+  connect screen
 - [ ] 8.5 Per-group keys + invites: group key creation/storage/rotation
   per group; invite QR payload `{groupId, name, groupKey, backend hint}`
   over the existing X25519 pairing handshake; join flow wiring
