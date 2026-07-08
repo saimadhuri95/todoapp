@@ -403,10 +403,12 @@ you a peer of someone else's storage without sharing credentials.
   (`group:<gid>:mailbox:<peer>` via `MailboxTransport.groupId`),
   generalized FK row-springing in `LwwApplier`, `GroupRepository` +
   `ListRepository.setGroup`, v3→v4 migration; 13 new tests
-- [ ] 8.3 Scoped changesets: `SyncEngine.changesFor(vector, {groupId})`
-  filtering writes through rowId → list → group; per-scope version
-  vectors; convergence property suite must pass *per scope* and across
-  list moves between groups (snapshot republish on move)
+- [x] 8.3 (issue #95) Scoped changesets: `changesFor(vector, {groupId})`
+  filters to the group's lists/todos/row/memberships/member devices;
+  `setGroup` re-stamps the list + its todos with one fresh HLC so rows
+  *entering* a scope always outrun published vector markers (that is the
+  snapshot-republish-on-move mechanism); group transports publish scoped;
+  per-scope convergence gate + move-in/move-out/leak tests
 - [ ] 8.4 Multi-account `CloudAccountService`: list of accounts keyed
   `(provider, accountId)`, keychain tokens namespaced per account,
   two-Dropbox-accounts test; accounts section in settings

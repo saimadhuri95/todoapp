@@ -63,7 +63,7 @@ class MailboxTransport {
   /// still have local mailbox writes waiting to be published.
   Future<int> pendingOutboundCount() async {
     final published = await _readVector();
-    final changeset = await engine.changesFor(published);
+    final changeset = await engine.changesFor(published, groupId: groupId);
     return {
       for (final write in changeset.writes) '${write.entity}:${write.rowId}',
     }.length;
@@ -73,7 +73,7 @@ class MailboxTransport {
   /// of field writes published.
   Future<int> publish() async {
     final published = await _readVector();
-    final changeset = await engine.changesFor(published);
+    final changeset = await engine.changesFor(published, groupId: groupId);
     if (changeset.writes.isEmpty) return 0;
 
     final sealed = await PairingCrypto.seal(
