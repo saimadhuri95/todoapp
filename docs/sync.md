@@ -62,6 +62,27 @@ devices over pluggable transports, merged with CRDT semantics.
 - Folder access: iCloud container via native channel (iOS/macOS), Storage
   Access Framework (Android), plain directory picker (Windows/Linux).
 
+### The mailbox is a transport, not a backup
+
+The cloud-drive mailbox looks like a folder full of files in your Drive, so it
+is tempting to treat it as a backup. It is not, and must not be relied on as
+one:
+
+- It holds **deltas plus periodic snapshots**, not a full, self-contained
+  export. Once every peer's cursor has passed a changeset, compaction deletes
+  it — old history is intentionally discarded.
+- It converges devices to the **current** state. A delete or a bad bulk edit
+  replicates to every device; the mailbox faithfully propagates the loss rather
+  than preserving what was there before.
+- Its contents are keyed to the paired devices' session keys. It is not a
+  portable artifact a user can hand to a new, unpaired device to recover data.
+
+For an actual backup, use the **encrypted backup file** (TASKS.md 6.41,
+`lib/data/backup_service.dart`): a passphrase-derived key (PBKDF2-HMAC-SHA256)
+sealing a full JSON export with XChaCha20-Poly1305. It is a point-in-time
+snapshot, independent of any pairing, that a user restores by hand — the
+counterpart to the mailbox's live replication.
+
 ### Orchestration
 - Triggers: app foreground, debounced local mutation, periodic timer.
 - Prefer LAN when a peer is visible; mailbox otherwise. Both can run — merge
