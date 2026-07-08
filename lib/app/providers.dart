@@ -80,6 +80,7 @@ class SyncHealthSnapshot {
 /// devices auto-creating one each would duplicate on merge, while a null
 /// listId can't diverge (TASKS.md 6.15).
 const kInboxFilter = '';
+const kSomedayFilter = '__someday__';
 
 /// Currently selected list filter (null = all lists, [kInboxFilter] = Inbox).
 final listFilterProvider = StateProvider<String?>((_) => null);
@@ -97,11 +98,41 @@ final activeTodosProvider = StreamProvider<List<Todo>>((ref) {
       .watchActive(
         listId: filter == kInboxFilter ? null : filter,
         unfiledOnly: filter == kInboxFilter,
+        somedayOnly: filter == kSomedayFilter,
       );
 });
 
 final completedTodosProvider = StreamProvider<List<Todo>>(
   (ref) => ref.watch(todoRepositoryProvider).watchCompleted(),
+);
+
+final overdueTodosProvider = Provider<List<Todo>>((ref) {
+  if (ref.watch(listFilterProvider) == kSomedayFilter) return const [];
+  final todos = ref.watch(activeTodosProvider).value ?? const <Todo>[];
+  final now = ref.watch(clockProvider).now();
+  final startOfToday = DateTime(now.year, now.month, now.day);
+  return [
+    for (final todo in todos)
+      if (todo.dueAtMs != null &&
+          DateTime.fromMillisecondsSinceEpoch(
+            todo.dueAtMs!,
+          ).isBefore(startOfToday))
+        todo,
+  ];
+});
+
+final staleTodoCandidatesProvider =
+    StreamProvider.autoDispose<List<StaleTodoCandidate>>((ref) async* {
+      final db = ref.watch(databaseProvider);
+      final repo = ref.watch(todoRepositoryProvider);
+      yield await repo.staleCandidates(now: ref.read(clockProvider).now());
+      await for (final _ in db.tableUpdates()) {
+        yield await repo.staleCandidates(now: ref.read(clockProvider).now());
+      }
+    });
+
+final dismissedOverduePromptIdsProvider = StateProvider<Set<String>>(
+  (_) => <String>{},
 );
 
 final listsProvider = StreamProvider<List<TodoList>>(

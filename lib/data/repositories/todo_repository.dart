@@ -8,6 +8,13 @@ import '../../core/recurrence.dart';
 import '../db/database.dart';
 import '../sync/sync_fields.dart';
 
+class StaleTodoCandidate {
+  const StaleTodoCandidate({required this.todo, required this.lastTouchedAt});
+
+  final Todo todo;
+  final DateTime lastTouchedAt;
+}
+
 /// All todo mutations go through here: each one updates the row and stamps
 /// the changed fields' HLC clocks in the same transaction, so local edits
 /// are sync-ready from day one (TASKS.md 1.5). UI never touches the db
@@ -235,8 +242,13 @@ class TodoRepository {
       (_db.todos.select()..where((t) => t.id.equals(id))).getSingleOrNull();
 
   /// Not deleted and not completed, soonest due date first (nulls last).
-  /// [unfiledOnly] restricts to Inbox todos (no list) and wins over [listId].
-  Stream<List<Todo>> watchActive({String? listId, bool unfiledOnly = false}) {
+  /// [unfiledOnly] restricts to Inbox todos (no list); [somedayOnly]
+  /// restricts to no-due-date todos. Both win over [listId].
+  Stream<List<Todo>> watchActive({
+    String? listId,
+    bool unfiledOnly = false,
+    bool somedayOnly = false,
+  }) {
     final query = _db.todos.select()
       ..where((t) => t.deleted.equals(false) & t.completedAtMs.isNull())
       ..orderBy([
@@ -245,12 +257,57 @@ class TodoRepository {
         (t) => OrderingTerm(expression: t.dueAtMs),
         (t) => OrderingTerm(expression: t.priority, mode: OrderingMode.desc),
       ]);
-    if (unfiledOnly) {
+    if (somedayOnly) {
+      query.where((t) => t.dueAtMs.isNull());
+    } else if (unfiledOnly) {
       query.where((t) => t.listId.isNull());
     } else if (listId != null) {
       query.where((t) => t.listId.equals(listId));
     }
     return query.watch();
+  }
+
+  Future<List<StaleTodoCandidate>> staleCandidates({
+    required DateTime now,
+    Duration untouchedFor = const Duration(days: 28),
+  }) async {
+    final todos =
+        await (_db.todos.select()..where(
+              (t) =>
+                  t.deleted.equals(false) &
+                  t.completedAtMs.isNull() &
+                  t.dueAtMs.isNotNull(),
+            ))
+            .get();
+    if (todos.isEmpty) return const [];
+
+    final todoIds = todos.map((todo) => todo.id).toList();
+    final clocks =
+        await (_db.fieldClocks.select()
+              ..where((c) => c.entity.equals('todos') & c.rowId.isIn(todoIds)))
+            .get();
+    final latestTouchedMs = <String, int>{};
+    for (final clock in clocks) {
+      final millis = Hlc.parse(clock.hlc).millis;
+      final previous = latestTouchedMs[clock.rowId];
+      if (previous == null || millis > previous) {
+        latestTouchedMs[clock.rowId] = millis;
+      }
+    }
+
+    final cutoffMs = now.subtract(untouchedFor).millisecondsSinceEpoch;
+    final candidates = [
+      for (final todo in todos)
+        if ((latestTouchedMs[todo.id] ?? now.millisecondsSinceEpoch) < cutoffMs)
+          StaleTodoCandidate(
+            todo: todo,
+            lastTouchedAt: DateTime.fromMillisecondsSinceEpoch(
+              latestTouchedMs[todo.id]!,
+            ),
+          ),
+    ];
+    candidates.sort((a, b) => a.lastTouchedAt.compareTo(b.lastTouchedAt));
+    return candidates;
   }
 
   Stream<List<Todo>> watchCompleted() =>
