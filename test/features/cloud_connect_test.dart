@@ -76,7 +76,7 @@ void main() {
       await tester.pumpWidget(screen());
       await tester.pumpAndSettle();
 
-      expect(find.text('This iPhone'), findsOneWidget);
+      expect(find.text('This device'), findsOneWidget);
       expect(find.text('No cloud connected'), findsOneWidget);
       expect(find.text('Paired devices'), findsOneWidget);
       expect(find.text('iCloud Drive'), findsOneWidget);
@@ -174,7 +174,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Where should your todos live?'), findsOneWidget);
-      await tester.tap(find.text('Just this iPhone'));
+      await tester.tap(find.text('Just this device'));
       await tester.pumpAndSettle();
 
       expect(find.text('Where should your todos live?'), findsNothing);

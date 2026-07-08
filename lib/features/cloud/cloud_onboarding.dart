@@ -47,9 +47,9 @@ class _CloudOnboardingState extends ConsumerState<CloudOnboarding> {
               ),
               const SizedBox(height: 8),
               Text(
-                'They always stay on this iPhone and work offline. You can '
-                'also keep an encrypted copy in your own cloud — nothing '
-                'readable ever leaves this device.',
+                'They always stay on this ${deviceWord()} and work offline. '
+                'You can also keep an encrypted copy in your own cloud — '
+                'nothing readable ever leaves this device.',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 20),
@@ -61,7 +61,7 @@ class _CloudOnboardingState extends ConsumerState<CloudOnboarding> {
               const SizedBox(height: 8),
               OutlinedButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Just this iPhone'),
+                child: Text('Just this ${deviceWord()}'),
               ),
             ],
           ),

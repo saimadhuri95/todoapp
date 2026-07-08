@@ -61,6 +61,16 @@ devices over pluggable transports, merged with CRDT semantics.
   snapshot once all peers' cursors have passed them.
 - Folder access: iCloud container via native channel (iOS/macOS), Storage
   Access Framework (Android), plain directory picker (Windows/Linux).
+- **Provider-API backends (ADR 0002):** the same protocol also runs over a
+  storage provider's REST API behind the `MailboxStore` seam — Dropbox app
+  folder, Google Drive `appDataFolder`, OneDrive Graph approot — signed in
+  from Settings → Cloud storage with OAuth/PKCE (docs/cloud-providers.md).
+  This is the iPhone path, where those providers expose no filesystem
+  folder. Same layout, same ciphertext, narrowest per-provider scopes.
+- **Solo-device mode:** a configured mailbox no longer requires pairing —
+  the first device creates the group key itself and publishes from day one;
+  pairing later hands that key to new devices, which then join the same
+  mailbox with full history.
 
 ### The mailbox is a transport, not a backup
 

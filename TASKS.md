@@ -347,6 +347,32 @@ driver/dispatcher scenario and Apple-first direction.
 - [ ] 6.42 (R12.4) Perf budgets: cold start <2 s, quick-add <500 ms, 5k-task
   scroll without jank — measure (extends 5.7), automate what CI can hold
 
+**Cloud provider accounts — iPhone-first (user direction 2026-07-07, ADR 0002)**
+
+- [x] 7.1 `MailboxStore` seam: mailbox protocol over any file store;
+  `FolderMailboxStore` keeps the original behavior
+- [x] 7.2 OAuth 2.0 + PKCE (`lib/data/cloud/oauth.dart`): no SDKs, no client
+  secret; tokens in the keychain; injectable HTTP + clock
+- [x] 7.3 Provider mailbox stores: Dropbox app folder, Google Drive
+  `appDataFolder`, OneDrive Graph approot (narrowest scopes each)
+- [x] 7.4 Solo-device sync: configured mailbox creates the group key without
+  pairing; later pairing shares it (buildOrchestrator gate change)
+- [x] 7.5 Connect screen (Settings → Cloud storage): iCloud Drive +
+  three OAuth providers, connect/disconnect, setup-required states,
+  "Your data" source overview (iPhone / cloud / peers)
+- [x] 7.6 First-launch onboarding sheet ("Just this iPhone" / "Also in my
+  cloud") — optional, never a wall (invariant 1)
+- [x] 7.7 iOS plumbing: `knot://` URL scheme, AppDelegate redirect →
+  `OAuthCallbackChannel`; verified app boots + onboarding on iPhone 17 Pro
+  simulator
+- [ ] 7.8 Register the three provider apps (free; docs/cloud-providers.md),
+  inject `KNOT_*_CLIENT_ID` dart-defines, verify OAuth end-to-end on a
+  simulator/device — **blocked on user accounts**
+- [ ] 7.9 Account label on the connect screen (fetch display name/email from
+  the provider after connect)
+- [ ] 7.10 Android/desktop parity for the OAuth redirect (intent filter /
+  loopback listener) — iPhone-first for now
+
 **Alarms-phase additions (execute with Phase 2, per execution order)**
 
 - [ ] 6.43 (R6.2) Snooze presets on the notification (10 min / 1 h / this

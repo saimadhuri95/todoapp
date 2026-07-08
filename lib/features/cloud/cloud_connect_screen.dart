@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +24,11 @@ class CloudConnectScreen extends ConsumerStatefulWidget {
   ConsumerState<CloudConnectScreen> createState() => _CloudConnectScreenState();
 }
 
+/// "iPhone" on iOS, "device" everywhere else — these screens ship to all
+/// platforms even though the flow is iPhone-first.
+String deviceWord() =>
+    defaultTargetPlatform == TargetPlatform.iOS ? 'iPhone' : 'device';
+
 class _CloudConnectScreenState extends ConsumerState<CloudConnectScreen> {
   /// Provider a connect/disconnect is in flight for (spinner on that row).
   CloudProviderId? _busy;
@@ -45,11 +51,11 @@ class _CloudConnectScreenState extends ConsumerState<CloudConnectScreen> {
             'Your data',
             'Where your todos live — every source shows in the one list',
           ),
-          const ListTile(
-            leading: Icon(Icons.phone_iphone),
-            title: Text('This iPhone'),
-            subtitle: Text('Always on — works fully offline'),
-            trailing: Icon(Icons.check_circle, color: Colors.teal),
+          ListTile(
+            leading: const Icon(Icons.phone_iphone),
+            title: Text('This ${deviceWord()}'),
+            subtitle: const Text('Always on — works fully offline'),
+            trailing: const Icon(Icons.check_circle, color: Colors.teal),
           ),
           ListTile(
             leading: const Icon(Icons.cloud_outlined),
@@ -150,7 +156,7 @@ class _CloudConnectScreenState extends ConsumerState<CloudConnectScreen> {
     if (id == null || !await _confirmDisconnect(id)) return;
     await ref.read(cloudAccountServiceProvider).disconnect();
     ref.read(cloudAccountProvider.notifier).state = null;
-    _toast('Disconnected — your todos stay on this iPhone');
+    _toast('Disconnected — your todos stay on this ${deviceWord()}');
   }
 
   Future<void> _connectIcloud() async {
@@ -180,7 +186,7 @@ class _CloudConnectScreenState extends ConsumerState<CloudConnectScreen> {
     ref.read(mailboxPathProvider.notifier).state = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('mailboxPath');
-    _toast('Disconnected — your todos stay on this iPhone');
+    _toast('Disconnected — your todos stay on this ${deviceWord()}');
   }
 
   Future<bool> _confirmDisconnect(CloudProviderId id) async {
@@ -188,9 +194,9 @@ class _CloudConnectScreenState extends ConsumerState<CloudConnectScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Disconnect ${id.displayName}?'),
-        content: const Text(
-          'Nothing is deleted: your todos stay on this iPhone and the '
-          'encrypted copy stays in your cloud for when you reconnect.',
+        content: Text(
+          'Nothing is deleted: your todos stay on this ${deviceWord()} and '
+          'the encrypted copy stays in your cloud for when you reconnect.',
         ),
         actions: [
           TextButton(
