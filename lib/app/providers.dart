@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show TableOrViewStatements;
-import 'package:flutter/material.dart' show ThemeMode;
+import 'package:flutter/material.dart' show Color, Colors, ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -67,6 +67,24 @@ final syncGroupsProvider = StreamProvider<List<SyncGroup>>(
 /// Theme override — system/light/dark (TASKS.md 6.6). Seeded from the
 /// `themeMode` pref in main(), persisted on change in settings.
 final themeModeProvider = StateProvider<ThemeMode>((_) => ThemeMode.system);
+
+/// Curated accent colors used as the theme's [ColorScheme] seed (TASKS.md
+/// 6.53). Persisted by index (`accentColor` pref) so the stored value stays
+/// stable even if a color's exact ARGB changes.
+const accentColorChoices = <Color>[
+  Colors.teal,
+  Colors.indigo,
+  Colors.deepPurple,
+  Colors.pink,
+  Colors.red,
+  Colors.orange,
+  Colors.green,
+  Colors.blueGrey,
+];
+
+/// The chosen accent color. Seeded from the `accentColor` pref index in
+/// main(), persisted on change in settings.
+final accentColorProvider = StateProvider<Color>((_) => accentColorChoices[0]);
 
 /// Glanceable mode (TASKS.md 6.5): large bumps type + checkbox size on the
 /// list for dashboard-mounted phones. Seeded from the `displayDensity` pref
