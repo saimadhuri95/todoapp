@@ -54,6 +54,8 @@ Why people pick Knot
 - Offline-first todo list: every device keeps the full database locally
 - Private sync: pair devices with a QR code; synced mailbox files are encrypted
 - No account: no signup, no central server, no lock-in
+- Free-with-privacy: no subscription, no tracking account, and no hosted
+  service required
 - Cross-platform: Android, iOS, macOS, Windows, and Linux
 - Real reminders: mobile alarms today, desktop reminders where the platform
   supports them
@@ -70,6 +72,8 @@ Good to know
 - Paired devices intentionally share the same full dataset in v1
 - Knot is source-available for reading and contribution; redistribution needs
   written permission
+- "Free" describes the intended user experience, not permission for third
+  parties to redistribute or repackage the app
 
 If you want a private, serverless todo app with encrypted cross-device sync,
 Knot is built for that.

@@ -59,6 +59,17 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
+- **Session 2026-07-09 (folder/docs cleanup, 3.12/6.10/6.12):** Android
+  folder sync now uses Storage Access Framework end to end: Sync settings opens
+  ACTION_OPEN_DOCUMENT_TREE, persists the tree grant, stores the `content://`
+  URI as the mailbox path/bookmark, and routes it through
+  `AndroidSafMailboxStore` over the native `com.sai.knot/cloud_folder`
+  ContentResolver channel. Plain desktop/iCloud paths still use the directory
+  store. Added channel/factory tests. `docs/sync.md` now documents unattended
+  restart behavior and Android Doze/iOS background-fetch limits. Added ADR
+  0005 for the Knot Source Available distribution decision, and reconciled
+  Flathub/winget/launch copy with no-redistribution terms.
+
 - **Session 2026-07-08 (theming accent, 6.53):** app accent color done. `accentColorProvider` (StateProvider<Color>) + curated `accentColorChoices`; seeded from an `accentColor` pref index in main() and used as the `ColorScheme.fromSeed` seed for light+dark (was hardcoded teal). Settings gains an "Accent color" swatch row (`_AccentSwatch`, keyed by color, persists the index). Widget test taps a swatch → provider + pref update. 368 pass (2 known macOS-host sync_settings fails), DST green. Per-list colors/icons deferred (icons need schema). Isolated worktree.
 - **Session 2026-07-08 (frequency chores, 6.56):** completion-anchored recurrence done. `Recurrence` gains `RecurrenceAnchor {schedule, completion}` + `ANCHOR=COMPLETION` parse/encode extension (non-RFC) and `nextFromCompletion(completedAt, anchor:)` = interval units after completion at the anchor's time-of-day, month/year day-clamped, calendar-built (DST-safe). `TodoRepository.complete` uses it for chore rules. Editor: base FREQ dropdown + a "Reschedule from completion" switch (composed on save, stripped on load). Tests: 6 model cases in recurrence_test + 1 repo case (chore reschedules from now not the stale due). 349 pass (3 known macOS-host UI fails), lib/data 86.0%, DST green. Chore rotation among people deferred to Phase 8/6.51. Isolated worktree.
 - **Session 2026-07-08 (old-hardware floor, 6.39):** 6.39 doc half done. README gains a "System requirements" section: min supported versions (Android 7.0/API 24 = Flutter 3.44 default minSdk, iOS 13, macOS 10.15, Windows 10, Linux GTK3/glibc 2.28) sourced from the actual deployment targets, plus an old-hardware-floor note (2 GB Android target; 5k-task perf guard covers the data layer). Real low-RAM device verification still pending (needs hardware). Docs-only, isolated worktree.
@@ -156,7 +167,7 @@ the ordinary merge engine; todo_alarms/alarm_dismissals tables unused.
 - [x] 3.9 LAN P2P: sealed length-framed TCP protocol (5 loopback tests) + mDNS advertise/browse via bonsoir (`lan_discovery.dart` — CI-untestable, in manual matrix)
 - [x] 3.10 Cloud-drive mailbox (`mailbox_transport.dart`): sealed delta files `{deviceId}/{hlc}.bin` + encrypted vector marker; local cursors in sync_log; torn-upload retry; 6 tests incl. ciphertext-only check
 - [x] 3.11 Mailbox compaction: outbox >20 deltas → single snapshot (idempotent for late peers); runs inside orchestrator pass
-- [ ] 3.12 Platform folder access: desktop picker done; iCloud Drive container done (`cloud_folder.dart` interface + `com.sai.knot/cloud_folder` channel on iOS/macOS, "Use iCloud Drive" in sync settings — returns nil until the iCloud entitlement lands with real signing, docs/packaging.md); **pending:** SAF verification on Android
+- [x] 3.12 Platform folder access: desktop picker done; iCloud Drive container done (`cloud_folder.dart` interface + `com.sai.knot/cloud_folder` channel on iOS/macOS, "Use iCloud Drive" in sync settings); Android Storage Access Framework folder grants done through the same channel and a ContentResolver-backed mailbox store
 - [x] 3.13 SyncOrchestrator: syncNow (consume→publish→LAN peers), reentry guard, periodic timer, per-transport error reporting; foreground/mutation triggers hook in at UI wiring
 
 ### Product
@@ -273,12 +284,12 @@ driver/dispatcher scenario and Apple-first direction.
   overdue completes jump past now, early completes skip the pending one,
   stale snooze cleared, malformed rules fall back to normal completion.
   "Duplicate yesterday's list" lives in 6.37 templates (which subsumes it)
-- [ ] 6.10 (R1.4) Unattended viewer doc + audit: sync auto-resumes after
+- [x] 6.10 (R1.4) Unattended viewer doc + audit: sync auto-resumes after
   restart (SyncBootstrap does), document Doze/iOS background-fetch limits
   honestly in docs/sync.md; verify no interaction needed post-reboot
 - [ ] 6.11 (R14.6/R14.2, optional tail) Habit streaks; per-task focus timer
   with end notification (desktop behind alarms opt-in)
-- [ ] 6.12 Licensing follow-up (deferred 2026-07-06): the MIT → Knot Source
+- [x] 6.12 Licensing follow-up (deferred 2026-07-06): the MIT → Knot Source
   Available 1.0 relicense (commits c8cb74a/ef55a29) landed without an ADR —
   write docs/decisions/000X-license.md making the final call; reconcile the
   no-redistribution terms with Flathub submission (4.6) and the

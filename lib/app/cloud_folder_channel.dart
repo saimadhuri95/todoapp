@@ -53,8 +53,49 @@ class IcloudFolderChannel implements CloudFolderLocator {
   }
 }
 
+/// Android Storage Access Framework folder grant for the mailbox transport.
+///
+/// The selected tree is a durable `content://` URI, not a filesystem path, so
+/// `createFolderMailboxStore` routes it to an Android ContentResolver-backed
+/// mailbox store instead of the plain directory store.
+class AndroidSafFolderChannel implements CloudFolderLocator {
+  const AndroidSafFolderChannel();
+
+  static const channel = IcloudFolderChannel.channel;
+
+  @override
+  bool get isSupported => true;
+
+  @override
+  Future<String?> documentsPath() =>
+      _invoke('pickAndroidTree', const <String, String>{});
+
+  @override
+  Future<String?> createBookmark(String path) =>
+      _invoke('createBookmark', {'path': path});
+
+  @override
+  Future<String?> resolveBookmark(String bookmark) =>
+      _invoke('resolveBookmark', {'bookmark': bookmark});
+
+  @override
+  Future<bool> shareFolder(String path) async => false;
+
+  Future<String?> _invoke(String method, Map<String, String> args) async {
+    try {
+      return await channel.invokeMethod<String>(method, args);
+    } on PlatformException {
+      return null;
+    } on MissingPluginException {
+      return null;
+    }
+  }
+}
+
 /// The locator for the platform we're running on. Used by the provider and
 /// by main()'s startup bookmark resolution (which runs before providers).
-CloudFolderLocator platformCloudFolder() => platformSupportsIcloud
-    ? const IcloudFolderChannel()
-    : const UnsupportedCloudFolder();
+CloudFolderLocator platformCloudFolder() {
+  if (platformSupportsIcloud) return const IcloudFolderChannel();
+  if (platformIsAndroid) return const AndroidSafFolderChannel();
+  return const UnsupportedCloudFolder();
+}

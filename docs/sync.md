@@ -120,6 +120,31 @@ counterpart to the mailbox's live replication.
 - Prefer LAN when a peer is visible; mailbox otherwise. Both can run — merge
   idempotency makes duplicate delivery harmless.
 
+### Unattended viewer and restart behavior (TASKS.md 6.10)
+
+`SyncBootstrap` starts `SyncService` automatically during app startup. Once a
+mailbox folder, provider account, or paired group is already configured, a
+relaunch needs no extra tap: startup restores persisted mailbox settings,
+starts LAN discovery/server where pairing exists, runs an immediate sync pass,
+then continues with mutation, resume, and five-minute periodic triggers.
+
+This is enough for an unattended wallboard/kiosk viewer that is relaunched by
+the OS or by a desktop login item: open the app and it resumes sync on its own.
+It is not a promise that sync runs while the app process is stopped. Current v1
+limits are:
+
+- Android Doze, app standby, and OEM battery savers can delay or stop background
+  network work when the app is not foregrounded.
+- iOS background fetch is opportunistic and cannot be used as a reliable
+  always-on sync daemon.
+- Desktop builds do not yet install a background tray/login helper; that remains
+  tracked by the desktop background tasks.
+
+Verification checklist: configure a mailbox/provider, quit the app, relaunch
+it, and confirm Sync settings shows a new last-sync time without pressing
+"Sync now". A full device reboot check belongs in the manual release matrix,
+because mobile background behavior depends on real OS power policy.
+
 ### Latency targets (TASKS.md 6.3)
 
 What "synced" should feel like per transport, and why:

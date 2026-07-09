@@ -14,6 +14,18 @@ Artifacts: `knot-linux-x64.tar.gz`, `knot-windows-x64.zip`,
 only). iOS has no sideloadable artifact - it ships via TestFlight/App Store
 only (below).
 
+## Distribution policy
+
+Knot is source-available, not open source. The source is public for reading,
+evaluation, and contributions, but redistribution requires written permission
+from `saimadhuri95`; see [ADR 0005](decisions/0005-license-and-distribution.md)
+and [LICENSE](../LICENSE).
+
+That means Flathub, winget, Microsoft Store, app-store, and package-manager
+submissions are allowed only as owner-operated or explicitly authorized release
+channels. Do not treat the Flatpak or future winget manifests as permission for
+third-party mirrors or community package uploads.
+
 ## What each platform still needs from the account owner
 
 ### Android -> Play Store (4.2)
@@ -92,8 +104,9 @@ winget/Store).
 ### Linux (4.6)
 
 Flatpak manifest in `packaging/flatpak/` (build steps in the manifest
-header). Flathub submission: fork flathub/flathub, add the manifest,
-open PR - needs the repo owner's GitHub account.
+header). Flathub submission is owner-controlled under the project license:
+fork flathub/flathub, add the manifest, open PR - using the repo owner's
+GitHub account or another account with written permission.
 
 ## App Store metadata (4.9-4.11, user decision 2026-07-06)
 
@@ -115,5 +128,6 @@ open PR - needs the repo owner's GitHub account.
 
 - **Android/iOS/Mac App Store**: stores handle updates.
 - **Windows/Linux/macOS-direct (v1)**: GitHub Releases is the channel;
-  the app does not self-update. Revisit post-v1: winget manifest +
-  Flathub give effectively automatic updates; Sparkle for the macOS dmg.
+  the app does not self-update. Revisit post-v1: an owner-submitted winget
+  manifest + owner-submitted Flathub listing give effectively automatic
+  updates; Sparkle for the macOS dmg.

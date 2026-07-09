@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
+
 /// Storage backend contract for [MailboxTransport]. The mailbox protocol
 /// (outbox-per-device, sortable changeset files, `vector.bin` markers) is
 /// storage-agnostic; this seam lets the same protocol run over
@@ -90,5 +92,66 @@ class FolderMailboxStore implements MailboxStore {
   @override
   Future<void> wipeAll() async {
     if (root.existsSync()) await root.delete(recursive: true);
+  }
+}
+
+/// [MailboxStore] over an Android Storage Access Framework tree URI.
+///
+/// SAF grants are `content://` URIs rather than filesystem paths, so all
+/// directory and file IO is delegated to `MainActivity`'s ContentResolver.
+class AndroidSafMailboxStore implements MailboxStore {
+  AndroidSafMailboxStore(this.treeUri);
+
+  static const channel = MethodChannel('com.sai.knot/cloud_folder');
+
+  final String treeUri;
+
+  @override
+  Future<List<String>> listDeviceDirs() => _stringList('listDeviceDirs');
+
+  @override
+  Future<List<String>> listFiles(String deviceDir) =>
+      _stringList('listFiles', {'deviceDir': deviceDir});
+
+  @override
+  Future<List<int>?> read(String deviceDir, String name) async {
+    final bytes = await channel.invokeMethod<Uint8List>('readFile', {
+      'treeUri': treeUri,
+      'deviceDir': deviceDir,
+      'name': name,
+    });
+    return bytes == null ? null : List<int>.from(bytes);
+  }
+
+  @override
+  Future<void> write(String deviceDir, String name, List<int> bytes) =>
+      channel.invokeMethod<void>('writeFile', {
+        'treeUri': treeUri,
+        'deviceDir': deviceDir,
+        'name': name,
+        'bytes': Uint8List.fromList(bytes),
+      });
+
+  @override
+  Future<void> delete(String deviceDir, String name) =>
+      channel.invokeMethod<void>('deleteFile', {
+        'treeUri': treeUri,
+        'deviceDir': deviceDir,
+        'name': name,
+      });
+
+  @override
+  Future<void> wipeAll() =>
+      channel.invokeMethod<void>('wipeTree', {'treeUri': treeUri});
+
+  Future<List<String>> _stringList(
+    String method, [
+    Map<String, Object?> args = const {},
+  ]) async {
+    final raw = await channel.invokeMethod<List<Object?>>(method, {
+      'treeUri': treeUri,
+      ...args,
+    });
+    return [for (final value in raw ?? const <Object?>[]) value as String];
   }
 }
