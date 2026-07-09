@@ -59,6 +59,7 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
+- **Session 2026-07-08 (Eisenhower view, 6.49):** Eisenhower matrix view done. New pure `lib/features/todos/eisenhower.dart` (`eisenhowerBuckets(todos, now, {urgentWindow})` → 4 quadrants by importance `priority>=2` × urgency `overdue|due within 24h`, undated never urgent) + `EisenhowerScreen` (2×2 quadrant cards over `allActiveTodosProvider`, tap → editor) + a `grid_view` app-bar action. Tests: 5 pure cases (quadrant sort, overdue-important, undated-important, empty, configurable window). 379 pass (2 known macOS-host sync fails), DST green. Kanban (sections-as-columns) deferred. Isolated worktree.
 - **Session 2026-07-09 (folder/docs cleanup, 3.12/6.10/6.12):** Android
   folder sync now uses Storage Access Framework end to end: Sync settings opens
   ACTION_OPEN_DOCUMENT_TREE, persists the tree grant, stores the `content://`
@@ -494,7 +495,9 @@ you a peer of someone else's storage without sharing credentials.
   (schema + BlobStore + mailbox/LAN blob transport + UI) is the follow-up
   tail, gated on sign-off
 - [ ] 6.48 (R4.4) Configurable swipe actions (complete/snooze/delete)
-- [ ] 6.49 (R5.5/R5.6) Kanban board (sections as columns) + Eisenhower view
+- [x] 6.49 (R5.5/R5.6) Kanban board (sections as columns) + Eisenhower view
+  — Eisenhower matrix view done; Kanban (sections-as-columns with drag)
+  deferred to a follow-up in the list-UI work
 - [ ] 6.50 (R6.4/R6.5) Location reminders (on-device geofencing only) +
   Android sticky today-notification
 - [ ] 6.51 (R7.2/R7.3) Assignee chip on shared-list tasks + "changed by

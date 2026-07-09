@@ -9,6 +9,7 @@ import '../../data/db/database.dart';
 import '../../data/repositories/todo_repository.dart';
 import '../settings/settings_screen.dart';
 import '../settings/sync_settings_screen.dart';
+import 'eisenhower_screen.dart';
 import 'linkified_text.dart';
 import 'planning_views.dart';
 import 'todo_editor.dart';
@@ -71,6 +72,15 @@ class TodoListScreen extends ConsumerWidget {
                       ),
                   ],
                 ),
+              IconButton(
+                tooltip: 'Priority matrix',
+                icon: const Icon(Icons.grid_view_outlined),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const EisenhowerScreen(),
+                  ),
+                ),
+              ),
               IconButton(
                 tooltip: 'Settings',
                 icon: const Icon(Icons.settings_outlined),
