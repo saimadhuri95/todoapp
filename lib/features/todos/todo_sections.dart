@@ -4,10 +4,13 @@ import '../../data/repositories/todo_repository.dart' show TodoTags;
 /// Pure view-model helpers for the list screen — separated for unit testing.
 
 class TodoSection {
-  const TodoSection(this.title, this.items);
+  const TodoSection(this.title, this.items, {this.userSection});
 
   final String title;
   final List<Todo> items;
+
+  /// Non-null when this is a user-defined section rather than a date bucket.
+  final String? userSection;
 }
 
 /// Groups active todos into Top 3 / Today / Upcoming / Someday, dropping empty
@@ -22,9 +25,16 @@ List<TodoSection> sectionize(List<Todo> todos, DateTime now) {
   final today = <Todo>[];
   final upcoming = <Todo>[];
   final someday = <Todo>[];
+  final userSections = <String, List<Todo>>{};
   for (final todo in todos) {
+    // Pins win over everything, including user-defined sections (6.34).
     if (todo.pinned) {
       pinned.add(todo);
+      continue;
+    }
+    final manual = todo.section?.trim();
+    if (manual != null && manual.isNotEmpty) {
+      userSections.putIfAbsent(manual, () => []).add(todo);
       continue;
     }
     final ms = todo.dueAtMs;
@@ -40,6 +50,8 @@ List<TodoSection> sectionize(List<Todo> todos, DateTime now) {
     if (today.isNotEmpty) TodoSection('Today', today),
     if (upcoming.isNotEmpty) TodoSection('Upcoming', upcoming),
     if (someday.isNotEmpty) TodoSection('Someday', someday),
+    for (final entry in userSections.entries)
+      TodoSection(entry.key, entry.value, userSection: entry.key),
   ];
 }
 

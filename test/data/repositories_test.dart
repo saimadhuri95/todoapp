@@ -30,6 +30,18 @@ void main() {
     return {for (final r in rows) r.fieldName: r.hlc};
   }
 
+  Future<void> backdateTodoClocks(String rowId, DateTime when) async {
+    await (db.fieldClocks.update()
+          ..where((c) => c.entity.equals('todos') & c.rowId.equals(rowId)))
+        .write(
+          FieldClocksCompanion(
+            hlc: Value(
+              Hlc(when.millisecondsSinceEpoch, 0, 'device-1').encode(),
+            ),
+          ),
+        );
+  }
+
   group('TodoRepository', () {
     test('create returns row and stamps every sync field', () async {
       final todo = await todos.create(
@@ -43,8 +55,11 @@ void main() {
       expect(todo.priority, 2);
 
       final stamps = await clocksFor(todo.id);
-      expect(stamps.keys, hasLength(13)); // every todos entry in syncColumns
+      expect(stamps.keys, hasLength(16)); // every todos entry in syncColumns
       expect(stamps.keys, contains('title'));
+      expect(stamps.keys, contains('parentId'));
+      expect(stamps.keys, contains('section'));
+      expect(stamps.keys, contains('sortKey'));
       expect(stamps.keys, contains('deleted'));
     });
 
@@ -115,6 +130,93 @@ void main() {
       await todos.edit(todo.id, tags: const Value(['home', 'urgent']));
       expect((await todos.getById(todo.id))!.tags, ['home', 'urgent']);
     });
+
+    test(
+      'subtasks are synced rows but hidden from the top-level list',
+      () async {
+        final parent = await todos.create(
+          title: 'Launch',
+          section: ' Projects ',
+        );
+
+        final children = await todos.createSubtasks(parent.id, [
+          'Draft outline',
+          'Send invite',
+        ]);
+
+        expect(children, hasLength(2));
+        expect(children.map((todo) => todo.parentId), [parent.id, parent.id]);
+        expect(children.map((todo) => todo.listId), [
+          parent.listId,
+          parent.listId,
+        ]);
+        expect(children.first.section, 'Projects');
+
+        final active = await todos.watchActive().first;
+        expect(active.map((todo) => todo.id), [parent.id]);
+
+        final checklist = await todos.watchSubtasks(parent.id).first;
+        expect(checklist.map((todo) => todo.title), [
+          'Draft outline',
+          'Send invite',
+        ]);
+
+        final childStamps = await clocksFor(children.first.id);
+        expect(childStamps.keys, containsAll(['parentId', 'sortKey']));
+        expect(childStamps.keys, hasLength(16));
+      },
+    );
+
+    test('replaceVisibleOrder stores string keys and section moves', () async {
+      final first = await todos.create(title: 'first');
+      final second = await todos.create(title: 'second');
+
+      await todos.replaceVisibleOrder(
+        [second, first],
+        sectionsById: {second.id: 'Doing'},
+      );
+
+      final moved = (await todos.getById(second.id))!;
+      final trailing = (await todos.getById(first.id))!;
+      expect(moved.section, 'Doing');
+      expect(moved.sortKey.compareTo(trailing.sortKey), lessThan(0));
+
+      final active = await todos.watchActive().first;
+      expect(active.map((todo) => todo.id), [second.id, first.id]);
+      expect(
+        (await clocksFor(second.id)).keys,
+        containsAll(['section', 'sortKey']),
+      );
+    });
+
+    test('staleCandidates skips fresh, completed, and Someday todos', () async {
+      final stale = await todos.create(
+        title: 'stale',
+        dueAtMs: DateTime.utc(2026, 6, 1, 9).millisecondsSinceEpoch,
+      );
+      await todos.create(
+        title: 'fresh',
+        dueAtMs: DateTime.utc(2026, 7, 4, 9).millisecondsSinceEpoch,
+      );
+      final someday = await todos.create(title: 'parked');
+      final done = await todos.create(
+        title: 'done',
+        dueAtMs: DateTime.utc(2026, 6, 1, 10).millisecondsSinceEpoch,
+      );
+      await todos.complete(done.id);
+
+      await backdateTodoClocks(stale.id, DateTime.utc(2026, 5, 1, 8));
+      await backdateTodoClocks(someday.id, DateTime.utc(2026, 5, 1, 8));
+      await backdateTodoClocks(done.id, DateTime.utc(2026, 5, 1, 8));
+
+      final candidates = await todos.staleCandidates(now: clock.now());
+
+      expect(candidates.map((candidate) => candidate.todo.id), [stale.id]);
+      expect(
+        candidates.single.lastTouchedAt.millisecondsSinceEpoch,
+        DateTime.utc(2026, 5, 1, 8).millisecondsSinceEpoch,
+      );
+    });
   });
 
   group('ListRepository', () {
@@ -123,7 +225,9 @@ void main() {
       await lists.rename(list.id, 'Home');
 
       expect((await lists.getById(list.id))!.name, 'Home');
-      expect((await clocksFor(list.id)).keys, hasLength(4));
+      // name/color/sortOrder/groupId/deleted — every synced list field
+      // stamped at create (groupId joined in schema v4, TASKS 8.2).
+      expect((await clocksFor(list.id)).keys, hasLength(5));
 
       await lists.archive(list.id);
       expect(await lists.watchAll().first, isEmpty);
@@ -203,6 +307,22 @@ void main() {
         (await todos.getById(todo.id))!.dueAtMs,
         at(DateTime.utc(2026, 7, 13, 9)),
       );
+    });
+
+    test('completion-anchored chore reschedules from now (6.56)', () async {
+      final todo = await todos.create(
+        title: 'water plants',
+        dueAtMs: at(DateTime.utc(2026, 7, 1, 9)), // overdue since Jul 1
+        recurrenceRule: 'FREQ=DAILY;INTERVAL=3;ANCHOR=COMPLETION',
+      );
+
+      await todos.complete(todo.id);
+
+      final row = (await todos.getById(todo.id))!;
+      expect(row.completedAtMs, isNull); // stays active
+      // now = Jul 5 12:00 → +3 days at the anchor's 09:00 = Jul 8, not a
+      // schedule slot measured from the Jul 1 due date.
+      expect(row.dueAtMs, at(DateTime.utc(2026, 7, 8, 9)));
     });
 
     test('advancing clears a stale snooze and stamps the fields', () async {

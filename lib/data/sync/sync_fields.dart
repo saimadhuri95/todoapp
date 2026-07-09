@@ -10,6 +10,7 @@ import '../db/database.dart';
 const Map<String, Map<String, String>> syncColumns = {
   'todos': {
     'listId': 'list_id',
+    'parentId': 'parent_id',
     'title': 'title',
     'notes': 'notes',
     'dueAtMs': 'due_at_ms',
@@ -17,6 +18,8 @@ const Map<String, Map<String, String>> syncColumns = {
     'completedAtMs': 'completed_at_ms',
     'priority': 'priority',
     'tagsJson': 'tags_json',
+    'section': 'section',
+    'sortKey': 'sort_key',
     'alarmOffsetsJson': 'alarm_offsets_json',
     'lastDismissedMs': 'last_dismissed_ms',
     'snoozeUntilMs': 'snooze_until_ms',
@@ -27,6 +30,23 @@ const Map<String, Map<String, String>> syncColumns = {
     'name': 'name',
     'color': 'color',
     'sortOrder': 'sort_order',
+    // Sharing group assignment (ADR 0004); null = local-only. Which
+    // *changesets* carry a list is decided by scoping (8.3), this field
+    // is just data like any other.
+    'groupId': 'group_id',
+    'deleted': 'deleted',
+  },
+  // Sharing groups replicate within their own scope (ADR 0004).
+  // `local_account_ref` is deliberately absent: each member points their
+  // own account at the backend, so that column never syncs.
+  'sync_groups': {
+    'name': 'name',
+    'backendKind': 'backend_kind',
+    'deleted': 'deleted',
+  },
+  'group_members': {
+    'groupId': 'group_id',
+    'deviceId': 'device_id',
     'deleted': 'deleted',
   },
   // Devices announce themselves through sync: accepting a pairing writes

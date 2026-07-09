@@ -88,8 +88,31 @@ The things automation cannot reach live under `docs/releases/`.
 - Copy it forward for the next release and keep notes in the release file.
 - Cover alarms with the app closed, permission flows, QR pairing between real
   platform pairs, real cloud-folder sync, and reboot behavior.
+- Include the R13.9 zero-config gate in every release checklist:
+  fresh install / first launch must stay one plain usable list with no
+  mandatory onboarding, pairing, sync setup, or permission prompt needed to
+  add and complete a todo.
+- For every R13-R15 feature shipped in that release, add an explicit manual
+  check that the default state stays opt-in, off, hidden, or otherwise quiet
+  until the user deliberately enables or enters it.
 
 ## 8. Performance and battery (Phase 5)
+
+### Budgets (TASKS.md 6.42)
+
+| Metric | Budget | How it's checked |
+|---|---|---|
+| Cold start → interactive | < 2 s | manual profiling on a mid/low-tier device; the `integration_test` smoke boots the app on the CI matrix |
+| Quick-add (submit → row on screen) | < 500 ms | manual; the write path is a single stamped insert (`TodoRepository.create`) plus a reactive `watch` refresh |
+| 5k-task list: active query + `sectionize` + `filterTodos` | comfortably interactive (dev-machine reference well under 100 ms each) | `test/perf/large_dataset_test.dart` |
+
+`test/perf/large_dataset_test.dart` builds a 5k-todo database and prints the
+measured timings, but asserts only correctness plus a loose 2 s ceiling — a
+guard against an accidental O(n²) or a hang, **not** a real-time budget, so it
+can't flake on a slow CI runner. The wall-clock budgets above are verified by
+profiling and the smoke flow, not by unit-test timing.
+
+### Still to measure
 
 - 10k-todo dataset: list scroll jank, search latency, sync round time.
 - Sync payload size budget per 1k changes.

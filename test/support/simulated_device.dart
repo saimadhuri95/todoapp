@@ -3,6 +3,7 @@ import 'package:drift/native.dart';
 import 'package:todoapp/core/clock.dart';
 import 'package:todoapp/core/hlc.dart';
 import 'package:todoapp/data/db/database.dart';
+import 'package:todoapp/data/repositories/group_repository.dart';
 import 'package:todoapp/data/repositories/list_repository.dart';
 import 'package:todoapp/data/repositories/todo_repository.dart';
 import 'package:todoapp/data/sync/sync_engine.dart';
@@ -15,6 +16,7 @@ class Device {
     hlc = HlcClock(nodeId: id, clock: clock);
     todos = TodoRepository(db, hlc);
     lists = ListRepository(db, hlc);
+    groups = GroupRepository(db, hlc);
     engine = SyncEngine(db: db, hlcClock: hlc, deviceId: id);
   }
 
@@ -24,6 +26,7 @@ class Device {
   late final HlcClock hlc;
   late final TodoRepository todos;
   late final ListRepository lists;
+  late final GroupRepository groups;
   late final SyncEngine engine;
 
   static AppDatabase _openMemoryDb() {

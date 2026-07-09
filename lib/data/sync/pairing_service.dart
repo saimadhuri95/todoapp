@@ -5,14 +5,23 @@ import 'package:drift/drift.dart';
 
 import '../../core/hlc.dart';
 import '../db/database.dart';
+import '../repositories/group_repository.dart';
 import 'device_identity.dart';
 import 'pairing_crypto.dart';
 import 'sync_fields.dart';
 
 class PairingResult {
-  const PairingResult({required this.peer, required this.fingerprint});
+  const PairingResult({
+    required this.peer,
+    required this.fingerprint,
+    this.groupId,
+  });
 
   final PairingPayload peer;
+
+  /// Set when this result came from a group invitation (TASKS 8.5/8.8):
+  /// the sharing group that was joined.
+  final String? groupId;
 
   /// Shown to the user for out-of-band confirmation; the inviter can
   /// verify it from its device list once the acceptor's row syncs over.
@@ -46,6 +55,135 @@ class PairingService {
   }
 
   Future<bool> hasGroupKey() async => await keyStore.read(_groupKeyKey) != null;
+
+  // --- Per-group keys (TASKS 8.5, ADR 0004) ---
+  //
+  // Every sharing group has its own XChaCha20 key under
+  // `group_key:<groupId>`; the pre-groups key above keeps serving the
+  // personal mailbox. The key — not the cloud folder ACL — is the
+  // security boundary of a group.
+
+  static String _groupKeyKeyFor(String groupId) => 'group_key:$groupId';
+
+  /// The group's key, created on demand (group-creation flow).
+  Future<SecretKey> loadOrCreateGroupKeyFor(String groupId) async {
+    final stored = await keyStore.read(_groupKeyKeyFor(groupId));
+    if (stored != null && stored.isNotEmpty) {
+      return SecretKey(base64Decode(stored));
+    }
+    final key = SecretKeyData.random(length: 32);
+    await keyStore.write(_groupKeyKeyFor(groupId), base64Encode(key.bytes));
+    return key;
+  }
+
+  /// The group's key if this device holds it (i.e. has joined), else null.
+  Future<SecretKey?> groupKeyFor(String groupId) async {
+    final stored = await keyStore.read(_groupKeyKeyFor(groupId));
+    if (stored == null || stored.isEmpty) return null;
+    return SecretKey(base64Decode(stored));
+  }
+
+  /// Drops this device's copy of the group key (leaving a group): the
+  /// device can no longer read or write the group's mailbox. Local rows
+  /// stay (local-first); the group row can be tombstoned separately.
+  Future<void> forgetGroupKey(String groupId) =>
+      keyStore.write(_groupKeyKeyFor(groupId), '');
+
+  /// Burns the group's key (member removal, ADR 0004): everything sealed
+  /// from now on uses the fresh key. Remaining members must re-join via a
+  /// new invitation, and the caller should wipe the group's mailbox.
+  /// Other groups — and the personal key — are untouched.
+  Future<void> rotateGroupKey(String groupId) async {
+    final key = SecretKeyData.random(length: 32);
+    await keyStore.write(_groupKeyKeyFor(groupId), base64Encode(key.bytes));
+  }
+
+  /// What the group inviter displays (TASKS 8.5): the standard pairing
+  /// payload plus the group's id/name/backend and — the secret — its key.
+  /// Same trust model as [createInvitation]: the QR itself is the secret
+  /// and travels only over the visual/clipboard channel. Also ensures the
+  /// inviter's own device row + membership so the joiner sees them after
+  /// the first sync.
+  Future<String> createGroupInvitation({
+    required DeviceIdentity identity,
+    required String name,
+    required String platform,
+    required SyncGroup group,
+  }) async {
+    final key = await loadOrCreateGroupKeyFor(group.id);
+    await registerSelf(identity: identity, name: name, platform: platform);
+    await GroupRepository(db, hlc).addMember(group.id, identity.deviceId);
+    final payload = await identity.pairingPayload(
+      name: name,
+      platform: platform,
+    );
+    return jsonEncode({
+      'v': 2,
+      'payload': payload.encode(),
+      'group': {
+        'id': group.id,
+        'name': group.name,
+        'backendKind': group.backendKind,
+      },
+      'gk': base64Encode(await key.extractBytes()),
+    });
+  }
+
+  /// Joiner side (TASKS 8.5): adopts the group key, materializes the
+  /// group row locally (unstamped — the inviter's stamped writes arrive
+  /// with the first sync and stay authoritative), records the inviter's
+  /// device row, and registers this device's own row + membership, which
+  /// replicate back through the group's mailbox. The returned fingerprint
+  /// is confirmed on both screens, exactly like personal pairing.
+  Future<PairingResult> acceptGroupInvitation(
+    String invitation, {
+    required DeviceIdentity identity,
+    required String name,
+    required String platform,
+  }) async {
+    final Map<String, dynamic> map;
+    try {
+      map = jsonDecode(invitation) as Map<String, dynamic>;
+    } on FormatException {
+      throw const FormatException('Not a valid group invitation');
+    }
+    final group = map['group'];
+    if (map['v'] != 2 ||
+        map['payload'] is! String ||
+        map['gk'] is! String ||
+        group is! Map<String, dynamic> ||
+        group['id'] is! String) {
+      throw const FormatException('Not a valid group invitation');
+    }
+    final groupId = group['id'] as String;
+    final peer = PairingPayload.decode(map['payload'] as String);
+
+    await keyStore.write(_groupKeyKeyFor(groupId), map['gk'] as String);
+    // Materialize the group so the UI can show it before the first sync;
+    // no stamps — the inviter's writes are the authoritative history.
+    await db.syncGroups.insertOne(
+      SyncGroupsCompanion.insert(
+        id: groupId,
+        name: group['name'] as String? ?? '',
+        backendKind: Value(group['backendKind'] as String? ?? ''),
+      ),
+      mode: InsertMode.insertOrIgnore,
+    );
+    await _upsertDevice(
+      id: peer.deviceId,
+      name: peer.name,
+      platform: peer.platform,
+      publicKeyBase64: peer.publicKeyBase64,
+    );
+    await registerSelf(identity: identity, name: name, platform: platform);
+    await GroupRepository(db, hlc).addMember(groupId, identity.deviceId);
+
+    final fingerprint = await PairingCrypto.fingerprint(
+      peer.publicKey,
+      await identity.publicKey,
+    );
+    return PairingResult(peer: peer, fingerprint: fingerprint);
+  }
 
   /// What the inviter displays (QR + copyable text). Also registers this
   /// device's own row so peers list it after their first sync.

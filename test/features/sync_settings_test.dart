@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' show TableOrViewStatements;
+import 'package:drift/drift.dart' hide Column, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,6 +42,12 @@ void main() {
     expect(find.textContaining('Not set'), findsOneWidget);
     // 6.3 status line before any pass this session.
     expect(find.text('No sync pass yet this session'), findsOneWidget);
+    // Reworded when cloud accounts arrived (ADR 0003): a solo device can
+    // now start sync by connecting a cloud, not only by pairing.
+    expect(
+      find.textContaining('Connect a cloud or pair a device to start sync'),
+      findsOneWidget,
+    );
   });
 
   testApp('status line shows the last sync pass time', (tester) async {
@@ -53,6 +59,15 @@ void main() {
           clockProvider.overrideWithValue(FixedClock(DateTime.utc(2026, 7, 5))),
           keyStoreProvider.overrideWithValue(keyStore),
           lastSyncPassProvider.overrideWith((_) => DateTime(2026, 7, 5, 9, 30)),
+          syncHealthProvider.overrideWith(
+            (_) => Stream.value(
+              const SyncHealthSnapshot(
+                transportLabel: 'Using LAN + mailbox',
+                isSyncReady: true,
+                pendingOutboundCount: 1,
+              ),
+            ),
+          ),
         ],
         child: const MaterialApp(home: SyncSettingsScreen()),
       ),
@@ -60,6 +75,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Last sync 09:30'), findsOneWidget);
+    expect(find.textContaining('Using LAN + mailbox'), findsOneWidget);
+    expect(find.textContaining('1 outbound change pending'), findsOneWidget);
   });
 
   testApp('showing an invitation renders a QR and registers this device', (

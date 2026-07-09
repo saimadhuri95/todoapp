@@ -41,7 +41,13 @@ The GitHub workflow also runs:
 - the explicit Phase 0 unit suites,
 - the convergence + fake-transport simulator gate,
 - the DST suite with `TZ=America/New_York` on Linux,
-- and the `integration_test` smoke flow on Linux/Windows/macOS/Android/iOS.
+- the `integration_test` smoke flow on Linux/Windows/macOS,
+- and debug build gates for Linux/Android/Windows/macOS/iOS.
+
+The merge CI is intentionally parallelized and should usually finish in about
+10 minutes. Android and iOS simulator smoke tests are not part of every merge
+because they have been the slowest and flakiest jobs; run targeted simulator or
+device validation for mobile UI/runtime changes and before release builds.
 
 On Windows, rely on GitHub CI for the exact `TZ=America/New_York` run; setting
 `$env:TZ` locally can still use Windows time-zone behavior and produce false
@@ -55,8 +61,8 @@ failures.
 4. Push the branch and open a pull request into `main`.
 5. Wait for every GitHub Actions check to pass:
    `Analyze & verify`, `Smoke linux`, `Smoke windows`, `Smoke macos`,
-   `Smoke android`, `Smoke ios`, `Build linux`, `Build android`,
-   `Build windows`, `Build macos`, and `Build ios`.
+   `Build linux`, `Build android`, `Build windows`, `Build macos`, and
+   `Build ios`.
 6. Merge with the normal GitHub merge commit after CI is green.
 
 ## GitHub Status Commands

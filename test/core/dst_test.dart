@@ -28,6 +28,7 @@ void main() {
     recurrenceRule: rrule,
     priority: 0,
     tagsJson: '[]',
+    sortKey: '',
     alarmOffsetsJson: '[0]',
     pinned: false,
     deleted: false,

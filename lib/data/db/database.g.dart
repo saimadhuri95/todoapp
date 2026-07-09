@@ -3,6 +3,387 @@
 part of 'database.dart';
 
 // ignore_for_file: type=lint
+class $SyncGroupsTable extends SyncGroups
+    with TableInfo<$SyncGroupsTable, SyncGroup> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncGroupsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _backendKindMeta = const VerificationMeta(
+    'backendKind',
+  );
+  @override
+  late final GeneratedColumn<String> backendKind = GeneratedColumn<String>(
+    'backend_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _localAccountRefMeta = const VerificationMeta(
+    'localAccountRef',
+  );
+  @override
+  late final GeneratedColumn<String> localAccountRef = GeneratedColumn<String>(
+    'local_account_ref',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    backendKind,
+    localAccountRef,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_groups';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncGroup> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('backend_kind')) {
+      context.handle(
+        _backendKindMeta,
+        backendKind.isAcceptableOrUnknown(
+          data['backend_kind']!,
+          _backendKindMeta,
+        ),
+      );
+    }
+    if (data.containsKey('local_account_ref')) {
+      context.handle(
+        _localAccountRefMeta,
+        localAccountRef.isAcceptableOrUnknown(
+          data['local_account_ref']!,
+          _localAccountRefMeta,
+        ),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SyncGroup map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncGroup(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      backendKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}backend_kind'],
+      )!,
+      localAccountRef: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_account_ref'],
+      ),
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $SyncGroupsTable createAlias(String alias) {
+    return $SyncGroupsTable(attachedDatabase, alias);
+  }
+}
+
+class SyncGroup extends DataClass implements Insertable<SyncGroup> {
+  final String id;
+  final String name;
+
+  /// Where the group's mailbox lives — a CloudProviderId name ('icloud',
+  /// 'webdav', 'dropbox', …) or 'folder' for a plain synced directory.
+  /// Group-global: every member uses the same backend kind.
+  final String backendKind;
+
+  /// Device-local pointer to *this device's* way into the backend (its
+  /// own account id / folder path). Deliberately **not** a synced field:
+  /// each member brings their own account (ADR 0004).
+  final String? localAccountRef;
+  final bool deleted;
+  const SyncGroup({
+    required this.id,
+    required this.name,
+    required this.backendKind,
+    this.localAccountRef,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['backend_kind'] = Variable<String>(backendKind);
+    if (!nullToAbsent || localAccountRef != null) {
+      map['local_account_ref'] = Variable<String>(localAccountRef);
+    }
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  SyncGroupsCompanion toCompanion(bool nullToAbsent) {
+    return SyncGroupsCompanion(
+      id: Value(id),
+      name: Value(name),
+      backendKind: Value(backendKind),
+      localAccountRef: localAccountRef == null && nullToAbsent
+          ? const Value.absent()
+          : Value(localAccountRef),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory SyncGroup.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncGroup(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      backendKind: serializer.fromJson<String>(json['backendKind']),
+      localAccountRef: serializer.fromJson<String?>(json['localAccountRef']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'backendKind': serializer.toJson<String>(backendKind),
+      'localAccountRef': serializer.toJson<String?>(localAccountRef),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  SyncGroup copyWith({
+    String? id,
+    String? name,
+    String? backendKind,
+    Value<String?> localAccountRef = const Value.absent(),
+    bool? deleted,
+  }) => SyncGroup(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    backendKind: backendKind ?? this.backendKind,
+    localAccountRef: localAccountRef.present
+        ? localAccountRef.value
+        : this.localAccountRef,
+    deleted: deleted ?? this.deleted,
+  );
+  SyncGroup copyWithCompanion(SyncGroupsCompanion data) {
+    return SyncGroup(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      backendKind: data.backendKind.present
+          ? data.backendKind.value
+          : this.backendKind,
+      localAccountRef: data.localAccountRef.present
+          ? data.localAccountRef.value
+          : this.localAccountRef,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncGroup(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('backendKind: $backendKind, ')
+          ..write('localAccountRef: $localAccountRef, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, name, backendKind, localAccountRef, deleted);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncGroup &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.backendKind == this.backendKind &&
+          other.localAccountRef == this.localAccountRef &&
+          other.deleted == this.deleted);
+}
+
+class SyncGroupsCompanion extends UpdateCompanion<SyncGroup> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> backendKind;
+  final Value<String?> localAccountRef;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const SyncGroupsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.backendKind = const Value.absent(),
+    this.localAccountRef = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncGroupsCompanion.insert({
+    required String id,
+    required String name,
+    this.backendKind = const Value.absent(),
+    this.localAccountRef = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name);
+  static Insertable<SyncGroup> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? backendKind,
+    Expression<String>? localAccountRef,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (backendKind != null) 'backend_kind': backendKind,
+      if (localAccountRef != null) 'local_account_ref': localAccountRef,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncGroupsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? backendKind,
+    Value<String?>? localAccountRef,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return SyncGroupsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      backendKind: backendKind ?? this.backendKind,
+      localAccountRef: localAccountRef ?? this.localAccountRef,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (backendKind.present) {
+      map['backend_kind'] = Variable<String>(backendKind.value);
+    }
+    if (localAccountRef.present) {
+      map['local_account_ref'] = Variable<String>(localAccountRef.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncGroupsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('backendKind: $backendKind, ')
+          ..write('localAccountRef: $localAccountRef, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $TodoListsTable extends TodoLists
     with TableInfo<$TodoListsTable, TodoList> {
   @override
@@ -48,6 +429,20 @@ class $TodoListsTable extends TodoLists
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _groupIdMeta = const VerificationMeta(
+    'groupId',
+  );
+  @override
+  late final GeneratedColumn<String> groupId = GeneratedColumn<String>(
+    'group_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES sync_groups (id)',
+    ),
+  );
   static const VerificationMeta _deletedMeta = const VerificationMeta(
     'deleted',
   );
@@ -64,7 +459,14 @@ class $TodoListsTable extends TodoLists
     defaultValue: const Constant(false),
   );
   @override
-  List<GeneratedColumn> get $columns => [id, name, color, sortOrder, deleted];
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    color,
+    sortOrder,
+    groupId,
+    deleted,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -102,6 +504,12 @@ class $TodoListsTable extends TodoLists
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
+    if (data.containsKey('group_id')) {
+      context.handle(
+        _groupIdMeta,
+        groupId.isAcceptableOrUnknown(data['group_id']!, _groupIdMeta),
+      );
+    }
     if (data.containsKey('deleted')) {
       context.handle(
         _deletedMeta,
@@ -133,6 +541,10 @@ class $TodoListsTable extends TodoLists
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      groupId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}group_id'],
+      ),
       deleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}deleted'],
@@ -151,12 +563,18 @@ class TodoList extends DataClass implements Insertable<TodoList> {
   final String name;
   final int? color;
   final int sortOrder;
+
+  /// Sharing group this list syncs through (schema v4, ADR 0004);
+  /// **null = local-only, the default** — the list never leaves the
+  /// device until the user assigns a group.
+  final String? groupId;
   final bool deleted;
   const TodoList({
     required this.id,
     required this.name,
     this.color,
     required this.sortOrder,
+    this.groupId,
     required this.deleted,
   });
   @override
@@ -168,6 +586,9 @@ class TodoList extends DataClass implements Insertable<TodoList> {
       map['color'] = Variable<int>(color);
     }
     map['sort_order'] = Variable<int>(sortOrder);
+    if (!nullToAbsent || groupId != null) {
+      map['group_id'] = Variable<String>(groupId);
+    }
     map['deleted'] = Variable<bool>(deleted);
     return map;
   }
@@ -180,6 +601,9 @@ class TodoList extends DataClass implements Insertable<TodoList> {
           ? const Value.absent()
           : Value(color),
       sortOrder: Value(sortOrder),
+      groupId: groupId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(groupId),
       deleted: Value(deleted),
     );
   }
@@ -194,6 +618,7 @@ class TodoList extends DataClass implements Insertable<TodoList> {
       name: serializer.fromJson<String>(json['name']),
       color: serializer.fromJson<int?>(json['color']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      groupId: serializer.fromJson<String?>(json['groupId']),
       deleted: serializer.fromJson<bool>(json['deleted']),
     );
   }
@@ -205,6 +630,7 @@ class TodoList extends DataClass implements Insertable<TodoList> {
       'name': serializer.toJson<String>(name),
       'color': serializer.toJson<int?>(color),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'groupId': serializer.toJson<String?>(groupId),
       'deleted': serializer.toJson<bool>(deleted),
     };
   }
@@ -214,12 +640,14 @@ class TodoList extends DataClass implements Insertable<TodoList> {
     String? name,
     Value<int?> color = const Value.absent(),
     int? sortOrder,
+    Value<String?> groupId = const Value.absent(),
     bool? deleted,
   }) => TodoList(
     id: id ?? this.id,
     name: name ?? this.name,
     color: color.present ? color.value : this.color,
     sortOrder: sortOrder ?? this.sortOrder,
+    groupId: groupId.present ? groupId.value : this.groupId,
     deleted: deleted ?? this.deleted,
   );
   TodoList copyWithCompanion(TodoListsCompanion data) {
@@ -228,6 +656,7 @@ class TodoList extends DataClass implements Insertable<TodoList> {
       name: data.name.present ? data.name.value : this.name,
       color: data.color.present ? data.color.value : this.color,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      groupId: data.groupId.present ? data.groupId.value : this.groupId,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
     );
   }
@@ -239,13 +668,14 @@ class TodoList extends DataClass implements Insertable<TodoList> {
           ..write('name: $name, ')
           ..write('color: $color, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('groupId: $groupId, ')
           ..write('deleted: $deleted')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, color, sortOrder, deleted);
+  int get hashCode => Object.hash(id, name, color, sortOrder, groupId, deleted);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -254,6 +684,7 @@ class TodoList extends DataClass implements Insertable<TodoList> {
           other.name == this.name &&
           other.color == this.color &&
           other.sortOrder == this.sortOrder &&
+          other.groupId == this.groupId &&
           other.deleted == this.deleted);
 }
 
@@ -262,6 +693,7 @@ class TodoListsCompanion extends UpdateCompanion<TodoList> {
   final Value<String> name;
   final Value<int?> color;
   final Value<int> sortOrder;
+  final Value<String?> groupId;
   final Value<bool> deleted;
   final Value<int> rowid;
   const TodoListsCompanion({
@@ -269,6 +701,7 @@ class TodoListsCompanion extends UpdateCompanion<TodoList> {
     this.name = const Value.absent(),
     this.color = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.groupId = const Value.absent(),
     this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -277,6 +710,7 @@ class TodoListsCompanion extends UpdateCompanion<TodoList> {
     required String name,
     this.color = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.groupId = const Value.absent(),
     this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -286,6 +720,7 @@ class TodoListsCompanion extends UpdateCompanion<TodoList> {
     Expression<String>? name,
     Expression<int>? color,
     Expression<int>? sortOrder,
+    Expression<String>? groupId,
     Expression<bool>? deleted,
     Expression<int>? rowid,
   }) {
@@ -294,6 +729,7 @@ class TodoListsCompanion extends UpdateCompanion<TodoList> {
       if (name != null) 'name': name,
       if (color != null) 'color': color,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (groupId != null) 'group_id': groupId,
       if (deleted != null) 'deleted': deleted,
       if (rowid != null) 'rowid': rowid,
     });
@@ -304,6 +740,7 @@ class TodoListsCompanion extends UpdateCompanion<TodoList> {
     Value<String>? name,
     Value<int?>? color,
     Value<int>? sortOrder,
+    Value<String?>? groupId,
     Value<bool>? deleted,
     Value<int>? rowid,
   }) {
@@ -312,6 +749,7 @@ class TodoListsCompanion extends UpdateCompanion<TodoList> {
       name: name ?? this.name,
       color: color ?? this.color,
       sortOrder: sortOrder ?? this.sortOrder,
+      groupId: groupId ?? this.groupId,
       deleted: deleted ?? this.deleted,
       rowid: rowid ?? this.rowid,
     );
@@ -332,6 +770,9 @@ class TodoListsCompanion extends UpdateCompanion<TodoList> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (groupId.present) {
+      map['group_id'] = Variable<String>(groupId.value);
+    }
     if (deleted.present) {
       map['deleted'] = Variable<bool>(deleted.value);
     }
@@ -348,6 +789,7 @@ class TodoListsCompanion extends UpdateCompanion<TodoList> {
           ..write('name: $name, ')
           ..write('color: $color, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('groupId: $groupId, ')
           ..write('deleted: $deleted, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -379,6 +821,20 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
       'REFERENCES todo_lists (id)',
+    ),
+  );
+  static const VerificationMeta _parentIdMeta = const VerificationMeta(
+    'parentId',
+  );
+  @override
+  late final GeneratedColumn<String> parentId = GeneratedColumn<String>(
+    'parent_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES todos (id)',
     ),
   );
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
@@ -457,6 +913,29 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
     requiredDuringInsert: false,
     defaultValue: const Constant('[]'),
   );
+  static const VerificationMeta _sectionMeta = const VerificationMeta(
+    'section',
+  );
+  @override
+  late final GeneratedColumn<String> section = GeneratedColumn<String>(
+    'section',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sortKeyMeta = const VerificationMeta(
+    'sortKey',
+  );
+  @override
+  late final GeneratedColumn<String> sortKey = GeneratedColumn<String>(
+    'sort_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _alarmOffsetsJsonMeta = const VerificationMeta(
     'alarmOffsetsJson',
   );
@@ -523,6 +1002,7 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
   List<GeneratedColumn> get $columns => [
     id,
     listId,
+    parentId,
     title,
     notes,
     dueAtMs,
@@ -530,6 +1010,8 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
     completedAtMs,
     priority,
     tagsJson,
+    section,
+    sortKey,
     alarmOffsetsJson,
     lastDismissedMs,
     snoozeUntilMs,
@@ -557,6 +1039,12 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
       context.handle(
         _listIdMeta,
         listId.isAcceptableOrUnknown(data['list_id']!, _listIdMeta),
+      );
+    }
+    if (data.containsKey('parent_id')) {
+      context.handle(
+        _parentIdMeta,
+        parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta),
       );
     }
     if (data.containsKey('title')) {
@@ -607,6 +1095,18 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
       context.handle(
         _tagsJsonMeta,
         tagsJson.isAcceptableOrUnknown(data['tags_json']!, _tagsJsonMeta),
+      );
+    }
+    if (data.containsKey('section')) {
+      context.handle(
+        _sectionMeta,
+        section.isAcceptableOrUnknown(data['section']!, _sectionMeta),
+      );
+    }
+    if (data.containsKey('sort_key')) {
+      context.handle(
+        _sortKeyMeta,
+        sortKey.isAcceptableOrUnknown(data['sort_key']!, _sortKeyMeta),
       );
     }
     if (data.containsKey('alarm_offsets_json')) {
@@ -665,6 +1165,10 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
         DriftSqlType.string,
         data['${effectivePrefix}list_id'],
       ),
+      parentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parent_id'],
+      ),
       title: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}title'],
@@ -692,6 +1196,14 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
       tagsJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}tags_json'],
+      )!,
+      section: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}section'],
+      ),
+      sortKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sort_key'],
       )!,
       alarmOffsetsJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -725,6 +1237,10 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
 class Todo extends DataClass implements Insertable<Todo> {
   final String id;
   final String? listId;
+
+  /// Subtasks/checklist items are ordinary synced todo rows (schema v5).
+  /// A null parent is a top-level task; child rows keep their own LWW clocks.
+  final String? parentId;
   final String title;
   final String notes;
   final int? dueAtMs;
@@ -732,6 +1248,12 @@ class Todo extends DataClass implements Insertable<Todo> {
   final int? completedAtMs;
   final int priority;
   final String tagsJson;
+
+  /// User-defined section within a list, null for date-driven grouping.
+  final String? section;
+
+  /// Fractional, lexicographically sortable order key for manual ordering.
+  final String sortKey;
 
   /// Alarms (schema v3): JSON array of minute-offsets before [dueAtMs]
   /// (0 = at due time). LWW fields on the todo so they sync like
@@ -753,6 +1275,7 @@ class Todo extends DataClass implements Insertable<Todo> {
   const Todo({
     required this.id,
     this.listId,
+    this.parentId,
     required this.title,
     required this.notes,
     this.dueAtMs,
@@ -760,6 +1283,8 @@ class Todo extends DataClass implements Insertable<Todo> {
     this.completedAtMs,
     required this.priority,
     required this.tagsJson,
+    this.section,
+    required this.sortKey,
     required this.alarmOffsetsJson,
     this.lastDismissedMs,
     this.snoozeUntilMs,
@@ -772,6 +1297,9 @@ class Todo extends DataClass implements Insertable<Todo> {
     map['id'] = Variable<String>(id);
     if (!nullToAbsent || listId != null) {
       map['list_id'] = Variable<String>(listId);
+    }
+    if (!nullToAbsent || parentId != null) {
+      map['parent_id'] = Variable<String>(parentId);
     }
     map['title'] = Variable<String>(title);
     map['notes'] = Variable<String>(notes);
@@ -786,6 +1314,10 @@ class Todo extends DataClass implements Insertable<Todo> {
     }
     map['priority'] = Variable<int>(priority);
     map['tags_json'] = Variable<String>(tagsJson);
+    if (!nullToAbsent || section != null) {
+      map['section'] = Variable<String>(section);
+    }
+    map['sort_key'] = Variable<String>(sortKey);
     map['alarm_offsets_json'] = Variable<String>(alarmOffsetsJson);
     if (!nullToAbsent || lastDismissedMs != null) {
       map['last_dismissed_ms'] = Variable<int>(lastDismissedMs);
@@ -804,6 +1336,9 @@ class Todo extends DataClass implements Insertable<Todo> {
       listId: listId == null && nullToAbsent
           ? const Value.absent()
           : Value(listId),
+      parentId: parentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentId),
       title: Value(title),
       notes: Value(notes),
       dueAtMs: dueAtMs == null && nullToAbsent
@@ -817,6 +1352,10 @@ class Todo extends DataClass implements Insertable<Todo> {
           : Value(completedAtMs),
       priority: Value(priority),
       tagsJson: Value(tagsJson),
+      section: section == null && nullToAbsent
+          ? const Value.absent()
+          : Value(section),
+      sortKey: Value(sortKey),
       alarmOffsetsJson: Value(alarmOffsetsJson),
       lastDismissedMs: lastDismissedMs == null && nullToAbsent
           ? const Value.absent()
@@ -837,6 +1376,7 @@ class Todo extends DataClass implements Insertable<Todo> {
     return Todo(
       id: serializer.fromJson<String>(json['id']),
       listId: serializer.fromJson<String?>(json['listId']),
+      parentId: serializer.fromJson<String?>(json['parentId']),
       title: serializer.fromJson<String>(json['title']),
       notes: serializer.fromJson<String>(json['notes']),
       dueAtMs: serializer.fromJson<int?>(json['dueAtMs']),
@@ -844,6 +1384,8 @@ class Todo extends DataClass implements Insertable<Todo> {
       completedAtMs: serializer.fromJson<int?>(json['completedAtMs']),
       priority: serializer.fromJson<int>(json['priority']),
       tagsJson: serializer.fromJson<String>(json['tagsJson']),
+      section: serializer.fromJson<String?>(json['section']),
+      sortKey: serializer.fromJson<String>(json['sortKey']),
       alarmOffsetsJson: serializer.fromJson<String>(json['alarmOffsetsJson']),
       lastDismissedMs: serializer.fromJson<int?>(json['lastDismissedMs']),
       snoozeUntilMs: serializer.fromJson<int?>(json['snoozeUntilMs']),
@@ -857,6 +1399,7 @@ class Todo extends DataClass implements Insertable<Todo> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'listId': serializer.toJson<String?>(listId),
+      'parentId': serializer.toJson<String?>(parentId),
       'title': serializer.toJson<String>(title),
       'notes': serializer.toJson<String>(notes),
       'dueAtMs': serializer.toJson<int?>(dueAtMs),
@@ -864,6 +1407,8 @@ class Todo extends DataClass implements Insertable<Todo> {
       'completedAtMs': serializer.toJson<int?>(completedAtMs),
       'priority': serializer.toJson<int>(priority),
       'tagsJson': serializer.toJson<String>(tagsJson),
+      'section': serializer.toJson<String?>(section),
+      'sortKey': serializer.toJson<String>(sortKey),
       'alarmOffsetsJson': serializer.toJson<String>(alarmOffsetsJson),
       'lastDismissedMs': serializer.toJson<int?>(lastDismissedMs),
       'snoozeUntilMs': serializer.toJson<int?>(snoozeUntilMs),
@@ -875,6 +1420,7 @@ class Todo extends DataClass implements Insertable<Todo> {
   Todo copyWith({
     String? id,
     Value<String?> listId = const Value.absent(),
+    Value<String?> parentId = const Value.absent(),
     String? title,
     String? notes,
     Value<int?> dueAtMs = const Value.absent(),
@@ -882,6 +1428,8 @@ class Todo extends DataClass implements Insertable<Todo> {
     Value<int?> completedAtMs = const Value.absent(),
     int? priority,
     String? tagsJson,
+    Value<String?> section = const Value.absent(),
+    String? sortKey,
     String? alarmOffsetsJson,
     Value<int?> lastDismissedMs = const Value.absent(),
     Value<int?> snoozeUntilMs = const Value.absent(),
@@ -890,6 +1438,7 @@ class Todo extends DataClass implements Insertable<Todo> {
   }) => Todo(
     id: id ?? this.id,
     listId: listId.present ? listId.value : this.listId,
+    parentId: parentId.present ? parentId.value : this.parentId,
     title: title ?? this.title,
     notes: notes ?? this.notes,
     dueAtMs: dueAtMs.present ? dueAtMs.value : this.dueAtMs,
@@ -901,6 +1450,8 @@ class Todo extends DataClass implements Insertable<Todo> {
         : this.completedAtMs,
     priority: priority ?? this.priority,
     tagsJson: tagsJson ?? this.tagsJson,
+    section: section.present ? section.value : this.section,
+    sortKey: sortKey ?? this.sortKey,
     alarmOffsetsJson: alarmOffsetsJson ?? this.alarmOffsetsJson,
     lastDismissedMs: lastDismissedMs.present
         ? lastDismissedMs.value
@@ -915,6 +1466,7 @@ class Todo extends DataClass implements Insertable<Todo> {
     return Todo(
       id: data.id.present ? data.id.value : this.id,
       listId: data.listId.present ? data.listId.value : this.listId,
+      parentId: data.parentId.present ? data.parentId.value : this.parentId,
       title: data.title.present ? data.title.value : this.title,
       notes: data.notes.present ? data.notes.value : this.notes,
       dueAtMs: data.dueAtMs.present ? data.dueAtMs.value : this.dueAtMs,
@@ -926,6 +1478,8 @@ class Todo extends DataClass implements Insertable<Todo> {
           : this.completedAtMs,
       priority: data.priority.present ? data.priority.value : this.priority,
       tagsJson: data.tagsJson.present ? data.tagsJson.value : this.tagsJson,
+      section: data.section.present ? data.section.value : this.section,
+      sortKey: data.sortKey.present ? data.sortKey.value : this.sortKey,
       alarmOffsetsJson: data.alarmOffsetsJson.present
           ? data.alarmOffsetsJson.value
           : this.alarmOffsetsJson,
@@ -945,6 +1499,7 @@ class Todo extends DataClass implements Insertable<Todo> {
     return (StringBuffer('Todo(')
           ..write('id: $id, ')
           ..write('listId: $listId, ')
+          ..write('parentId: $parentId, ')
           ..write('title: $title, ')
           ..write('notes: $notes, ')
           ..write('dueAtMs: $dueAtMs, ')
@@ -952,6 +1507,8 @@ class Todo extends DataClass implements Insertable<Todo> {
           ..write('completedAtMs: $completedAtMs, ')
           ..write('priority: $priority, ')
           ..write('tagsJson: $tagsJson, ')
+          ..write('section: $section, ')
+          ..write('sortKey: $sortKey, ')
           ..write('alarmOffsetsJson: $alarmOffsetsJson, ')
           ..write('lastDismissedMs: $lastDismissedMs, ')
           ..write('snoozeUntilMs: $snoozeUntilMs, ')
@@ -965,6 +1522,7 @@ class Todo extends DataClass implements Insertable<Todo> {
   int get hashCode => Object.hash(
     id,
     listId,
+    parentId,
     title,
     notes,
     dueAtMs,
@@ -972,6 +1530,8 @@ class Todo extends DataClass implements Insertable<Todo> {
     completedAtMs,
     priority,
     tagsJson,
+    section,
+    sortKey,
     alarmOffsetsJson,
     lastDismissedMs,
     snoozeUntilMs,
@@ -984,6 +1544,7 @@ class Todo extends DataClass implements Insertable<Todo> {
       (other is Todo &&
           other.id == this.id &&
           other.listId == this.listId &&
+          other.parentId == this.parentId &&
           other.title == this.title &&
           other.notes == this.notes &&
           other.dueAtMs == this.dueAtMs &&
@@ -991,6 +1552,8 @@ class Todo extends DataClass implements Insertable<Todo> {
           other.completedAtMs == this.completedAtMs &&
           other.priority == this.priority &&
           other.tagsJson == this.tagsJson &&
+          other.section == this.section &&
+          other.sortKey == this.sortKey &&
           other.alarmOffsetsJson == this.alarmOffsetsJson &&
           other.lastDismissedMs == this.lastDismissedMs &&
           other.snoozeUntilMs == this.snoozeUntilMs &&
@@ -1001,6 +1564,7 @@ class Todo extends DataClass implements Insertable<Todo> {
 class TodosCompanion extends UpdateCompanion<Todo> {
   final Value<String> id;
   final Value<String?> listId;
+  final Value<String?> parentId;
   final Value<String> title;
   final Value<String> notes;
   final Value<int?> dueAtMs;
@@ -1008,6 +1572,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
   final Value<int?> completedAtMs;
   final Value<int> priority;
   final Value<String> tagsJson;
+  final Value<String?> section;
+  final Value<String> sortKey;
   final Value<String> alarmOffsetsJson;
   final Value<int?> lastDismissedMs;
   final Value<int?> snoozeUntilMs;
@@ -1017,6 +1583,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
   const TodosCompanion({
     this.id = const Value.absent(),
     this.listId = const Value.absent(),
+    this.parentId = const Value.absent(),
     this.title = const Value.absent(),
     this.notes = const Value.absent(),
     this.dueAtMs = const Value.absent(),
@@ -1024,6 +1591,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     this.completedAtMs = const Value.absent(),
     this.priority = const Value.absent(),
     this.tagsJson = const Value.absent(),
+    this.section = const Value.absent(),
+    this.sortKey = const Value.absent(),
     this.alarmOffsetsJson = const Value.absent(),
     this.lastDismissedMs = const Value.absent(),
     this.snoozeUntilMs = const Value.absent(),
@@ -1034,6 +1603,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
   TodosCompanion.insert({
     required String id,
     this.listId = const Value.absent(),
+    this.parentId = const Value.absent(),
     required String title,
     this.notes = const Value.absent(),
     this.dueAtMs = const Value.absent(),
@@ -1041,6 +1611,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     this.completedAtMs = const Value.absent(),
     this.priority = const Value.absent(),
     this.tagsJson = const Value.absent(),
+    this.section = const Value.absent(),
+    this.sortKey = const Value.absent(),
     this.alarmOffsetsJson = const Value.absent(),
     this.lastDismissedMs = const Value.absent(),
     this.snoozeUntilMs = const Value.absent(),
@@ -1052,6 +1624,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
   static Insertable<Todo> custom({
     Expression<String>? id,
     Expression<String>? listId,
+    Expression<String>? parentId,
     Expression<String>? title,
     Expression<String>? notes,
     Expression<int>? dueAtMs,
@@ -1059,6 +1632,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     Expression<int>? completedAtMs,
     Expression<int>? priority,
     Expression<String>? tagsJson,
+    Expression<String>? section,
+    Expression<String>? sortKey,
     Expression<String>? alarmOffsetsJson,
     Expression<int>? lastDismissedMs,
     Expression<int>? snoozeUntilMs,
@@ -1069,6 +1644,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (listId != null) 'list_id': listId,
+      if (parentId != null) 'parent_id': parentId,
       if (title != null) 'title': title,
       if (notes != null) 'notes': notes,
       if (dueAtMs != null) 'due_at_ms': dueAtMs,
@@ -1076,6 +1652,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
       if (completedAtMs != null) 'completed_at_ms': completedAtMs,
       if (priority != null) 'priority': priority,
       if (tagsJson != null) 'tags_json': tagsJson,
+      if (section != null) 'section': section,
+      if (sortKey != null) 'sort_key': sortKey,
       if (alarmOffsetsJson != null) 'alarm_offsets_json': alarmOffsetsJson,
       if (lastDismissedMs != null) 'last_dismissed_ms': lastDismissedMs,
       if (snoozeUntilMs != null) 'snooze_until_ms': snoozeUntilMs,
@@ -1088,6 +1666,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
   TodosCompanion copyWith({
     Value<String>? id,
     Value<String?>? listId,
+    Value<String?>? parentId,
     Value<String>? title,
     Value<String>? notes,
     Value<int?>? dueAtMs,
@@ -1095,6 +1674,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     Value<int?>? completedAtMs,
     Value<int>? priority,
     Value<String>? tagsJson,
+    Value<String?>? section,
+    Value<String>? sortKey,
     Value<String>? alarmOffsetsJson,
     Value<int?>? lastDismissedMs,
     Value<int?>? snoozeUntilMs,
@@ -1105,6 +1686,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     return TodosCompanion(
       id: id ?? this.id,
       listId: listId ?? this.listId,
+      parentId: parentId ?? this.parentId,
       title: title ?? this.title,
       notes: notes ?? this.notes,
       dueAtMs: dueAtMs ?? this.dueAtMs,
@@ -1112,6 +1694,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
       completedAtMs: completedAtMs ?? this.completedAtMs,
       priority: priority ?? this.priority,
       tagsJson: tagsJson ?? this.tagsJson,
+      section: section ?? this.section,
+      sortKey: sortKey ?? this.sortKey,
       alarmOffsetsJson: alarmOffsetsJson ?? this.alarmOffsetsJson,
       lastDismissedMs: lastDismissedMs ?? this.lastDismissedMs,
       snoozeUntilMs: snoozeUntilMs ?? this.snoozeUntilMs,
@@ -1129,6 +1713,9 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     }
     if (listId.present) {
       map['list_id'] = Variable<String>(listId.value);
+    }
+    if (parentId.present) {
+      map['parent_id'] = Variable<String>(parentId.value);
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
@@ -1150,6 +1737,12 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     }
     if (tagsJson.present) {
       map['tags_json'] = Variable<String>(tagsJson.value);
+    }
+    if (section.present) {
+      map['section'] = Variable<String>(section.value);
+    }
+    if (sortKey.present) {
+      map['sort_key'] = Variable<String>(sortKey.value);
     }
     if (alarmOffsetsJson.present) {
       map['alarm_offsets_json'] = Variable<String>(alarmOffsetsJson.value);
@@ -1177,6 +1770,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     return (StringBuffer('TodosCompanion(')
           ..write('id: $id, ')
           ..write('listId: $listId, ')
+          ..write('parentId: $parentId, ')
           ..write('title: $title, ')
           ..write('notes: $notes, ')
           ..write('dueAtMs: $dueAtMs, ')
@@ -1184,6 +1778,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
           ..write('completedAtMs: $completedAtMs, ')
           ..write('priority: $priority, ')
           ..write('tagsJson: $tagsJson, ')
+          ..write('section: $section, ')
+          ..write('sortKey: $sortKey, ')
           ..write('alarmOffsetsJson: $alarmOffsetsJson, ')
           ..write('lastDismissedMs: $lastDismissedMs, ')
           ..write('snoozeUntilMs: $snoozeUntilMs, ')
@@ -3006,9 +3602,329 @@ class FieldClocksCompanion extends UpdateCompanion<FieldClock> {
   }
 }
 
+class $GroupMembersTable extends GroupMembers
+    with TableInfo<$GroupMembersTable, GroupMember> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GroupMembersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _groupIdMeta = const VerificationMeta(
+    'groupId',
+  );
+  @override
+  late final GeneratedColumn<String> groupId = GeneratedColumn<String>(
+    'group_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES sync_groups (id)',
+    ),
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES devices (id)',
+    ),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, groupId, deviceId, deleted];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'group_members';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GroupMember> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('group_id')) {
+      context.handle(
+        _groupIdMeta,
+        groupId.isAcceptableOrUnknown(data['group_id']!, _groupIdMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  GroupMember map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GroupMember(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      groupId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}group_id'],
+      ),
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      ),
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $GroupMembersTable createAlias(String alias) {
+    return $GroupMembersTable(attachedDatabase, alias);
+  }
+}
+
+class GroupMember extends DataClass implements Insertable<GroupMember> {
+  final String id;
+  final String? groupId;
+  final String? deviceId;
+  final bool deleted;
+  const GroupMember({
+    required this.id,
+    this.groupId,
+    this.deviceId,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || groupId != null) {
+      map['group_id'] = Variable<String>(groupId);
+    }
+    if (!nullToAbsent || deviceId != null) {
+      map['device_id'] = Variable<String>(deviceId);
+    }
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  GroupMembersCompanion toCompanion(bool nullToAbsent) {
+    return GroupMembersCompanion(
+      id: Value(id),
+      groupId: groupId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(groupId),
+      deviceId: deviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deviceId),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory GroupMember.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GroupMember(
+      id: serializer.fromJson<String>(json['id']),
+      groupId: serializer.fromJson<String?>(json['groupId']),
+      deviceId: serializer.fromJson<String?>(json['deviceId']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'groupId': serializer.toJson<String?>(groupId),
+      'deviceId': serializer.toJson<String?>(deviceId),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  GroupMember copyWith({
+    String? id,
+    Value<String?> groupId = const Value.absent(),
+    Value<String?> deviceId = const Value.absent(),
+    bool? deleted,
+  }) => GroupMember(
+    id: id ?? this.id,
+    groupId: groupId.present ? groupId.value : this.groupId,
+    deviceId: deviceId.present ? deviceId.value : this.deviceId,
+    deleted: deleted ?? this.deleted,
+  );
+  GroupMember copyWithCompanion(GroupMembersCompanion data) {
+    return GroupMember(
+      id: data.id.present ? data.id.value : this.id,
+      groupId: data.groupId.present ? data.groupId.value : this.groupId,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GroupMember(')
+          ..write('id: $id, ')
+          ..write('groupId: $groupId, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, groupId, deviceId, deleted);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GroupMember &&
+          other.id == this.id &&
+          other.groupId == this.groupId &&
+          other.deviceId == this.deviceId &&
+          other.deleted == this.deleted);
+}
+
+class GroupMembersCompanion extends UpdateCompanion<GroupMember> {
+  final Value<String> id;
+  final Value<String?> groupId;
+  final Value<String?> deviceId;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const GroupMembersCompanion({
+    this.id = const Value.absent(),
+    this.groupId = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  GroupMembersCompanion.insert({
+    required String id,
+    this.groupId = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id);
+  static Insertable<GroupMember> custom({
+    Expression<String>? id,
+    Expression<String>? groupId,
+    Expression<String>? deviceId,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (groupId != null) 'group_id': groupId,
+      if (deviceId != null) 'device_id': deviceId,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  GroupMembersCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? groupId,
+    Value<String?>? deviceId,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return GroupMembersCompanion(
+      id: id ?? this.id,
+      groupId: groupId ?? this.groupId,
+      deviceId: deviceId ?? this.deviceId,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (groupId.present) {
+      map['group_id'] = Variable<String>(groupId.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GroupMembersCompanion(')
+          ..write('id: $id, ')
+          ..write('groupId: $groupId, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
+  late final $SyncGroupsTable syncGroups = $SyncGroupsTable(this);
   late final $TodoListsTable todoLists = $TodoListsTable(this);
   late final $TodosTable todos = $TodosTable(this);
   late final $TodoAlarmsTable todoAlarms = $TodoAlarmsTable(this);
@@ -3018,11 +3934,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $FieldClocksTable fieldClocks = $FieldClocksTable(this);
+  late final $GroupMembersTable groupMembers = $GroupMembersTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+    syncGroups,
     todoLists,
     todos,
     todoAlarms,
@@ -3030,15 +3948,417 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     syncLog,
     alarmDismissals,
     fieldClocks,
+    groupMembers,
   ];
 }
 
+typedef $$SyncGroupsTableCreateCompanionBuilder =
+    SyncGroupsCompanion Function({
+      required String id,
+      required String name,
+      Value<String> backendKind,
+      Value<String?> localAccountRef,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+typedef $$SyncGroupsTableUpdateCompanionBuilder =
+    SyncGroupsCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> backendKind,
+      Value<String?> localAccountRef,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+
+final class $$SyncGroupsTableReferences
+    extends BaseReferences<_$AppDatabase, $SyncGroupsTable, SyncGroup> {
+  $$SyncGroupsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$TodoListsTable, List<TodoList>>
+  _todoListsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.todoLists,
+    aliasName: 'sync_groups__id__todo_lists__group_id',
+  );
+
+  $$TodoListsTableProcessedTableManager get todoListsRefs {
+    final manager = $$TodoListsTableTableManager(
+      $_db,
+      $_db.todoLists,
+    ).filter((f) => f.groupId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_todoListsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$GroupMembersTable, List<GroupMember>>
+  _groupMembersRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.groupMembers,
+    aliasName: 'sync_groups__id__group_members__group_id',
+  );
+
+  $$GroupMembersTableProcessedTableManager get groupMembersRefs {
+    final manager = $$GroupMembersTableTableManager(
+      $_db,
+      $_db.groupMembers,
+    ).filter((f) => f.groupId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_groupMembersRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$SyncGroupsTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncGroupsTable> {
+  $$SyncGroupsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get backendKind => $composableBuilder(
+    column: $table.backendKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localAccountRef => $composableBuilder(
+    column: $table.localAccountRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> todoListsRefs(
+    Expression<bool> Function($$TodoListsTableFilterComposer f) f,
+  ) {
+    final $$TodoListsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.todoLists,
+      getReferencedColumn: (t) => t.groupId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TodoListsTableFilterComposer(
+            $db: $db,
+            $table: $db.todoLists,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> groupMembersRefs(
+    Expression<bool> Function($$GroupMembersTableFilterComposer f) f,
+  ) {
+    final $$GroupMembersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.groupMembers,
+      getReferencedColumn: (t) => t.groupId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GroupMembersTableFilterComposer(
+            $db: $db,
+            $table: $db.groupMembers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SyncGroupsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncGroupsTable> {
+  $$SyncGroupsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get backendKind => $composableBuilder(
+    column: $table.backendKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get localAccountRef => $composableBuilder(
+    column: $table.localAccountRef,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncGroupsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncGroupsTable> {
+  $$SyncGroupsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get backendKind => $composableBuilder(
+    column: $table.backendKind,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get localAccountRef => $composableBuilder(
+    column: $table.localAccountRef,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  Expression<T> todoListsRefs<T extends Object>(
+    Expression<T> Function($$TodoListsTableAnnotationComposer a) f,
+  ) {
+    final $$TodoListsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.todoLists,
+      getReferencedColumn: (t) => t.groupId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TodoListsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.todoLists,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> groupMembersRefs<T extends Object>(
+    Expression<T> Function($$GroupMembersTableAnnotationComposer a) f,
+  ) {
+    final $$GroupMembersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.groupMembers,
+      getReferencedColumn: (t) => t.groupId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GroupMembersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.groupMembers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SyncGroupsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyncGroupsTable,
+          SyncGroup,
+          $$SyncGroupsTableFilterComposer,
+          $$SyncGroupsTableOrderingComposer,
+          $$SyncGroupsTableAnnotationComposer,
+          $$SyncGroupsTableCreateCompanionBuilder,
+          $$SyncGroupsTableUpdateCompanionBuilder,
+          (SyncGroup, $$SyncGroupsTableReferences),
+          SyncGroup,
+          PrefetchHooks Function({bool todoListsRefs, bool groupMembersRefs})
+        > {
+  $$SyncGroupsTableTableManager(_$AppDatabase db, $SyncGroupsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncGroupsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncGroupsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncGroupsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> backendKind = const Value.absent(),
+                Value<String?> localAccountRef = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncGroupsCompanion(
+                id: id,
+                name: name,
+                backendKind: backendKind,
+                localAccountRef: localAccountRef,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                Value<String> backendKind = const Value.absent(),
+                Value<String?> localAccountRef = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncGroupsCompanion.insert(
+                id: id,
+                name: name,
+                backendKind: backendKind,
+                localAccountRef: localAccountRef,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SyncGroupsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({todoListsRefs = false, groupMembersRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (todoListsRefs) db.todoLists,
+                    if (groupMembersRefs) db.groupMembers,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (todoListsRefs)
+                        await $_getPrefetchedData<
+                          SyncGroup,
+                          $SyncGroupsTable,
+                          TodoList
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SyncGroupsTableReferences
+                              ._todoListsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SyncGroupsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).todoListsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.groupId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (groupMembersRefs)
+                        await $_getPrefetchedData<
+                          SyncGroup,
+                          $SyncGroupsTable,
+                          GroupMember
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SyncGroupsTableReferences
+                              ._groupMembersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SyncGroupsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).groupMembersRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.groupId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$SyncGroupsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyncGroupsTable,
+      SyncGroup,
+      $$SyncGroupsTableFilterComposer,
+      $$SyncGroupsTableOrderingComposer,
+      $$SyncGroupsTableAnnotationComposer,
+      $$SyncGroupsTableCreateCompanionBuilder,
+      $$SyncGroupsTableUpdateCompanionBuilder,
+      (SyncGroup, $$SyncGroupsTableReferences),
+      SyncGroup,
+      PrefetchHooks Function({bool todoListsRefs, bool groupMembersRefs})
+    >;
 typedef $$TodoListsTableCreateCompanionBuilder =
     TodoListsCompanion Function({
       required String id,
       required String name,
       Value<int?> color,
       Value<int> sortOrder,
+      Value<String?> groupId,
       Value<bool> deleted,
       Value<int> rowid,
     });
@@ -3048,6 +4368,7 @@ typedef $$TodoListsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<int?> color,
       Value<int> sortOrder,
+      Value<String?> groupId,
       Value<bool> deleted,
       Value<int> rowid,
     });
@@ -3055,6 +4376,23 @@ typedef $$TodoListsTableUpdateCompanionBuilder =
 final class $$TodoListsTableReferences
     extends BaseReferences<_$AppDatabase, $TodoListsTable, TodoList> {
   $$TodoListsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $SyncGroupsTable _groupIdTable(_$AppDatabase db) =>
+      db.syncGroups.createAlias('todo_lists__group_id__sync_groups__id');
+
+  $$SyncGroupsTableProcessedTableManager? get groupId {
+    final $_column = $_itemColumn<String>('group_id');
+    if ($_column == null) return null;
+    final manager = $$SyncGroupsTableTableManager(
+      $_db,
+      $_db.syncGroups,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_groupIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static MultiTypedResultKey<$TodosTable, List<Todo>> _todosRefsTable(
     _$AppDatabase db,
@@ -3109,6 +4447,29 @@ class $$TodoListsTableFilterComposer
     column: $table.deleted,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$SyncGroupsTableFilterComposer get groupId {
+    final $$SyncGroupsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.groupId,
+      referencedTable: $db.syncGroups,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyncGroupsTableFilterComposer(
+            $db: $db,
+            $table: $db.syncGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<bool> todosRefs(
     Expression<bool> Function($$TodosTableFilterComposer f) f,
@@ -3169,6 +4530,29 @@ class $$TodoListsTableOrderingComposer
     column: $table.deleted,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$SyncGroupsTableOrderingComposer get groupId {
+    final $$SyncGroupsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.groupId,
+      referencedTable: $db.syncGroups,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyncGroupsTableOrderingComposer(
+            $db: $db,
+            $table: $db.syncGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$TodoListsTableAnnotationComposer
@@ -3194,6 +4578,29 @@ class $$TodoListsTableAnnotationComposer
 
   GeneratedColumn<bool> get deleted =>
       $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  $$SyncGroupsTableAnnotationComposer get groupId {
+    final $$SyncGroupsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.groupId,
+      referencedTable: $db.syncGroups,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyncGroupsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.syncGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<T> todosRefs<T extends Object>(
     Expression<T> Function($$TodosTableAnnotationComposer a) f,
@@ -3234,7 +4641,7 @@ class $$TodoListsTableTableManager
           $$TodoListsTableUpdateCompanionBuilder,
           (TodoList, $$TodoListsTableReferences),
           TodoList,
-          PrefetchHooks Function({bool todosRefs})
+          PrefetchHooks Function({bool groupId, bool todosRefs})
         > {
   $$TodoListsTableTableManager(_$AppDatabase db, $TodoListsTable table)
     : super(
@@ -3253,6 +4660,7 @@ class $$TodoListsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<int?> color = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<String?> groupId = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TodoListsCompanion(
@@ -3260,6 +4668,7 @@ class $$TodoListsTableTableManager
                 name: name,
                 color: color,
                 sortOrder: sortOrder,
+                groupId: groupId,
                 deleted: deleted,
                 rowid: rowid,
               ),
@@ -3269,6 +4678,7 @@ class $$TodoListsTableTableManager
                 required String name,
                 Value<int?> color = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<String?> groupId = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TodoListsCompanion.insert(
@@ -3276,6 +4686,7 @@ class $$TodoListsTableTableManager
                 name: name,
                 color: color,
                 sortOrder: sortOrder,
+                groupId: groupId,
                 deleted: deleted,
                 rowid: rowid,
               ),
@@ -3287,11 +4698,42 @@ class $$TodoListsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({todosRefs = false}) {
+          prefetchHooksCallback: ({groupId = false, todosRefs = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [if (todosRefs) db.todos],
-              addJoins: null,
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (groupId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.groupId,
+                                referencedTable: $$TodoListsTableReferences
+                                    ._groupIdTable(db),
+                                referencedColumn: $$TodoListsTableReferences
+                                    ._groupIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
               getPrefetchedDataCallback: (items) async {
                 return [
                   if (todosRefs)
@@ -3325,12 +4767,13 @@ typedef $$TodoListsTableProcessedTableManager =
       $$TodoListsTableUpdateCompanionBuilder,
       (TodoList, $$TodoListsTableReferences),
       TodoList,
-      PrefetchHooks Function({bool todosRefs})
+      PrefetchHooks Function({bool groupId, bool todosRefs})
     >;
 typedef $$TodosTableCreateCompanionBuilder =
     TodosCompanion Function({
       required String id,
       Value<String?> listId,
+      Value<String?> parentId,
       required String title,
       Value<String> notes,
       Value<int?> dueAtMs,
@@ -3338,6 +4781,8 @@ typedef $$TodosTableCreateCompanionBuilder =
       Value<int?> completedAtMs,
       Value<int> priority,
       Value<String> tagsJson,
+      Value<String?> section,
+      Value<String> sortKey,
       Value<String> alarmOffsetsJson,
       Value<int?> lastDismissedMs,
       Value<int?> snoozeUntilMs,
@@ -3349,6 +4794,7 @@ typedef $$TodosTableUpdateCompanionBuilder =
     TodosCompanion Function({
       Value<String> id,
       Value<String?> listId,
+      Value<String?> parentId,
       Value<String> title,
       Value<String> notes,
       Value<int?> dueAtMs,
@@ -3356,6 +4802,8 @@ typedef $$TodosTableUpdateCompanionBuilder =
       Value<int?> completedAtMs,
       Value<int> priority,
       Value<String> tagsJson,
+      Value<String?> section,
+      Value<String> sortKey,
       Value<String> alarmOffsetsJson,
       Value<int?> lastDismissedMs,
       Value<int?> snoozeUntilMs,
@@ -3379,6 +4827,23 @@ final class $$TodosTableReferences
       $_db.todoLists,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_listIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $TodosTable _parentIdTable(_$AppDatabase db) =>
+      db.todos.createAlias('todos__parent_id__todos__id');
+
+  $$TodosTableProcessedTableManager? get parentId {
+    final $_column = $_itemColumn<String>('parent_id');
+    if ($_column == null) return null;
+    final manager = $$TodosTableTableManager(
+      $_db,
+      $_db.todos,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_parentIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -3452,6 +4917,16 @@ class $$TodosTableFilterComposer extends Composer<_$AppDatabase, $TodosTable> {
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get section => $composableBuilder(
+    column: $table.section,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sortKey => $composableBuilder(
+    column: $table.sortKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get alarmOffsetsJson => $composableBuilder(
     column: $table.alarmOffsetsJson,
     builder: (column) => ColumnFilters(column),
@@ -3491,6 +4966,29 @@ class $$TodosTableFilterComposer extends Composer<_$AppDatabase, $TodosTable> {
           }) => $$TodoListsTableFilterComposer(
             $db: $db,
             $table: $db.todoLists,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TodosTableFilterComposer get parentId {
+    final $$TodosTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.parentId,
+      referencedTable: $db.todos,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TodosTableFilterComposer(
+            $db: $db,
+            $table: $db.todos,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3575,6 +5073,16 @@ class $$TodosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get section => $composableBuilder(
+    column: $table.section,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sortKey => $composableBuilder(
+    column: $table.sortKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get alarmOffsetsJson => $composableBuilder(
     column: $table.alarmOffsetsJson,
     builder: (column) => ColumnOrderings(column),
@@ -3622,6 +5130,29 @@ class $$TodosTableOrderingComposer
     );
     return composer;
   }
+
+  $$TodosTableOrderingComposer get parentId {
+    final $$TodosTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.parentId,
+      referencedTable: $db.todos,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TodosTableOrderingComposer(
+            $db: $db,
+            $table: $db.todos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$TodosTableAnnotationComposer
@@ -3661,6 +5192,12 @@ class $$TodosTableAnnotationComposer
   GeneratedColumn<String> get tagsJson =>
       $composableBuilder(column: $table.tagsJson, builder: (column) => column);
 
+  GeneratedColumn<String> get section =>
+      $composableBuilder(column: $table.section, builder: (column) => column);
+
+  GeneratedColumn<String> get sortKey =>
+      $composableBuilder(column: $table.sortKey, builder: (column) => column);
+
   GeneratedColumn<String> get alarmOffsetsJson => $composableBuilder(
     column: $table.alarmOffsetsJson,
     builder: (column) => column,
@@ -3696,6 +5233,29 @@ class $$TodosTableAnnotationComposer
           }) => $$TodoListsTableAnnotationComposer(
             $db: $db,
             $table: $db.todoLists,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TodosTableAnnotationComposer get parentId {
+    final $$TodosTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.parentId,
+      referencedTable: $db.todos,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TodosTableAnnotationComposer(
+            $db: $db,
+            $table: $db.todos,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3744,7 +5304,11 @@ class $$TodosTableTableManager
           $$TodosTableUpdateCompanionBuilder,
           (Todo, $$TodosTableReferences),
           Todo,
-          PrefetchHooks Function({bool listId, bool todoAlarmsRefs})
+          PrefetchHooks Function({
+            bool listId,
+            bool parentId,
+            bool todoAlarmsRefs,
+          })
         > {
   $$TodosTableTableManager(_$AppDatabase db, $TodosTable table)
     : super(
@@ -3761,6 +5325,7 @@ class $$TodosTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String?> listId = const Value.absent(),
+                Value<String?> parentId = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String> notes = const Value.absent(),
                 Value<int?> dueAtMs = const Value.absent(),
@@ -3768,6 +5333,8 @@ class $$TodosTableTableManager
                 Value<int?> completedAtMs = const Value.absent(),
                 Value<int> priority = const Value.absent(),
                 Value<String> tagsJson = const Value.absent(),
+                Value<String?> section = const Value.absent(),
+                Value<String> sortKey = const Value.absent(),
                 Value<String> alarmOffsetsJson = const Value.absent(),
                 Value<int?> lastDismissedMs = const Value.absent(),
                 Value<int?> snoozeUntilMs = const Value.absent(),
@@ -3777,6 +5344,7 @@ class $$TodosTableTableManager
               }) => TodosCompanion(
                 id: id,
                 listId: listId,
+                parentId: parentId,
                 title: title,
                 notes: notes,
                 dueAtMs: dueAtMs,
@@ -3784,6 +5352,8 @@ class $$TodosTableTableManager
                 completedAtMs: completedAtMs,
                 priority: priority,
                 tagsJson: tagsJson,
+                section: section,
+                sortKey: sortKey,
                 alarmOffsetsJson: alarmOffsetsJson,
                 lastDismissedMs: lastDismissedMs,
                 snoozeUntilMs: snoozeUntilMs,
@@ -3795,6 +5365,7 @@ class $$TodosTableTableManager
               ({
                 required String id,
                 Value<String?> listId = const Value.absent(),
+                Value<String?> parentId = const Value.absent(),
                 required String title,
                 Value<String> notes = const Value.absent(),
                 Value<int?> dueAtMs = const Value.absent(),
@@ -3802,6 +5373,8 @@ class $$TodosTableTableManager
                 Value<int?> completedAtMs = const Value.absent(),
                 Value<int> priority = const Value.absent(),
                 Value<String> tagsJson = const Value.absent(),
+                Value<String?> section = const Value.absent(),
+                Value<String> sortKey = const Value.absent(),
                 Value<String> alarmOffsetsJson = const Value.absent(),
                 Value<int?> lastDismissedMs = const Value.absent(),
                 Value<int?> snoozeUntilMs = const Value.absent(),
@@ -3811,6 +5384,7 @@ class $$TodosTableTableManager
               }) => TodosCompanion.insert(
                 id: id,
                 listId: listId,
+                parentId: parentId,
                 title: title,
                 notes: notes,
                 dueAtMs: dueAtMs,
@@ -3818,6 +5392,8 @@ class $$TodosTableTableManager
                 completedAtMs: completedAtMs,
                 priority: priority,
                 tagsJson: tagsJson,
+                section: section,
+                sortKey: sortKey,
                 alarmOffsetsJson: alarmOffsetsJson,
                 lastDismissedMs: lastDismissedMs,
                 snoozeUntilMs: snoozeUntilMs,
@@ -3831,59 +5407,79 @@ class $$TodosTableTableManager
                     (e.readTable(table), $$TodosTableReferences(db, table, e)),
               )
               .toList(),
-          prefetchHooksCallback: ({listId = false, todoAlarmsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (todoAlarmsRefs) db.todoAlarms],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (listId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.listId,
-                                referencedTable: $$TodosTableReferences
-                                    ._listIdTable(db),
-                                referencedColumn: $$TodosTableReferences
-                                    ._listIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
+          prefetchHooksCallback:
+              ({listId = false, parentId = false, todoAlarmsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [if (todoAlarmsRefs) db.todoAlarms],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (listId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.listId,
+                                    referencedTable: $$TodosTableReferences
+                                        ._listIdTable(db),
+                                    referencedColumn: $$TodosTableReferences
+                                        ._listIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (parentId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.parentId,
+                                    referencedTable: $$TodosTableReferences
+                                        ._parentIdTable(db),
+                                    referencedColumn: $$TodosTableReferences
+                                        ._parentIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (todoAlarmsRefs)
+                        await $_getPrefetchedData<Todo, $TodosTable, TodoAlarm>(
+                          currentTable: table,
+                          referencedTable: $$TodosTableReferences
+                              ._todoAlarmsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TodosTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).todoAlarmsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.todoId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (todoAlarmsRefs)
-                    await $_getPrefetchedData<Todo, $TodosTable, TodoAlarm>(
-                      currentTable: table,
-                      referencedTable: $$TodosTableReferences
-                          ._todoAlarmsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$TodosTableReferences(db, table, p0).todoAlarmsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.todoId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -3900,7 +5496,7 @@ typedef $$TodosTableProcessedTableManager =
       $$TodosTableUpdateCompanionBuilder,
       (Todo, $$TodosTableReferences),
       Todo,
-      PrefetchHooks Function({bool listId, bool todoAlarmsRefs})
+      PrefetchHooks Function({bool listId, bool parentId, bool todoAlarmsRefs})
     >;
 typedef $$TodoAlarmsTableCreateCompanionBuilder =
     TodoAlarmsCompanion Function({
@@ -4336,6 +5932,29 @@ typedef $$DevicesTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
+final class $$DevicesTableReferences
+    extends BaseReferences<_$AppDatabase, $DevicesTable, Device> {
+  $$DevicesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$GroupMembersTable, List<GroupMember>>
+  _groupMembersRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.groupMembers,
+    aliasName: 'devices__id__group_members__device_id',
+  );
+
+  $$GroupMembersTableProcessedTableManager get groupMembersRefs {
+    final manager = $$GroupMembersTableTableManager(
+      $_db,
+      $_db.groupMembers,
+    ).filter((f) => f.deviceId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_groupMembersRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
 class $$DevicesTableFilterComposer
     extends Composer<_$AppDatabase, $DevicesTable> {
   $$DevicesTableFilterComposer({
@@ -4374,6 +5993,31 @@ class $$DevicesTableFilterComposer
     column: $table.deleted,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> groupMembersRefs(
+    Expression<bool> Function($$GroupMembersTableFilterComposer f) f,
+  ) {
+    final $$GroupMembersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.groupMembers,
+      getReferencedColumn: (t) => t.deviceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GroupMembersTableFilterComposer(
+            $db: $db,
+            $table: $db.groupMembers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$DevicesTableOrderingComposer
@@ -4444,6 +6088,31 @@ class $$DevicesTableAnnotationComposer
 
   GeneratedColumn<bool> get deleted =>
       $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  Expression<T> groupMembersRefs<T extends Object>(
+    Expression<T> Function($$GroupMembersTableAnnotationComposer a) f,
+  ) {
+    final $$GroupMembersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.groupMembers,
+      getReferencedColumn: (t) => t.deviceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GroupMembersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.groupMembers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$DevicesTableTableManager
@@ -4457,9 +6126,9 @@ class $$DevicesTableTableManager
           $$DevicesTableAnnotationComposer,
           $$DevicesTableCreateCompanionBuilder,
           $$DevicesTableUpdateCompanionBuilder,
-          (Device, BaseReferences<_$AppDatabase, $DevicesTable, Device>),
+          (Device, $$DevicesTableReferences),
           Device,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool groupMembersRefs})
         > {
   $$DevicesTableTableManager(_$AppDatabase db, $DevicesTable table)
     : super(
@@ -4509,9 +6178,42 @@ class $$DevicesTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$DevicesTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({groupMembersRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (groupMembersRefs) db.groupMembers],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (groupMembersRefs)
+                    await $_getPrefetchedData<
+                      Device,
+                      $DevicesTable,
+                      GroupMember
+                    >(
+                      currentTable: table,
+                      referencedTable: $$DevicesTableReferences
+                          ._groupMembersRefsTable(db),
+                      managerFromTypedResult: (p0) => $$DevicesTableReferences(
+                        db,
+                        table,
+                        p0,
+                      ).groupMembersRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.deviceId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -4526,9 +6228,9 @@ typedef $$DevicesTableProcessedTableManager =
       $$DevicesTableAnnotationComposer,
       $$DevicesTableCreateCompanionBuilder,
       $$DevicesTableUpdateCompanionBuilder,
-      (Device, BaseReferences<_$AppDatabase, $DevicesTable, Device>),
+      (Device, $$DevicesTableReferences),
       Device,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool groupMembersRefs})
     >;
 typedef $$SyncLogTableCreateCompanionBuilder =
     SyncLogCompanion Function({
@@ -5225,10 +6927,396 @@ typedef $$FieldClocksTableProcessedTableManager =
       FieldClock,
       PrefetchHooks Function()
     >;
+typedef $$GroupMembersTableCreateCompanionBuilder =
+    GroupMembersCompanion Function({
+      required String id,
+      Value<String?> groupId,
+      Value<String?> deviceId,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+typedef $$GroupMembersTableUpdateCompanionBuilder =
+    GroupMembersCompanion Function({
+      Value<String> id,
+      Value<String?> groupId,
+      Value<String?> deviceId,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+
+final class $$GroupMembersTableReferences
+    extends BaseReferences<_$AppDatabase, $GroupMembersTable, GroupMember> {
+  $$GroupMembersTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $SyncGroupsTable _groupIdTable(_$AppDatabase db) =>
+      db.syncGroups.createAlias('group_members__group_id__sync_groups__id');
+
+  $$SyncGroupsTableProcessedTableManager? get groupId {
+    final $_column = $_itemColumn<String>('group_id');
+    if ($_column == null) return null;
+    final manager = $$SyncGroupsTableTableManager(
+      $_db,
+      $_db.syncGroups,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_groupIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $DevicesTable _deviceIdTable(_$AppDatabase db) =>
+      db.devices.createAlias('group_members__device_id__devices__id');
+
+  $$DevicesTableProcessedTableManager? get deviceId {
+    final $_column = $_itemColumn<String>('device_id');
+    if ($_column == null) return null;
+    final manager = $$DevicesTableTableManager(
+      $_db,
+      $_db.devices,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_deviceIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$GroupMembersTableFilterComposer
+    extends Composer<_$AppDatabase, $GroupMembersTable> {
+  $$GroupMembersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$SyncGroupsTableFilterComposer get groupId {
+    final $$SyncGroupsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.groupId,
+      referencedTable: $db.syncGroups,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyncGroupsTableFilterComposer(
+            $db: $db,
+            $table: $db.syncGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DevicesTableFilterComposer get deviceId {
+    final $$DevicesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deviceId,
+      referencedTable: $db.devices,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DevicesTableFilterComposer(
+            $db: $db,
+            $table: $db.devices,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$GroupMembersTableOrderingComposer
+    extends Composer<_$AppDatabase, $GroupMembersTable> {
+  $$GroupMembersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$SyncGroupsTableOrderingComposer get groupId {
+    final $$SyncGroupsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.groupId,
+      referencedTable: $db.syncGroups,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyncGroupsTableOrderingComposer(
+            $db: $db,
+            $table: $db.syncGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DevicesTableOrderingComposer get deviceId {
+    final $$DevicesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deviceId,
+      referencedTable: $db.devices,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DevicesTableOrderingComposer(
+            $db: $db,
+            $table: $db.devices,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$GroupMembersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GroupMembersTable> {
+  $$GroupMembersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  $$SyncGroupsTableAnnotationComposer get groupId {
+    final $$SyncGroupsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.groupId,
+      referencedTable: $db.syncGroups,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyncGroupsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.syncGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DevicesTableAnnotationComposer get deviceId {
+    final $$DevicesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deviceId,
+      referencedTable: $db.devices,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DevicesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.devices,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$GroupMembersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $GroupMembersTable,
+          GroupMember,
+          $$GroupMembersTableFilterComposer,
+          $$GroupMembersTableOrderingComposer,
+          $$GroupMembersTableAnnotationComposer,
+          $$GroupMembersTableCreateCompanionBuilder,
+          $$GroupMembersTableUpdateCompanionBuilder,
+          (GroupMember, $$GroupMembersTableReferences),
+          GroupMember,
+          PrefetchHooks Function({bool groupId, bool deviceId})
+        > {
+  $$GroupMembersTableTableManager(_$AppDatabase db, $GroupMembersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GroupMembersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GroupMembersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GroupMembersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> groupId = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GroupMembersCompanion(
+                id: id,
+                groupId: groupId,
+                deviceId: deviceId,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> groupId = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GroupMembersCompanion.insert(
+                id: id,
+                groupId: groupId,
+                deviceId: deviceId,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$GroupMembersTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({groupId = false, deviceId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (groupId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.groupId,
+                                referencedTable: $$GroupMembersTableReferences
+                                    ._groupIdTable(db),
+                                referencedColumn: $$GroupMembersTableReferences
+                                    ._groupIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (deviceId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.deviceId,
+                                referencedTable: $$GroupMembersTableReferences
+                                    ._deviceIdTable(db),
+                                referencedColumn: $$GroupMembersTableReferences
+                                    ._deviceIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$GroupMembersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $GroupMembersTable,
+      GroupMember,
+      $$GroupMembersTableFilterComposer,
+      $$GroupMembersTableOrderingComposer,
+      $$GroupMembersTableAnnotationComposer,
+      $$GroupMembersTableCreateCompanionBuilder,
+      $$GroupMembersTableUpdateCompanionBuilder,
+      (GroupMember, $$GroupMembersTableReferences),
+      GroupMember,
+      PrefetchHooks Function({bool groupId, bool deviceId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
+  $$SyncGroupsTableTableManager get syncGroups =>
+      $$SyncGroupsTableTableManager(_db, _db.syncGroups);
   $$TodoListsTableTableManager get todoLists =>
       $$TodoListsTableTableManager(_db, _db.todoLists);
   $$TodosTableTableManager get todos =>
@@ -5243,4 +7331,6 @@ class $AppDatabaseManager {
       $$AlarmDismissalsTableTableManager(_db, _db.alarmDismissals);
   $$FieldClocksTableTableManager get fieldClocks =>
       $$FieldClocksTableTableManager(_db, _db.fieldClocks);
+  $$GroupMembersTableTableManager get groupMembers =>
+      $$GroupMembersTableTableManager(_db, _db.groupMembers);
 }

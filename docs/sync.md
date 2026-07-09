@@ -61,6 +61,59 @@ devices over pluggable transports, merged with CRDT semantics.
   snapshot once all peers' cursors have passed them.
 - Folder access: iCloud container via native channel (iOS/macOS), Storage
   Access Framework (Android), plain directory picker (Windows/Linux).
+- **Provider-API backends (ADR 0003):** the same protocol also runs over a
+  storage provider's REST API behind the `MailboxStore` seam — Dropbox app
+  folder, Google Drive `appDataFolder`, OneDrive Graph approot — signed in
+  from Settings → Cloud storage with OAuth/PKCE (docs/cloud-providers.md).
+  This is the iPhone path, where those providers expose no filesystem
+  folder. Same layout, same ciphertext, narrowest per-provider scopes.
+- **Solo-device mode:** a configured mailbox no longer requires pairing —
+  the first device creates the group key itself and publishes from day one;
+  pairing later hands that key to new devices, which then join the same
+  mailbox with full history.
+- Third-party tolerance (TASKS.md 6.45): the folder is shared with whatever
+  tool the user syncs it with, and those tools litter it with their own files —
+  Syncthing `*.sync-conflict-*` copies and `.stversions`/`.stfolder` dirs,
+  Dropbox "(conflicted copy)" files, iCloud `.icloud` placeholders, and `~`/
+  `.tmp` temp files. Consumption and compaction accept **only** files whose
+  name matches our exact `<hlc>.bin` shape and treat only non-dot subdirectories
+  as peer outboxes, so foreign artifacts are ignored rather than decrypted,
+  re-applied, or (in the case of a conflict copy sorting past a real file)
+  allowed to advance a cursor and strand later changesets.
+
+### Sharing groups (ADR 0004, design accepted — implementation Phase 8)
+
+Lists are **local by default**. A *sync group* binds a set of lists to a
+mailbox backend (iCloud folder, provider account, plain folder), a
+per-group encryption key, and a member set — so "Family on iCloud" and
+"Friends on Dropbox" run side by side, each with scoped changesets and
+its own cursors. Joining a group (QR invite carrying the group key +
+backend hint) makes a device a peer of someone else's storage; every
+member signs into their *own* provider account. The provider's folder ACL
+is coarse plumbing — the group key is the security boundary, rotated on
+member removal. Full design in
+[ADR 0004](decisions/0004-sharing-groups.md).
+
+### The mailbox is a transport, not a backup
+
+The cloud-drive mailbox looks like a folder full of files in your Drive, so it
+is tempting to treat it as a backup. It is not, and must not be relied on as
+one:
+
+- It holds **deltas plus periodic snapshots**, not a full, self-contained
+  export. Once every peer's cursor has passed a changeset, compaction deletes
+  it — old history is intentionally discarded.
+- It converges devices to the **current** state. A delete or a bad bulk edit
+  replicates to every device; the mailbox faithfully propagates the loss rather
+  than preserving what was there before.
+- Its contents are keyed to the paired devices' session keys. It is not a
+  portable artifact a user can hand to a new, unpaired device to recover data.
+
+For an actual backup, use the **encrypted backup file** (TASKS.md 6.41,
+`lib/data/backup_service.dart`): a passphrase-derived key (PBKDF2-HMAC-SHA256)
+sealing a full JSON export with XChaCha20-Poly1305. It is a point-in-time
+snapshot, independent of any pairing, that a user restores by hand — the
+counterpart to the mailbox's live replication.
 
 ### Orchestration
 - Triggers: app foreground, debounced local mutation, periodic timer.

@@ -4,9 +4,17 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/hlc.dart';
+import '../../core/order_key.dart';
 import '../../core/recurrence.dart';
 import '../db/database.dart';
 import '../sync/sync_fields.dart';
+
+class StaleTodoCandidate {
+  const StaleTodoCandidate({required this.todo, required this.lastTouchedAt});
+
+  final Todo todo;
+  final DateTime lastTouchedAt;
+}
 
 /// All todo mutations go through here: each one updates the row and stamps
 /// the changed fields' HLC clocks in the same transaction, so local edits
@@ -23,25 +31,39 @@ class TodoRepository {
   Future<Todo> create({
     required String title,
     String? listId,
+    String? parentId,
     String notes = '',
     int? dueAtMs,
     String? recurrenceRule,
     int priority = 0,
     List<String> tags = const [],
+    String? section,
+    String? sortKey,
   }) async {
     final id = _uuid.v7();
     final hlc = _hlc.send();
+    final normalizedSection = _normalizeSection(section);
+    final resolvedSortKey =
+        sortKey ??
+        await _nextSortKey(
+          listId: listId,
+          parentId: parentId,
+          section: normalizedSection,
+        );
     await _db.transaction(() async {
       await _db.todos.insertOne(
         TodosCompanion.insert(
           id: id,
           title: title,
           listId: Value(listId),
+          parentId: Value(parentId),
           notes: Value(notes),
           dueAtMs: Value(dueAtMs),
           recurrenceRule: Value(recurrenceRule),
           priority: Value(priority),
           tagsJson: Value(jsonEncode(tags)),
+          section: Value(normalizedSection),
+          sortKey: Value(resolvedSortKey),
         ),
       );
       await stampFields(
@@ -61,22 +83,30 @@ class TodoRepository {
     Value<String> title = const Value.absent(),
     Value<String> notes = const Value.absent(),
     Value<String?> listId = const Value.absent(),
+    Value<String?> parentId = const Value.absent(),
     Value<int?> dueAtMs = const Value.absent(),
     Value<String?> recurrenceRule = const Value.absent(),
     Value<int> priority = const Value.absent(),
     Value<List<String>> tags = const Value.absent(),
+    Value<String?> section = const Value.absent(),
+    Value<String> sortKey = const Value.absent(),
     Value<List<int>> alarmOffsetsMinutes = const Value.absent(),
   }) {
     final companion = TodosCompanion(
       title: title,
       notes: notes,
       listId: listId,
+      parentId: parentId,
       dueAtMs: dueAtMs,
       recurrenceRule: recurrenceRule,
       priority: priority,
       tagsJson: tags.present
           ? Value(jsonEncode(tags.value))
           : const Value.absent(),
+      section: section.present
+          ? Value(_normalizeSection(section.value))
+          : const Value.absent(),
+      sortKey: sortKey,
       alarmOffsetsJson: alarmOffsetsMinutes.present
           ? Value(jsonEncode(alarmOffsetsMinutes.value))
           : const Value.absent(),
@@ -85,13 +115,78 @@ class TodoRepository {
       if (title.present) 'title',
       if (notes.present) 'notes',
       if (listId.present) 'listId',
+      if (parentId.present) 'parentId',
       if (dueAtMs.present) 'dueAtMs',
       if (recurrenceRule.present) 'recurrenceRule',
       if (priority.present) 'priority',
       if (tags.present) 'tagsJson',
+      if (section.present) 'section',
+      if (sortKey.present) 'sortKey',
       if (alarmOffsetsMinutes.present) 'alarmOffsetsJson',
     ];
     return _write(id, companion, changed);
+  }
+
+  Future<List<Todo>> createSubtasks(
+    String parentId,
+    Iterable<String> titles,
+  ) async {
+    final parent = await getById(parentId);
+    if (parent == null) throw StateError('No todo with id $parentId');
+    final cleaned = [
+      for (final title in titles)
+        if (title.trim().isNotEmpty) title.trim(),
+    ];
+    if (cleaned.isEmpty) return const [];
+
+    final created = <Todo>[];
+    var previous = await _lastSortKey(
+      listId: parent.listId,
+      parentId: parentId,
+      section: parent.section,
+    );
+    for (final title in cleaned) {
+      final sortKey = orderKeyBetween(previous, null);
+      created.add(
+        await create(
+          title: title,
+          listId: parent.listId,
+          parentId: parentId,
+          section: parent.section,
+          sortKey: sortKey,
+        ),
+      );
+      previous = sortKey;
+    }
+    return created;
+  }
+
+  Future<void> replaceVisibleOrder(
+    List<Todo> ordered, {
+    Map<String, String?> sectionsById = const {},
+  }) async {
+    final hlc = _hlc.send();
+    await _db.transaction(() async {
+      for (var index = 0; index < ordered.length; index++) {
+        final todo = ordered[index];
+        final section = _normalizeSection(
+          sectionsById[todo.id] ?? todo.section,
+        );
+        final sortKey = spacedOrderKey(index);
+        final changed = <String>['sortKey'];
+        if (section != todo.section) changed.add('section');
+        await (_db.todos.update()..where((t) => t.id.equals(todo.id))).write(
+          TodosCompanion(sortKey: Value(sortKey), section: Value(section)),
+        );
+        await stampFields(
+          db: _db,
+          entity: 'todos',
+          rowId: todo.id,
+          fields: changed,
+          hlc: hlc,
+        );
+      }
+    });
   }
 
   /// Dismisses the alarm for [occurrenceMs]. This is a synced field write
@@ -141,10 +236,11 @@ class TodoRepository {
     }
     final due = DateTime.fromMillisecondsSinceEpoch(dueMs);
     final now = DateTime.fromMillisecondsSinceEpoch(_nowMs());
-    final next = recurrence.nextAfter(
-      now.isAfter(due) ? now : due,
-      anchor: due,
-    );
+    // A chore ("every N days after I do it") reschedules from completion time;
+    // a normal schedule advances to the next slot after now/due (TASKS.md 6.56).
+    final next = recurrence.anchor == RecurrenceAnchor.completion
+        ? recurrence.nextFromCompletion(now, anchor: due)
+        : recurrence.nextAfter(now.isAfter(due) ? now : due, anchor: due);
     return _write(
       id,
       TodosCompanion(
@@ -198,6 +294,9 @@ class TodoRepository {
         listId: requested.contains('listId')
             ? Value(snapshot.listId)
             : const Value.absent(),
+        parentId: requested.contains('parentId')
+            ? Value(snapshot.parentId)
+            : const Value.absent(),
         title: requested.contains('title')
             ? Value(snapshot.title)
             : const Value.absent(),
@@ -219,6 +318,12 @@ class TodoRepository {
         tagsJson: requested.contains('tagsJson')
             ? Value(snapshot.tagsJson)
             : const Value.absent(),
+        section: requested.contains('section')
+            ? Value(snapshot.section)
+            : const Value.absent(),
+        sortKey: requested.contains('sortKey')
+            ? Value(snapshot.sortKey)
+            : const Value.absent(),
         alarmOffsetsJson: requested.contains('alarmOffsetsJson')
             ? Value(snapshot.alarmOffsetsJson)
             : const Value.absent(),
@@ -239,18 +344,46 @@ class TodoRepository {
   Future<Todo?> getById(String id) =>
       (_db.todos.select()..where((t) => t.id.equals(id))).getSingleOrNull();
 
+  Stream<List<Todo>> watchSubtasks(String parentId) =>
+      (_db.todos.select()
+            ..where(
+              (t) => t.deleted.equals(false) & t.parentId.equals(parentId),
+            )
+            ..orderBy([
+              (t) => OrderingTerm(expression: t.completedAtMs.isNotNull()),
+              (t) => OrderingTerm(expression: t.sortKey),
+              (t) => OrderingTerm(expression: t.id),
+            ]))
+          .watch();
+
   /// Not deleted and not completed, soonest due date first (nulls last).
-  /// [unfiledOnly] restricts to Inbox todos (no list) and wins over [listId].
-  Stream<List<Todo>> watchActive({String? listId, bool unfiledOnly = false}) {
+  /// [unfiledOnly] restricts to Inbox todos (no list); [somedayOnly]
+  /// restricts to no-due-date todos. Both win over [listId].
+  Stream<List<Todo>> watchActive({
+    String? listId,
+    bool unfiledOnly = false,
+    bool somedayOnly = false,
+  }) {
     final query = _db.todos.select()
-      ..where((t) => t.deleted.equals(false) & t.completedAtMs.isNull())
+      ..where(
+        (t) =>
+            t.deleted.equals(false) &
+            t.completedAtMs.isNull() &
+            t.parentId.isNull(),
+      )
       ..orderBy([
         // false (has due date) sorts before true → nulls last.
         (t) => OrderingTerm(expression: t.dueAtMs.isNull()),
         (t) => OrderingTerm(expression: t.dueAtMs),
+        (t) => OrderingTerm(expression: t.section.isNull()),
+        (t) => OrderingTerm(expression: t.section),
+        (t) => OrderingTerm(expression: t.sortKey),
         (t) => OrderingTerm(expression: t.priority, mode: OrderingMode.desc),
+        (t) => OrderingTerm(expression: t.id),
       ]);
-    if (unfiledOnly) {
+    if (somedayOnly) {
+      query.where((t) => t.dueAtMs.isNull());
+    } else if (unfiledOnly) {
       query.where((t) => t.listId.isNull());
     } else if (listId != null) {
       query.where((t) => t.listId.equals(listId));
@@ -258,10 +391,57 @@ class TodoRepository {
     return query.watch();
   }
 
+  Future<List<StaleTodoCandidate>> staleCandidates({
+    required DateTime now,
+    Duration untouchedFor = const Duration(days: 28),
+  }) async {
+    final todos =
+        await (_db.todos.select()..where(
+              (t) =>
+                  t.deleted.equals(false) &
+                  t.completedAtMs.isNull() &
+                  t.parentId.isNull() &
+                  t.dueAtMs.isNotNull(),
+            ))
+            .get();
+    if (todos.isEmpty) return const [];
+
+    final todoIds = todos.map((todo) => todo.id).toList();
+    final clocks =
+        await (_db.fieldClocks.select()
+              ..where((c) => c.entity.equals('todos') & c.rowId.isIn(todoIds)))
+            .get();
+    final latestTouchedMs = <String, int>{};
+    for (final clock in clocks) {
+      final millis = Hlc.parse(clock.hlc).millis;
+      final previous = latestTouchedMs[clock.rowId];
+      if (previous == null || millis > previous) {
+        latestTouchedMs[clock.rowId] = millis;
+      }
+    }
+
+    final cutoffMs = now.subtract(untouchedFor).millisecondsSinceEpoch;
+    final candidates = [
+      for (final todo in todos)
+        if ((latestTouchedMs[todo.id] ?? now.millisecondsSinceEpoch) < cutoffMs)
+          StaleTodoCandidate(
+            todo: todo,
+            lastTouchedAt: DateTime.fromMillisecondsSinceEpoch(
+              latestTouchedMs[todo.id]!,
+            ),
+          ),
+    ];
+    candidates.sort((a, b) => a.lastTouchedAt.compareTo(b.lastTouchedAt));
+    return candidates;
+  }
+
   Stream<List<Todo>> watchCompleted() =>
       (_db.todos.select()
             ..where(
-              (t) => t.deleted.equals(false) & t.completedAtMs.isNotNull(),
+              (t) =>
+                  t.deleted.equals(false) &
+                  t.parentId.isNull() &
+                  t.completedAtMs.isNotNull(),
             )
             ..orderBy([
               (t) => OrderingTerm(
@@ -295,6 +475,44 @@ class TodoRepository {
   }
 
   int _nowMs() => _hlc.clock.now().millisecondsSinceEpoch;
+
+  Future<String> _nextSortKey({
+    required String? listId,
+    required String? parentId,
+    required String? section,
+  }) async {
+    final last = await _lastSortKey(
+      listId: listId,
+      parentId: parentId,
+      section: section,
+    );
+    return orderKeyBetween(last, null);
+  }
+
+  Future<String?> _lastSortKey({
+    required String? listId,
+    required String? parentId,
+    required String? section,
+  }) async {
+    final query = _db.todos.select()
+      ..where((t) => t.deleted.equals(false))
+      ..orderBy([
+        (t) => OrderingTerm(expression: t.sortKey, mode: OrderingMode.desc),
+        (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc),
+      ])
+      ..limit(1);
+    query.where(
+      (t) => listId == null ? t.listId.isNull() : t.listId.equals(listId),
+    );
+    query.where(
+      (t) =>
+          parentId == null ? t.parentId.isNull() : t.parentId.equals(parentId),
+    );
+    query.where(
+      (t) => section == null ? t.section.isNull() : t.section.equals(section),
+    );
+    return (await query.getSingleOrNull())?.sortKey;
+  }
 }
 
 extension TodoTags on Todo {
@@ -304,4 +522,9 @@ extension TodoTags on Todo {
   /// Minutes before [Todo.dueAtMs] to ring (0 = at due time).
   List<int> get alarmOffsetsMinutes =>
       (jsonDecode(alarmOffsetsJson) as List<dynamic>).cast<int>();
+}
+
+String? _normalizeSection(String? section) {
+  final value = section?.trim();
+  return value == null || value.isEmpty ? null : value;
 }

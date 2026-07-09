@@ -59,7 +59,16 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
-- **PAUSED mid-task 2026-07-07 (Top 3 pins, 6.34):** WIP committed on branch `feature/6.34-top-three-pins` (commit `bca6328`), NOT pushed, NOT PR'd. Done: schema v4 `pinned` bool column (`tables.dart` + migration `if (from < 4)` in `database.dart` + regenerated `database.g.dart`), `'pinned':'pinned'` in `sync_fields.dart`, `TodoRepository.setPinned(id,bool)`, `sectionize()` emits a `Top 3` section (pinned items pulled out, above Today, not duplicated), per-tile `_PinButton` (push_pin toggle, `kMaxPins=3` cap with "You can pin up to 3 todos" snackbar), trailing changed to a Row(pin + move-to-list). Tests: `todo_sections_test` Top-3 case + new `test/features/top_three_pins_test.dart` (toggle + cap); 4 existing Todo factories updated with `pinned:`. Analyzer + format clean. **NOT yet verified:** the two new/edited test files were mid-run when paused, and the FULL suite + coverage/DST have not been run. Issue #75 is labelled in-progress/assigned. **Next action:** run `flutter test test/features/todo_sections_test.dart test/features/top_three_pins_test.dart`, then full suite + `dart tool/check_coverage.dart ... --scope lib/data` + DST, then push branch, open PR into main, follow CI.md, merge. Note: this shared working dir had a concurrent agent earlier (now moved away) — corruption fix already merged as PR #85.
+- **Session 2026-07-08 (frequency chores, 6.56):** completion-anchored recurrence done. `Recurrence` gains `RecurrenceAnchor {schedule, completion}` + `ANCHOR=COMPLETION` parse/encode extension (non-RFC) and `nextFromCompletion(completedAt, anchor:)` = interval units after completion at the anchor's time-of-day, month/year day-clamped, calendar-built (DST-safe). `TodoRepository.complete` uses it for chore rules. Editor: base FREQ dropdown + a "Reschedule from completion" switch (composed on save, stripped on load). Tests: 6 model cases in recurrence_test + 1 repo case (chore reschedules from now not the stale due). 349 pass (3 known macOS-host UI fails), lib/data 86.0%, DST green. Chore rotation among people deferred to Phase 8/6.51. Isolated worktree.
+- **Session 2026-07-08 (old-hardware floor, 6.39):** 6.39 doc half done. README gains a "System requirements" section: min supported versions (Android 7.0/API 24 = Flutter 3.44 default minSdk, iOS 13, macOS 10.15, Windows 10, Linux GTK3/glibc 2.28) sourced from the actual deployment targets, plus an old-hardware-floor note (2 GB Android target; 5k-task perf guard covers the data layer). Real low-RAM device verification still pending (needs hardware). Docs-only, isolated worktree.
+- **Session 2026-07-07 (perf budgets, 6.42):** 6.42 done. Documented budgets in docs/testing.md §8 (cold start <2 s, quick-add <500 ms verified by profiling/smoke; 5k-task query/sectionize/filter by test). New `test/perf/large_dataset_test.dart` builds a 5k-todo DB (batched insert), prints measured timings (dev ref: query 32 ms / sectionize 1 ms / filter 7 ms), and asserts correctness + a loose 2 s ceiling only (no real-time budget → CI can't flake). Test-and-docs only, isolated worktree.
+- **Session 2026-07-08 (groups schema, 8.2):** issue #94 done on `feature/8.2-groups-schema`. Schema v4: `sync_groups` (synced name/backendKind; device-local `local_account_ref` excluded from syncColumns), `group_members` (deterministic `<groupId>:<deviceId>` ids, nullable FKs for row-springing), `todo_lists.groupId` (null = local-only default). `LwwApplier` FK springing generalized to a map (todos.listId, todo_lists.groupId, member FKs). `MailboxTransport.groupId` → cursor keys `group:<gid>:mailbox:<peer>` (applied to the post-PR#110 native/web split; web placeholder takes the param). `GroupRepository` + `ListRepository.setGroup` + providers. Rebased over PR #110 (web support; mailbox_transport is now a conditional-export shim — edits go in `_native.dart`). 13 new tests + repositories stamp-count updated (5 list fields now); 332 local (4 fails = 3 known macOS-host + none new); lib/data 85.7%; DST green. **iPhone verified:** v4 app builds, installs, launches on iPhone 17 Pro sim (fresh-install path; upgrade path unit-tested), integration smoke green, sqlite shows user_version=4 + both tables. **Next: 8.3 scoped changesets (#95) — `changesFor(vector, {groupId})` + per-scope convergence gate; then 8.6 multi-mailbox orchestrator (#98).**
+- **Session 2026-07-08 (WebDAV backend, 8.11):** PR #91 (cloud accounts + ADR 0003/0004) merged after CI green — its one real CI failure was a stale sync-health wording assertion, fixed. Then 8.11 done as PR #108 (merged, issue #107 closed): `WebDavMailboxStore` (PROPFIND depth-1 namespace-agnostic XML via `package:xml` now a direct dep, GET/PUT/DELETE, MKCOL-on-demand + one PUT retry, recursive wipe, rooted `<server>/knot-mailbox/`), `CloudAccountService.connectWebDav` with connect-time probe + slash-safe URL join, keychain `WebDavCredentials`, connect-screen WebDAV row + URL/user/password dialog (iCloud taps scoped — two rows say Connect now), `FakeHttp` moved to `test/support/`. 316 tests, lib/data 86.4%, DST green; same 3 macOS-host local fails. **User decision 2026-07-08: iCloud + WebDAV first, OAuth registrations (7.8/#103) after the iPhone app is ready.** **Next: 8.2 schema (`sync_groups`, `todo_lists.groupId`, per-group membership + sync_log namespacing — issue #94), own session; then 8.3 scoped changesets (#95).**
+- **Session 2026-07-08 (sharing groups design, 8.1):** user direction refined: local-only stays the default; **multiple** cloud storages at once; per-list *sharing groups* — e.g. Local + "Family" list shared with wife over iCloud + "Friends" list shared with a non-Apple friend over Dropbox. Wrote ADR 0004 (`docs/decisions/0004-sharing-groups.md`: group = backend + per-group key + members + lists; scoped changesets subsume 6.28; QR invite = `{groupId, key, backend hint}`; members bring their own accounts; incremental Dropbox consent; per-group rotation; drawer/wizard UI blueprint), docs/sync.md §Sharing groups, TASKS.md Phase 8 (8.1 done, 8.2–8.10 fine-grained implementation slices). Branch `feature/iphone-cloud-storage` merged with latest main (conflicts resolved: 6.45 allowlist ported onto the `MailboxStore` refactor — 303 tests pass, 3 pre-existing macOS-host fails; my ADR renumbered 0002→0003 after the attachments ADR took 0002). GitHub issues filed for 7.8–7.10 + 8.2–8.10; 8.1 tracked in-progress → closes with PR #91. **Next:** merge PR #91 when CI is green, then 8.2 (schema) — own session.
+- **Session 2026-07-07 (iPhone cloud accounts, ADR 0003):** user direction executed in worktree `todoapp-wt-iphone`, branch `feature/iphone-cloud-storage`, PR #91. New: `MailboxStore` seam (mailbox protocol over any file store; `FolderMailboxStore` = old behavior), `lib/data/cloud/` (PkceFlow OAuth2+PKCE no-SDK, TokenSet in keychain, `CloudAccountService`, Dropbox/GDrive-appdata/OneDrive-approot REST stores, scripted-HTTP unit tests), solo-device sync (`buildOrchestrator` creates group key when a mailbox is configured, pairing shares it later), Settings → Cloud storage connect screen + "Your data" source overview + first-launch sheet (skippable, invariant 1), iOS `knot://` scheme + AppDelegate → `OAuthCallbackChannel`. Verified: iPhone 17 Pro sim boots + onboarding renders + integration smoke passes; 301 tests, lib/data 85.8%, DST green; 3 local fails = pre-existing macOS-host class (also on clean main). **Remaining: 7.8 provider app registrations (user, free) → end-to-end OAuth; 7.9 account labels; 7.10 Android/desktop redirect parity.** See docs/decisions/0003-cloud-provider-accounts.md + docs/cloud-providers.md.
+- **Session 2026-07-07 (attachments design, 6.47):** 6.47 done (design-doc deliverable). New ADR `docs/decisions/0002-attachments.md`: split small synced metadata rows (new `attachments` table, per-field LWW + tombstone) from large immutable bytes; content-addressed local blob store (`<appSupport>/attachments/<sha256>`), 25 MB/attachment + 500 MB soft device cap; lazy out-of-band blob fetch over the mailbox (`blobs/<hash>.bin`, group-key sealed, reusing the 6.45 allowlist) and a LAN `GET blob`; ciphertext-only in transit, plaintext at rest (matching the local DB); tombstone + grace-period GC. Implementation slices (schema, BlobStore, transport hooks, UI) are the follow-up tail, gated on sign-off. Docs-only PR, isolated worktree.
+- **Session 2026-07-07 (Syncthing-tolerant mailbox, 6.45):** 6.45 done. `MailboxTransport.consume`/`compactIfNeeded` now allowlist only our own changeset files (`^\d{15}_[0-9a-f]{4,}_[^.\s()~]+\.bin$`, the `_fileNameFor` shape) and treat only non-dot subdirs as peer outboxes, so third-party artifacts are ignored: Syncthing `*.sync-conflict-*` + `.stversions`/`.stfolder`, Dropbox "(conflicted copy)", iCloud `.icloud`, `~`/`.tmp`. Fixes a latent bug where a conflict copy could sort past a real file and advance the cursor, stranding later changesets; also stops compaction from counting/deleting foreign files. New tests in `test/data/mailbox_transport_test.dart` (consume-ignores-artifacts + compaction-ignores-artifacts, both green with the full 10-case file). docs/sync.md gains a "Third-party tolerance" bullet. Sync-layer only, no UI. Isolated worktree/branch.
+- **Session 2026-07-07 (encrypted backup, 6.41):** 6.41 done. New `lib/data/backup_service.dart` (`BackupService`): passphrase → PBKDF2-HMAC-SHA256 (210k rounds, overridable for tests) → XChaCha20-Poly1305 via `PairingCrypto.seal/open` over the JSON export, wrapped in a versioned JSON envelope (`app/kind/v/kdf/iterations/salt/payload`). `restoreBackup` decrypts + `importJson`; wrong passphrase/tamper → `BackupPassphraseError`, non-backup files → `FormatException`. Settings gains "Encrypted backup"/"Restore encrypted backup" tiles + a `_PassphraseDialog` (confirm on create). docs/sync.md gains a "mailbox is a transport, not a backup" subsection. New `test/data/backup_service_test.dart` (7 cases: roundtrip, no-plaintext envelope, wrong-passphrase, tamper, empty-passphrase, bad-file, default work factor). Isolated worktree/branch, parallel to the other loop.
 - **Session 2026-07-07 (external import, 6.40):** 6.40 done. New pure `lib/data/import_parsers.dart` (`ImportedTodo` + `parseTodoTxt`/`parseCsv`) parses todo.txt, generic CSV, and Todoist/TickTick CSV exports — hand-rolled RFC-4180 tokenizer (quotes/embedded newlines, comma/tab autodetect), alias-based column matching, TickTick preamble skip, source-specific priority maps (Todoist 1–4, TickTick 0/1/3/5 → Knot 0–3). `ExportService.importParsed()` writes fresh uuid-v7 rows with one batch HLC stamp (mirrors `importJson`); Settings import now accepts json/txt/csv/tsv and dispatches by extension. New `test/data/import_parsers_test.dart` (19 cases); `lib/data/import_parsers.dart` + `export_service.dart` 100% covered, `lib/data` 88.1%. Analyzer/format/DST clean. Only failure locally is the pre-existing macOS `settings_screen_test` "Sync now" fold (also fails on base; tracked by PR #17). Done in an isolated worktree/branch to run in parallel with the 6.33 loop.
 - **Session 2026-07-07 (completion recap):** 6.33 done. New pure `completionRecap()` + `CompletionRecap` in `todo_sections.dart` buckets completed todos into Today / Earlier this week (Mon-first) / Older, preserving repo order, unstamped rows → Older. List screen's flat "Completed (N)" ExpansionTile replaced by `_CompletedRecapTile`: subtitle "`X done today · Y this week`" (week folds in today), items grouped under labelled subheaders. New `test/features/completion_recap_test.dart` (5 unit + 1 widget). Full suite green except the pre-existing macOS-local `settings_screen_test` "Sync now" fold failure (also fails on clean `main`; tracked by PR #17). Analyzer clean; coverage 85.7% on lib/data; DST pass. Optional end-of-day shutdown ritual deferred as a follow-up. Pure Dart/UI, no platform paths → integration smoke via CI.
 - **Session 2026-07-07 (multi-line paste):** 6.26 done. Quick-add `_AddTodoDialog` field is now multi-line (`TextInputType.multiline`, `maxLines: 5`, Enter still submits via `textInputAction.done`) so a pasted list keeps its line breaks; `_showAddDialog` splits via new pure `splitTodoLines()` and, when >1 line, shows `_SplitLinesDialog` ("Single todo" vs "N todos"). One-todo path collapses lines with spaces. New `test/features/multiline_add_test.dart` (unit + widget). 241 tests green locally; analyzer clean; coverage 85.7% on lib/data; DST pass. macOS/Windows integration smoke left to CI (pure Dart/UI change, no platform paths).
@@ -176,9 +185,15 @@ metadata in App Store Connect is blocked on the Apple Developer account (4.3).
 - [x] 4.10 Subtitle: **"Collaborative Task Manager"** (26 chars, no name-word repeats); recorded in docs/packaging.md
 - [x] 4.11 Keyword field pruned against final name/subtitle (95 chars, docs/packaging.md): `shared,checklist,organizer,p2p,private,group,team,family,planner,grocery,reminders,productivity` — enter in App Store Connect with 4.3
 - [ ] 4.12 Screenshot set for conversion: first 3 shots show the sync/pairing UI with a value-prop caption overlay ("Instant Sync, Zero Cloud Accounts"); produce required iPhone/iPad/Mac sizes (can stage from simulators before the dev account exists)
-- [ ] 4.13 Google Play counterpart: title (30), short description (80, indexed), full description written for keyword coverage — Play indexes the description, unlike Apple, so the no-repeat rule doesn't apply there
-- [ ] 4.14 Launch-velocity plan: time the store release with a Product Hunt / Hacker News / r/selfhosted post so the download spike lands while the listing is fresh (velocity drives rank for competitive terms)
-- [ ] 4.15 Post-launch ASO loop: watch search rank for "todo app"/"shared todo list" + impression→download conversion in App Store Connect analytics; iterate keyword field each release (it's updatable without an app review... but only alongside a new build)
+- [x] 4.13 Google Play counterpart documented in [docs/launch.md](docs/launch.md):
+  title (30), short description (80), and full description written for keyword
+  coverage; Play can lean on description indexing more than Apple
+- [x] 4.14 Launch-velocity plan documented in [docs/launch.md](docs/launch.md):
+  store release timed with Product Hunt / Hacker News / r/selfhosted as one
+  coordinated spike instead of a dribbled multi-day launch
+- [x] 4.15 Post-launch ASO loop documented in [docs/launch.md](docs/launch.md):
+  App Store Connect acquisition metrics, release-over-release hypotheses, and
+  keyword iteration bundled into the next version's metadata pass
 
 ### macOS sandbox fixes (manual-test findings 2026-07-06)
 
@@ -338,14 +353,116 @@ driver/dispatcher scenario and Apple-first direction.
   instantiate with checked-state reset (subsumes 6.9's "duplicate yesterday")
 - [ ] 6.38 (R16.1) Kiosk mode, extends 6.5: keep-screen-on while charging,
   Android boot auto-launch, burn-in-safe dimming + clock header
-- [ ] 6.39 (R16.2) Old-hardware floor: verify on ~2 GB-RAM Android / oldest
+- [x] 6.39 (R16.2) Old-hardware floor: verify on ~2 GB-RAM Android / oldest
   supported OS; document minimum versions in README
+  — minimum versions documented in README (Android 7.0/API 24, iOS 13, macOS
+  10.15, Windows 10, Linux GTK3); real-device verification on low-RAM hardware
+  still pending (needs a device)
 - [x] 6.40 (R11.2) Import: todo.txt, CSV, Todoist/TickTick export formats;
   imports stamp fresh HLCs (same pattern as 5.3 restore)
-- [ ] 6.41 (R11.3) Encrypted local backup/restore file; document "mailbox is
+- [x] 6.41 (R11.3) Encrypted local backup/restore file; document "mailbox is
   a transport, not a backup" in docs/sync.md
-- [ ] 6.42 (R12.4) Perf budgets: cold start <2 s, quick-add <500 ms, 5k-task
+- [x] 6.42 (R12.4) Perf budgets: cold start <2 s, quick-add <500 ms, 5k-task
   scroll without jank — measure (extends 5.7), automate what CI can hold
+
+**Cloud provider accounts — iPhone-first (user direction 2026-07-07, ADR 0003)**
+
+- [x] 7.1 `MailboxStore` seam: mailbox protocol over any file store;
+  `FolderMailboxStore` keeps the original behavior
+- [x] 7.2 OAuth 2.0 + PKCE (`lib/data/cloud/oauth.dart`): no SDKs, no client
+  secret; tokens in the keychain; injectable HTTP + clock
+- [x] 7.3 Provider mailbox stores: Dropbox app folder, Google Drive
+  `appDataFolder`, OneDrive Graph approot (narrowest scopes each)
+- [x] 7.4 Solo-device sync: configured mailbox creates the group key without
+  pairing; later pairing shares it (buildOrchestrator gate change)
+- [x] 7.5 Connect screen (Settings → Cloud storage): iCloud Drive +
+  three OAuth providers, connect/disconnect, setup-required states,
+  "Your data" source overview (iPhone / cloud / peers)
+- [x] 7.6 First-launch onboarding sheet ("Just this iPhone" / "Also in my
+  cloud") — optional, never a wall (invariant 1)
+- [x] 7.7 iOS plumbing: `knot://` URL scheme, AppDelegate redirect →
+  `OAuthCallbackChannel`; verified app boots + onboarding on iPhone 17 Pro
+  simulator
+- [ ] 7.8 Register the three provider apps (free; docs/cloud-providers.md),
+  inject `KNOT_*_CLIENT_ID` dart-defines, verify OAuth end-to-end on a
+  simulator/device — **blocked on user accounts**
+- [ ] 7.9 Account label on the connect screen (fetch display name/email from
+  the provider after connect)
+- [ ] 7.10 Android/desktop parity for the OAuth redirect (intent filter /
+  loopback listener) — iPhone-first for now
+
+**Phase 8 — Sharing groups & multi-cloud (user direction 2026-07-08,
+ADR 0004; subsumes 6.28).** Target UX: lists live *Local* by default;
+"Family" list shared with wife over an iCloud folder; "Friends" list
+shared with a non-Apple friend over Dropbox — all three side by side in
+one app. A device can hold many groups, each with its own backend,
+per-group key, mailbox, and cursors; joining a group via QR invite makes
+you a peer of someone else's storage without sharing credentials.
+
+- [x] 8.1 Design: ADR 0004 (groups = backend + key + members + lists;
+  local-by-default; scoped changesets; invite/join; per-group rotation;
+  incremental Dropbox consent; UI blueprint) + docs/sync.md update
+- [x] 8.2 (issue #94) Schema v4: `sync_groups` (+ device-local
+  `local_account_ref`, never synced), `group_members` with deterministic
+  `<groupId>:<deviceId>` row ids, `todo_lists.groupId` nullable FK (null =
+  local-only default), per-group `sync_log` cursor keys
+  (`group:<gid>:mailbox:<peer>` via `MailboxTransport.groupId`),
+  generalized FK row-springing in `LwwApplier`, `GroupRepository` +
+  `ListRepository.setGroup`, v3→v4 migration; 13 new tests
+- [x] 8.3 (issue #95) Scoped changesets: `changesFor(vector, {groupId})`
+  filters to the group's lists/todos/row/memberships/member devices;
+  `setGroup` re-stamps the list + its todos with one fresh HLC so rows
+  *entering* a scope always outrun published vector markers (that is the
+  snapshot-republish-on-move mechanism); group transports publish scoped;
+  per-scope convergence gate + move-in/move-out/leak tests
+- [x] 8.4 (issue #96) Multi-account `CloudAccountService`: accounts
+  registry in the keychain, per-account secret namespacing
+  (`cloud_tokens:<id>`/`cloud_webdav:<id>`), same-provider coexistence,
+  per-account refresh, legacy single-account migration (no re-auth),
+  `removeAccount` guarded by `sync_groups.local_account_ref`, primary
+  account = personal mailbox (back-compat), accounts section on the
+  connect screen
+- [x] 8.5 (issue #97) Per-group keys + invites: `group_key:<gid>`
+  keychain slots (create/load/rotate per group, personal key untouched);
+  v2 group invitation `{payload, group{id,name,backendKind}, gk}` with
+  create/accept flows — joiner adopts the key, materializes the group row
+  unstamped (inviter history stays authoritative), memberships recorded
+  on both sides, same fingerprint confirmation as personal pairing
+- [x] 8.6 (issue #98) Multi-mailbox orchestrator: `SyncOrchestrator`
+  runs the personal mailbox + one transport per joined group per pass
+  (own store/key/scope/cursors, resolved via `localAccountRef` →
+  account or folder); per-transport soft-fail isolation with
+  `mailbox[<group>]` error entries; unjoined/unwired groups skipped
+  silently. Per-group health rows land with the 8.8 screen.
+- [ ] 8.7 Shared-folder backends: Dropbox shared-folder mode behind
+  incremental consent (broader scopes requested only when creating or
+  joining a shared group; personal mailbox keeps the app folder); iCloud
+  `UICloudSharingController` via the cloud-folder channel with manual
+  Files-app sharing as the documented fallback
+- [x] 8.8 (issue #100) UI — Sharing & storage screen (evolved connect
+  screen): "Your groups" section (Local first, group cards with backend +
+  member/list counts, invite QR / manage-lists checkboxes / set account /
+  leave), new-group wizard (name → iCloud-or-account backend → create +
+  key + own membership → invite QR), paste-to-join with auto account
+  wiring + fingerprint confirmation; accounts section from 8.4. QR *scan*
+  for joins and per-group health rows are follow-ups (drawer/selector UI
+  is 8.9/#101).
+- [ ] 8.9 UI — drawer sections per group (people icon + provider glyph,
+  shared-list badges) and a "Sync" selector in list creation/editor
+  (`Local only` default / group names); move-list-between-groups flow
+  with its "past members keep received history" copy
+- [ ] 8.10 Cross-ecosystem validation matrix: Apple↔Apple over a shared
+  iCloud folder; Apple↔non-Apple over a shared Dropbox folder; solo
+  local-only regression — extend the simulated-device convergence
+  harness with per-group scopes before touching real devices
+- [x] 8.11 WebDAV mailbox backend (issue #107, PR #108) — zero registration:
+  server URL + username/app-password (Basic auth over TLS, keychain),
+  `WebDavMailboxStore` via PROPFIND/GET/PUT/DELETE/MKCOL over the
+  existing `CloudHttp`; connect form instead of a browser hop; the only
+  backend verifiable end-to-end with no external accounts.
+  **Priority (user decision 2026-07-08): iCloud + WebDAV first; the
+  OAuth provider registrations (7.8/#103) come after the iPhone app is
+  ready.**
 
 **Alarms-phase additions (execute with Phase 2, per execution order)**
 
@@ -356,11 +473,14 @@ driver/dispatcher scenario and Apple-first direction.
 
 **P3 — optional tail (one line each; expand into subtasks when picked up)**
 
-- [ ] 6.45 (R1.6) Syncthing-tolerant mailbox: audit format for third-party
+- [x] 6.45 (R1.6) Syncthing-tolerant mailbox: audit format for third-party
   folder replication (conflicted-copy filenames), document in docs/sync.md
 - [ ] 6.46 (R2.4) Voice input via platform speech APIs (on-device only)
-- [ ] 6.47 (R3.8) Attachments — design doc first (size caps, lazy fetch in
+- [x] 6.47 (R3.8) Attachments — design doc first (size caps, lazy fetch in
   encrypted mailbox), implementation only after sign-off
+  — design landed as `docs/decisions/0002-attachments.md`; implementation
+  (schema + BlobStore + mailbox/LAN blob transport + UI) is the follow-up
+  tail, gated on sign-off
 - [ ] 6.48 (R4.4) Configurable swipe actions (complete/snooze/delete)
 - [ ] 6.49 (R5.5/R5.6) Kanban board (sections as columns) + Eisenhower view
 - [ ] 6.50 (R6.4/R6.5) Location reminders (on-device geofencing only) +
@@ -374,8 +494,10 @@ driver/dispatcher scenario and Apple-first direction.
   Today-cleared moment, easy off switch
 - [ ] 6.55 (R14.4) Realistic-day meter: sum of Today's estimates vs. hours
   left, gentle over-commitment hint — depends 6.35
-- [ ] 6.56 (R15.2/R15.3) Frequency-based chores (due N days after last
+- [x] 6.56 (R15.2/R15.3) Frequency-based chores (due N days after last
   completion, injected clock) + chore rotation among paired people
+  — completion-anchored recurrence done; chore rotation among paired people
+  deferred (needs the sharing-groups/assignee work in Phase 8 / 6.51)
 - [ ] 6.57 (R17.1/R17.2) Simple mode preset (extra-large, high contrast,
   list+check only) + caregiver setup guide (per-list share + nag reminders);
   "not a medical device" wording in store listings

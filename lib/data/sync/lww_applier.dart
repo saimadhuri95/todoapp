@@ -40,6 +40,19 @@ class LwwApplier {
     'devices':
         'INSERT OR IGNORE INTO devices (id, name, platform, public_key) '
         "VALUES (?, '', '', '')",
+    'sync_groups':
+        "INSERT OR IGNORE INTO sync_groups (id, name) VALUES (?, '')",
+    'group_members': 'INSERT OR IGNORE INTO group_members (id) VALUES (?)',
+  };
+
+  /// Referenced rows spring into existence too, else a reordered FK-value
+  /// write would fail before the referenced row's own writes arrive.
+  static const _fkSpring = {
+    ('todos', 'listId'): 'todo_lists',
+    ('todos', 'parentId'): 'todos',
+    ('todo_lists', 'groupId'): 'sync_groups',
+    ('group_members', 'groupId'): 'sync_groups',
+    ('group_members', 'deviceId'): 'devices',
   };
 
   /// Returns true if the write was applied, false if it lost LWW (or was a
@@ -53,10 +66,9 @@ class LwwApplier {
     }
     return _db.transaction(() async {
       await _db.customStatement(ensureRow, [w.rowId]);
-      // Referenced rows spring into existence too, else a reordered
-      // listId write would hit the FK before the list's writes arrive.
-      if (w.entity == 'todos' && w.field == 'listId' && w.value != null) {
-        await _db.customStatement(_ensureRowSql['todo_lists']!, [
+      final referenced = _fkSpring[(w.entity, w.field)];
+      if (referenced != null && w.value != null) {
+        await _db.customStatement(_ensureRowSql[referenced]!, [
           w.value as String,
         ]);
       }

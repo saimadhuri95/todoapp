@@ -67,10 +67,28 @@ class SyncEngine {
   /// Everything this device knows that the holder of [remoteVector] does
   /// not. Sorted by HLC so application preserves causality (a list's
   /// creation precedes the todo that references it).
-  Future<Changeset> changesFor(Map<String, String> remoteVector) async {
+  ///
+  /// With [groupId] (TASKS 8.3, ADR 0004) the changeset is **scoped**: it
+  /// carries only writes for that sharing group — its lists, their todos,
+  /// the group row itself, its memberships, and its member devices.
+  /// Nothing else can leak into a shared mailbox. Soundness with the
+  /// mailbox's published-vector markers relies on [ListRepository.setGroup]
+  /// re-stamping rows that *enter* a scope: an in-scope write older than a
+  /// published marker must have been published (anything that entered
+  /// scope later carries a fresh stamp). Null = unscoped, the personal
+  /// mailbox/LAN behavior (your own devices see everything).
+  Future<Changeset> changesFor(
+    Map<String, String> remoteVector, {
+    String? groupId,
+  }) async {
+    final scope = groupId == null ? null : await _scopeRowIds(groupId);
     final clocks = await _db.fieldClocks.select().get();
     final writes = <FieldWrite>[];
     for (final clock in clocks) {
+      if (scope != null &&
+          !(scope[clock.entity]?.contains(clock.rowId) ?? false)) {
+        continue;
+      }
       final origin = Hlc.parse(clock.hlc).nodeId;
       final known = remoteVector[origin];
       if (known != null && clock.hlc.compareTo(known) <= 0) continue;
@@ -141,6 +159,37 @@ class SyncEngine {
       mode: InsertMode.insertOrReplace,
     );
     return applied;
+  }
+
+  /// Row ids belonging to one sharing group, per entity (TASKS 8.3):
+  /// the group row, its memberships + their devices, its lists, and the
+  /// todos on those lists.
+  Future<Map<String, Set<String>>> _scopeRowIds(String groupId) async {
+    final lists =
+        await (_db.todoLists.select()..where((l) => l.groupId.equals(groupId)))
+            .get();
+    final listIds = {for (final l in lists) l.id};
+    final todoIds = <String>{};
+    if (listIds.isNotEmpty) {
+      final todos =
+          await (_db.todos.select()..where((t) => t.listId.isIn(listIds)))
+              .get();
+      todoIds.addAll(todos.map((t) => t.id));
+    }
+    final members =
+        await (_db.groupMembers.select()
+              ..where((m) => m.groupId.equals(groupId)))
+            .get();
+    return {
+      'sync_groups': {groupId},
+      'group_members': {for (final m in members) m.id},
+      'devices': {
+        for (final m in members)
+          if (m.deviceId != null) m.deviceId!,
+      },
+      'todo_lists': listIds,
+      'todos': todoIds,
+    };
   }
 
   /// Which of [ids] exist and are not tombstoned, in chunks that stay

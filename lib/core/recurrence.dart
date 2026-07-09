@@ -10,11 +10,19 @@ library;
 
 enum Frequency { daily, weekly, monthly, yearly }
 
+/// What the next occurrence is measured from. [schedule] is a fixed calendar
+/// series anchored to the original due date (a normal RRULE). [completion] is
+/// a "chore" rule — the next due date is computed from when the task was last
+/// *completed*, so a "water the plants every 3 days" item slips forward if you
+/// do it late instead of piling up overdue copies (TASKS.md 6.56).
+enum RecurrenceAnchor { schedule, completion }
+
 class Recurrence {
   Recurrence({
     required this.freq,
     this.interval = 1,
     this.byWeekdays = const {},
+    this.anchor = RecurrenceAnchor.schedule,
   }) : assert(interval >= 1),
        assert(
          byWeekdays.isEmpty || freq == Frequency.weekly,
@@ -25,6 +33,7 @@ class Recurrence {
     Frequency? freq;
     var interval = 1;
     var byWeekdays = const <int>{};
+    var anchor = RecurrenceAnchor.schedule;
     for (final part in rule.split(';')) {
       final eq = part.indexOf('=');
       if (eq == -1) throw FormatException('Invalid RRULE part: $part');
@@ -44,6 +53,13 @@ class Recurrence {
           if (interval < 1) throw FormatException('Bad INTERVAL: $value');
         case 'BYDAY':
           byWeekdays = value.split(',').map(_parseWeekday).toSet();
+        // Knot extension (not RFC 5545): reschedule from completion time.
+        case 'ANCHOR':
+          anchor = switch (value) {
+            'SCHEDULE' => RecurrenceAnchor.schedule,
+            'COMPLETION' => RecurrenceAnchor.completion,
+            _ => throw FormatException('Unsupported ANCHOR: $value'),
+          };
         default:
           throw FormatException('Unsupported RRULE key: $key');
       }
@@ -52,7 +68,12 @@ class Recurrence {
     if (byWeekdays.isNotEmpty && freq != Frequency.weekly) {
       throw const FormatException('BYDAY only supported with FREQ=WEEKLY');
     }
-    return Recurrence(freq: freq, interval: interval, byWeekdays: byWeekdays);
+    return Recurrence(
+      freq: freq,
+      interval: interval,
+      byWeekdays: byWeekdays,
+      anchor: anchor,
+    );
   }
 
   final Frequency freq;
@@ -60,6 +81,10 @@ class Recurrence {
 
   /// [DateTime.monday]..[DateTime.sunday]; empty = use the anchor's weekday.
   final Set<int> byWeekdays;
+
+  /// Whether the next due date is measured from the schedule or from the
+  /// completion time. See [RecurrenceAnchor].
+  final RecurrenceAnchor anchor;
 
   String encode() {
     final freqStr = switch (freq) {
@@ -74,7 +99,30 @@ class Recurrence {
       final days = (byWeekdays.toList()..sort()).map(_weekdayNames.elementAt);
       buf.write(';BYDAY=${days.join(',')}');
     }
+    if (anchor == RecurrenceAnchor.completion) buf.write(';ANCHOR=COMPLETION');
     return buf.toString();
+  }
+
+  /// The next due date for a completion-anchored ("chore") rule: [interval]
+  /// units after the date the task was completed, kept at [anchor]'s time of
+  /// day so alarms still fire at the intended hour. Month/year steps clamp a
+  /// too-large day to the end of the target month (e.g. Jan 31 + 1 month →
+  /// Feb 28/29), and everything is built from calendar components so a local
+  /// DST shift doesn't drift the time of day.
+  DateTime nextFromCompletion(
+    DateTime completedAt, {
+    required DateTime anchor,
+  }) {
+    DateTime at(int year, int month, int day) => anchor.isUtc
+        ? DateTime.utc(year, month, day, anchor.hour, anchor.minute)
+        : DateTime(year, month, day, anchor.hour, anchor.minute);
+    final c = completedAt;
+    return switch (freq) {
+      Frequency.daily => at(c.year, c.month, c.day + interval),
+      Frequency.weekly => at(c.year, c.month, c.day + 7 * interval),
+      Frequency.monthly => _clampedDate(at, c.year, c.month + interval, c.day),
+      Frequency.yearly => _clampedDate(at, c.year + interval, c.month, c.day),
+    };
   }
 
   /// The first occurrence strictly after [after]. [anchor] is the todo's
@@ -186,6 +234,21 @@ class Recurrence {
 
   static int _daysInMonth(int year, int month) =>
       DateTime.utc(year, month + 1, 0).day;
+
+  /// Builds a date [monthsOrYear] steps out via [make], normalizing month
+  /// overflow (month 13 → next January) and clamping [day] to the target
+  /// month's length so Jan 31 + 1 month lands on Feb 28/29, not Mar 3.
+  static DateTime _clampedDate(
+    DateTime Function(int, int, int) make,
+    int year,
+    int month,
+    int day,
+  ) {
+    final y = year + (month - 1) ~/ 12;
+    final m = (month - 1) % 12 + 1;
+    final dim = _daysInMonth(y, m);
+    return make(y, m, day > dim ? dim : day);
+  }
 
   static const _weekdayNames = ['', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
 

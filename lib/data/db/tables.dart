@@ -12,6 +12,52 @@ class TodoLists extends Table {
   TextColumn get name => text()();
   IntColumn get color => integer().nullable()();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  /// Sharing group this list syncs through (schema v4, ADR 0004);
+  /// **null = local-only, the default** — the list never leaves the
+  /// device until the user assigns a group.
+  TextColumn get groupId => text().nullable().references(SyncGroups, #id)();
+
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Sharing groups (schema v4, ADR 0004): a group binds a mailbox backend,
+/// a per-group key (kept in the keychain, never in the database), member
+/// devices ([GroupMembers]) and the lists assigned to it. The row itself
+/// replicates *within its own group's scope* like any other synced row.
+class SyncGroups extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+
+  /// Where the group's mailbox lives — a CloudProviderId name ('icloud',
+  /// 'webdav', 'dropbox', …) or 'folder' for a plain synced directory.
+  /// Group-global: every member uses the same backend kind.
+  TextColumn get backendKind => text().withDefault(const Constant(''))();
+
+  /// Device-local pointer to *this device's* way into the backend (its
+  /// own account id / folder path). Deliberately **not** a synced field:
+  /// each member brings their own account (ADR 0004).
+  TextColumn get localAccountRef => text().nullable()();
+
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Group membership (schema v4, ADR 0004): one row per (group, device).
+/// The primary key is the deterministic string `<groupId>:<deviceId>` so
+/// two devices learning of the same membership concurrently converge on
+/// one row (LWW-map semantics need a single-string row id). [groupId] and
+/// [deviceId] are nullable so a row can spring into existence from any
+/// field write and be filled in as the rest arrive; the FKs hold once set.
+class GroupMembers extends Table {
+  TextColumn get id => text()();
+  TextColumn get groupId => text().nullable().references(SyncGroups, #id)();
+  TextColumn get deviceId => text().nullable().references(Devices, #id)();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
   @override
@@ -21,6 +67,11 @@ class TodoLists extends Table {
 class Todos extends Table {
   TextColumn get id => text()();
   TextColumn get listId => text().nullable().references(TodoLists, #id)();
+
+  /// Subtasks/checklist items are ordinary synced todo rows (schema v5).
+  /// A null parent is a top-level task; child rows keep their own LWW clocks.
+  TextColumn get parentId => text().nullable().references(Todos, #id)();
+
   TextColumn get title => text()();
   TextColumn get notes => text().withDefault(const Constant(''))();
   IntColumn get dueAtMs => integer().nullable()();
@@ -28,6 +79,12 @@ class Todos extends Table {
   IntColumn get completedAtMs => integer().nullable()();
   IntColumn get priority => integer().withDefault(const Constant(0))();
   TextColumn get tagsJson => text().withDefault(const Constant('[]'))();
+
+  /// User-defined section within a list, null for date-driven grouping.
+  TextColumn get section => text().nullable()();
+
+  /// Fractional, lexicographically sortable order key for manual ordering.
+  TextColumn get sortKey => text().withDefault(const Constant(''))();
 
   /// Alarms (schema v3): JSON array of minute-offsets before [dueAtMs]
   /// (0 = at due time). LWW fields on the todo so they sync like

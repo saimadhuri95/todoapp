@@ -9,6 +9,7 @@ Todo todo(
   String notes = '',
   String tagsJson = '[]',
   bool pinned = false,
+  String? section,
 }) => Todo(
   id: id,
   title: title,
@@ -16,6 +17,8 @@ Todo todo(
   dueAtMs: dueAtMs,
   priority: 0,
   tagsJson: tagsJson,
+  section: section,
+  sortKey: '',
   alarmOffsetsJson: '[]',
   pinned: pinned,
   deleted: false,
@@ -73,6 +76,31 @@ void main() {
       expect(sections.map((s) => s.title), ['Top 3', 'Today', 'Someday']);
       expect(sections[1].items.map((t) => t.id), ['plain-today']);
       expect(sections[2].items.map((t) => t.id), ['plain-someday']);
+    });
+
+    test('a pinned todo wins over its user-defined section', () {
+      final sections = sectionize([
+        todo('pinned', section: 'Waiting', pinned: true),
+        todo('waiting', section: 'Waiting'),
+      ], now);
+
+      expect(sections.map((s) => s.title), ['Top 3', 'Waiting']);
+      expect(sections.first.items.map((t) => t.id), ['pinned']);
+    });
+
+    test('user-defined sections are their own buckets', () {
+      final sections = sectionize([
+        todo('today', dueAtMs: at(5, 18)),
+        todo('waiting-a', section: 'Waiting'),
+        todo('waiting-b', section: 'Waiting'),
+      ], now);
+
+      expect(sections.map((s) => s.title), ['Today', 'Waiting']);
+      expect(sections.last.userSection, 'Waiting');
+      expect(sections.last.items.map((todo) => todo.id), [
+        'waiting-a',
+        'waiting-b',
+      ]);
     });
   });
 

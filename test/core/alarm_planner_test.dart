@@ -20,6 +20,7 @@ Todo todo(
   completedAtMs: completedAtMs,
   priority: 0,
   tagsJson: '[]',
+  sortKey: '',
   alarmOffsetsJson: alarms,
   lastDismissedMs: dismissed,
   snoozeUntilMs: snooze,
