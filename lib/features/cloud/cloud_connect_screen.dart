@@ -9,6 +9,7 @@ import '../../app/sync_service.dart';
 import '../../data/cloud/cloud_account_service.dart';
 import '../../data/cloud/cloud_providers.dart';
 import '../todos/linkified_text.dart' show urlOpenerProvider;
+import 'groups_section.dart';
 
 /// Cloud storage login + data-source overview (user direction 2026-07-07:
 /// iPhone-first, data optionally stored in the user's own cloud account).
@@ -47,9 +48,15 @@ class _CloudConnectScreenState extends ConsumerState<CloudConnectScreen> {
     final icloudActive = connected == null && mailboxPath != null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cloud storage')),
+      appBar: AppBar(title: const Text('Sharing & storage')),
       body: ListView(
         children: [
+          _SectionHeader(
+            'Your groups',
+            'Who you share with — each group lives in its own storage',
+          ),
+          const GroupsSection(),
+          const Divider(),
           _SectionHeader(
             'Your data',
             'Where your todos live — every source shows in the one list',

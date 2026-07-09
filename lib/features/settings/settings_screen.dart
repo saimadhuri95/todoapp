@@ -77,9 +77,9 @@ class SettingsScreen extends ConsumerWidget {
         ),
         ListTile(
           leading: const Icon(Icons.cloud_outlined),
-          title: const Text('Cloud storage'),
+          title: const Text('Sharing & storage'),
           subtitle: const Text(
-            'iCloud Drive, Dropbox, Google Drive, or OneDrive',
+            'Sharing groups, iCloud Drive, WebDAV, Dropbox and more',
           ),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(builder: (_) => const CloudConnectScreen()),

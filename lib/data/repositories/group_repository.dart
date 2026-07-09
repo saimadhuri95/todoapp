@@ -151,6 +151,13 @@ class GroupRepository {
             ..orderBy([(g) => OrderingTerm(expression: g.name)]))
           .watch();
 
+  /// Active (non-tombstoned) lists assigned to one group.
+  Stream<int> watchListCount(String groupId) =>
+      (_db.todoLists.select()
+            ..where((l) => l.groupId.equals(groupId) & l.deleted.equals(false)))
+          .watch()
+          .map((rows) => rows.length);
+
   /// Active member device ids of one group.
   Stream<List<String>> watchMemberIds(String groupId) =>
       (_db.groupMembers.select()

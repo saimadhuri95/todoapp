@@ -11,9 +11,17 @@ import 'pairing_crypto.dart';
 import 'sync_fields.dart';
 
 class PairingResult {
-  const PairingResult({required this.peer, required this.fingerprint});
+  const PairingResult({
+    required this.peer,
+    required this.fingerprint,
+    this.groupId,
+  });
 
   final PairingPayload peer;
+
+  /// Set when this result came from a group invitation (TASKS 8.5/8.8):
+  /// the sharing group that was joined.
+  final String? groupId;
 
   /// Shown to the user for out-of-band confirmation; the inviter can
   /// verify it from its device list once the acceptor's row syncs over.
@@ -74,6 +82,12 @@ class PairingService {
     if (stored == null || stored.isEmpty) return null;
     return SecretKey(base64Decode(stored));
   }
+
+  /// Drops this device's copy of the group key (leaving a group): the
+  /// device can no longer read or write the group's mailbox. Local rows
+  /// stay (local-first); the group row can be tombstoned separately.
+  Future<void> forgetGroupKey(String groupId) =>
+      keyStore.write(_groupKeyKeyFor(groupId), '');
 
   /// Burns the group's key (member removal, ADR 0004): everything sealed
   /// from now on uses the fresh key. Remaining members must re-join via a
