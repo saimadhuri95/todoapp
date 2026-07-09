@@ -309,6 +309,22 @@ void main() {
       );
     });
 
+    test('completion-anchored chore reschedules from now (6.56)', () async {
+      final todo = await todos.create(
+        title: 'water plants',
+        dueAtMs: at(DateTime.utc(2026, 7, 1, 9)), // overdue since Jul 1
+        recurrenceRule: 'FREQ=DAILY;INTERVAL=3;ANCHOR=COMPLETION',
+      );
+
+      await todos.complete(todo.id);
+
+      final row = (await todos.getById(todo.id))!;
+      expect(row.completedAtMs, isNull); // stays active
+      // now = Jul 5 12:00 → +3 days at the anchor's 09:00 = Jul 8, not a
+      // schedule slot measured from the Jul 1 due date.
+      expect(row.dueAtMs, at(DateTime.utc(2026, 7, 8, 9)));
+    });
+
     test('advancing clears a stale snooze and stamps the fields', () async {
       final todo = await todos.create(
         title: 'meds',

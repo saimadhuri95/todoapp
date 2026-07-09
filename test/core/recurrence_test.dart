@@ -191,4 +191,59 @@ void main() {
     );
     expect(next, DateTime.utc(2026, 7, 7, 17, 45));
   });
+
+  group('completion-anchored chores (6.56)', () {
+    test('defaults to a schedule anchor', () {
+      expect(Recurrence.parse('FREQ=DAILY').anchor, RecurrenceAnchor.schedule);
+    });
+
+    test('parse/encode round-trips the ANCHOR extension', () {
+      final r = Recurrence.parse('FREQ=DAILY;INTERVAL=3;ANCHOR=COMPLETION');
+      expect(r.anchor, RecurrenceAnchor.completion);
+      expect(r.interval, 3);
+      expect(r.encode(), 'FREQ=DAILY;INTERVAL=3;ANCHOR=COMPLETION');
+    });
+
+    test('rejects an unknown ANCHOR value', () {
+      expect(
+        () => Recurrence.parse('FREQ=DAILY;ANCHOR=WHENEVER'),
+        throwsFormatException,
+      );
+    });
+
+    test('daily chore: N days after completion, at the anchor time', () {
+      final r = Recurrence.parse('FREQ=DAILY;INTERVAL=3;ANCHOR=COMPLETION');
+      // Completed late in the day; next due is 3 days on at the anchor's 09:00.
+      final next = r.nextFromCompletion(
+        utc(2026, 7, 6, 20, 30),
+        anchor: utc(2026, 7, 1, 9, 0),
+      );
+      expect(next, utc(2026, 7, 9, 9, 0));
+    });
+
+    test('weekly chore steps whole weeks from completion', () {
+      final r = Recurrence.parse('FREQ=WEEKLY;INTERVAL=2;ANCHOR=COMPLETION');
+      expect(
+        r.nextFromCompletion(utc(2026, 7, 6), anchor: utc(2026, 6, 1, 8, 0)),
+        utc(2026, 7, 20, 8, 0),
+      );
+    });
+
+    test('monthly chore clamps a too-large day to month end', () {
+      final r = Recurrence.parse('FREQ=MONTHLY;ANCHOR=COMPLETION');
+      // Completed Jan 31 → Feb has no 31st, clamp to Feb 28 (2026 not leap).
+      expect(
+        r.nextFromCompletion(utc(2026, 1, 31), anchor: utc(2026, 1, 1, 7, 0)),
+        utc(2026, 2, 28, 7, 0),
+      );
+    });
+
+    test('yearly chore clamps Feb 29 to Feb 28 in a non-leap year', () {
+      final r = Recurrence.parse('FREQ=YEARLY;ANCHOR=COMPLETION');
+      expect(
+        r.nextFromCompletion(utc(2028, 2, 29), anchor: utc(2028, 2, 29, 6, 0)),
+        utc(2029, 2, 28, 6, 0),
+      );
+    });
+  });
 }

@@ -236,10 +236,11 @@ class TodoRepository {
     }
     final due = DateTime.fromMillisecondsSinceEpoch(dueMs);
     final now = DateTime.fromMillisecondsSinceEpoch(_nowMs());
-    final next = recurrence.nextAfter(
-      now.isAfter(due) ? now : due,
-      anchor: due,
-    );
+    // A chore ("every N days after I do it") reschedules from completion time;
+    // a normal schedule advances to the next slot after now/due (TASKS.md 6.56).
+    final next = recurrence.anchor == RecurrenceAnchor.completion
+        ? recurrence.nextFromCompletion(now, anchor: due)
+        : recurrence.nextAfter(now.isAfter(due) ? now : due, anchor: due);
     return _write(
       id,
       TodosCompanion(

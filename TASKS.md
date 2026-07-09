@@ -59,6 +59,7 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
+- **Session 2026-07-08 (frequency chores, 6.56):** completion-anchored recurrence done. `Recurrence` gains `RecurrenceAnchor {schedule, completion}` + `ANCHOR=COMPLETION` parse/encode extension (non-RFC) and `nextFromCompletion(completedAt, anchor:)` = interval units after completion at the anchor's time-of-day, month/year day-clamped, calendar-built (DST-safe). `TodoRepository.complete` uses it for chore rules. Editor: base FREQ dropdown + a "Reschedule from completion" switch (composed on save, stripped on load). Tests: 6 model cases in recurrence_test + 1 repo case (chore reschedules from now not the stale due). 349 pass (3 known macOS-host UI fails), lib/data 86.0%, DST green. Chore rotation among people deferred to Phase 8/6.51. Isolated worktree.
 - **Session 2026-07-08 (old-hardware floor, 6.39):** 6.39 doc half done. README gains a "System requirements" section: min supported versions (Android 7.0/API 24 = Flutter 3.44 default minSdk, iOS 13, macOS 10.15, Windows 10, Linux GTK3/glibc 2.28) sourced from the actual deployment targets, plus an old-hardware-floor note (2 GB Android target; 5k-task perf guard covers the data layer). Real low-RAM device verification still pending (needs hardware). Docs-only, isolated worktree.
 - **Session 2026-07-07 (perf budgets, 6.42):** 6.42 done. Documented budgets in docs/testing.md §8 (cold start <2 s, quick-add <500 ms verified by profiling/smoke; 5k-task query/sectionize/filter by test). New `test/perf/large_dataset_test.dart` builds a 5k-todo DB (batched insert), prints measured timings (dev ref: query 32 ms / sectionize 1 ms / filter 7 ms), and asserts correctness + a loose 2 s ceiling only (no real-time budget → CI can't flake). Test-and-docs only, isolated worktree.
 - **Session 2026-07-08 (groups schema, 8.2):** issue #94 done on `feature/8.2-groups-schema`. Schema v4: `sync_groups` (synced name/backendKind; device-local `local_account_ref` excluded from syncColumns), `group_members` (deterministic `<groupId>:<deviceId>` ids, nullable FKs for row-springing), `todo_lists.groupId` (null = local-only default). `LwwApplier` FK springing generalized to a map (todos.listId, todo_lists.groupId, member FKs). `MailboxTransport.groupId` → cursor keys `group:<gid>:mailbox:<peer>` (applied to the post-PR#110 native/web split; web placeholder takes the param). `GroupRepository` + `ListRepository.setGroup` + providers. Rebased over PR #110 (web support; mailbox_transport is now a conditional-export shim — edits go in `_native.dart`). 13 new tests + repositories stamp-count updated (5 list fields now); 332 local (4 fails = 3 known macOS-host + none new); lib/data 85.7%; DST green. **iPhone verified:** v4 app builds, installs, launches on iPhone 17 Pro sim (fresh-install path; upgrade path unit-tested), integration smoke green, sqlite shows user_version=4 + both tables. **Next: 8.3 scoped changesets (#95) — `changesFor(vector, {groupId})` + per-scope convergence gate; then 8.6 multi-mailbox orchestrator (#98).**
@@ -493,8 +494,10 @@ you a peer of someone else's storage without sharing credentials.
   Today-cleared moment, easy off switch
 - [ ] 6.55 (R14.4) Realistic-day meter: sum of Today's estimates vs. hours
   left, gentle over-commitment hint — depends 6.35
-- [ ] 6.56 (R15.2/R15.3) Frequency-based chores (due N days after last
+- [x] 6.56 (R15.2/R15.3) Frequency-based chores (due N days after last
   completion, injected clock) + chore rotation among paired people
+  — completion-anchored recurrence done; chore rotation among paired people
+  deferred (needs the sharing-groups/assignee work in Phase 8 / 6.51)
 - [ ] 6.57 (R17.1/R17.2) Simple mode preset (extra-large, high contrast,
   list+check only) + caregiver setup guide (per-list share + nag reminders);
   "not a medical device" wording in store listings
