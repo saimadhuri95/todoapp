@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/oauth_callback_channel.dart';
+import '../../app/oauth_redirect_receiver.dart';
 import '../../app/providers.dart';
 import '../../app/sync_service.dart';
+import '../../core/platform_info.dart';
 import '../../data/cloud/cloud_account_service.dart';
 import '../../data/cloud/cloud_providers.dart';
 import '../todos/linkified_text.dart' show urlOpenerProvider;
@@ -184,14 +186,20 @@ class _CloudConnectScreenState extends ConsumerState<CloudConnectScreen> {
       return;
     }
     setState(() => _busy = id);
+    LoopbackOAuthRedirectReceiver? loopback;
     try {
+      if (platformIsDesktop) {
+        loopback = await LoopbackOAuthRedirectReceiver.start();
+      }
       await ref
           .read(cloudAccountServiceProvider)
           .connect(
             id,
+            redirectUri: loopback?.redirectUri,
             authenticate: (url) {
               ref.read(urlOpenerProvider)(url);
-              return OAuthCallbackChannel.instance.waitForRedirect();
+              return loopback?.waitForRedirect() ??
+                  OAuthCallbackChannel.instance.waitForRedirect();
             },
           );
       // Solo devices sync from now on: the group key exists from here and
@@ -204,6 +212,7 @@ class _CloudConnectScreenState extends ConsumerState<CloudConnectScreen> {
     } on Exception catch (e) {
       _toast('Could not connect: $e');
     } finally {
+      await loopback?.close();
       if (mounted) setState(() => _busy = null);
     }
   }

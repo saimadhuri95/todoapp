@@ -76,8 +76,13 @@ extension CloudProviderInfo on CloudProviderId {
       ),
       clientId: microsoftClientId,
       redirectUri: Uri.parse(knotRedirect),
-      // App-folder only + offline_access for refresh tokens.
-      scopes: const ['Files.ReadWrite.AppFolder', 'offline_access'],
+      // App-folder only + offline_access for refresh tokens; User.Read lets
+      // the account row show a useful name/email after connect.
+      scopes: const [
+        'Files.ReadWrite.AppFolder',
+        'offline_access',
+        'User.Read',
+      ],
     ),
   };
 }

@@ -41,6 +41,9 @@ class FakeCloudFolder implements CloudFolderLocator {
 
   @override
   Future<String?> resolveBookmark(String bookmark) async => null;
+
+  @override
+  Future<bool> shareFolder(String path) async => false;
 }
 
 /// Sync passes hit the network/LAN; tests only care that connect flows

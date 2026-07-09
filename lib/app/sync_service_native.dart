@@ -56,7 +56,7 @@ Future<SyncOrchestrator?> buildOrchestrator(
       _ =>
         await ref
             .read(cloudAccountServiceProvider)
-            .mailboxStore(accountId: backendRef),
+            .mailboxStoreForRef(backendRef),
     };
     if (store == null) continue; // Account removed; group needs re-pointing.
     groupMailboxes.add(

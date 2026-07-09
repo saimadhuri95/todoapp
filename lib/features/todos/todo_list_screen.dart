@@ -672,6 +672,12 @@ class _ListsDrawer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lists = ref.watch(listsProvider).value ?? const <TodoList>[];
+    final groups = ref.watch(syncGroupsProvider).value ?? const <SyncGroup>[];
+    final groupsById = {for (final group in groups) group.id: group};
+    final localLists = [
+      for (final list in lists)
+        if (list.groupId == null || !groupsById.containsKey(list.groupId)) list,
+    ];
     final filter = ref.watch(listFilterProvider);
     final smartFilters = ref.watch(savedSmartFiltersProvider);
     final activeSmartId = ref.watch(activeSmartFilterIdProvider);
@@ -711,6 +717,48 @@ class _ListsDrawer extends ConsumerWidget {
       if (context.mounted) Navigator.of(context).pop();
     }
 
+    Future<void> editList(TodoList list) async {
+      final draft = await showDialog<_ListDraft>(
+        context: context,
+        builder: (context) => _ListDialog(
+          title: 'Edit list',
+          confirm: 'Save',
+          initialName: list.name,
+          initialGroupId: list.groupId,
+          groups: groups,
+        ),
+      );
+      if (draft == null) return;
+      if (!context.mounted) return;
+      final name = draft.name.trim();
+      if (name.isNotEmpty && name != list.name) {
+        await ref.read(listRepositoryProvider).rename(list.id, name);
+        if (!context.mounted) return;
+      }
+      if (draft.groupId != list.groupId &&
+          await _confirmListScopeMove(context, list, draft.groupId, groups)) {
+        await ref.read(listRepositoryProvider).setGroup(list.id, draft.groupId);
+      }
+    }
+
+    Widget listTile(TodoList list, {SyncGroup? group}) => ListTile(
+      leading: group == null
+          ? const Icon(Icons.list)
+          : const Badge(
+              label: Text('Shared'),
+              child: Icon(Icons.list_alt_outlined),
+            ),
+      title: Text(list.name),
+      subtitle: group == null ? null : Text(group.backendKindLabel),
+      selected: filter == list.id,
+      onTap: () => select(list.id),
+      trailing: IconButton(
+        tooltip: 'Edit list',
+        icon: const Icon(Icons.more_vert),
+        onPressed: () => editList(list),
+      ),
+    );
+
     return Drawer(
       child: ListView(
         children: [
@@ -738,24 +786,35 @@ class _ListsDrawer extends ConsumerWidget {
             selected: filter == kSomedayFilter,
             onTap: () => select(kSomedayFilter),
           ),
-          for (final list in lists)
-            ListTile(
-              leading: const Icon(Icons.list),
-              title: Text(list.name),
-              selected: filter == list.id,
-              onTap: () => select(list.id),
-            ),
+          const _DrawerSectionHeader('On this device'),
+          for (final list in localLists) listTile(list),
+          for (final group in groups) ...[
+            _DrawerSectionHeader(group.name, icon: Icons.group_outlined),
+            for (final list in lists)
+              if (list.groupId == group.id) listTile(list, group: group),
+          ],
           ListTile(
             leading: const Icon(Icons.add),
             title: const Text('New list'),
             onTap: () async {
-              final name = await showDialog<String>(
+              final draft = await showDialog<_ListDraft>(
                 context: context,
-                builder: (context) => const _NewListDialog(),
+                builder: (context) => _ListDialog(
+                  title: 'New list',
+                  confirm: 'Create',
+                  groups: groups,
+                ),
               );
-              final trimmed = name?.trim() ?? '';
+              final trimmed = draft?.name.trim() ?? '';
               if (trimmed.isNotEmpty) {
-                await ref.read(listRepositoryProvider).create(name: trimmed);
+                final list = await ref
+                    .read(listRepositoryProvider)
+                    .create(name: trimmed);
+                if (draft?.groupId != null) {
+                  await ref
+                      .read(listRepositoryProvider)
+                      .setGroup(list.id, draft!.groupId);
+                }
               }
             },
           ),
@@ -817,6 +876,76 @@ class _ListsDrawer extends ConsumerWidget {
       ),
     );
   }
+}
+
+extension on SyncGroup {
+  String get backendKindLabel => switch (backendKind) {
+    'icloud' => 'iCloud shared folder',
+    'dropbox' => 'Dropbox shared folder',
+    'googleDrive' => 'Google Drive',
+    'oneDrive' => 'OneDrive',
+    'webdav' => 'WebDAV',
+    'folder' => 'Synced folder',
+    _ => backendKind.isEmpty ? 'Shared group' : backendKind,
+  };
+}
+
+class _DrawerSectionHeader extends StatelessWidget {
+  const _DrawerSectionHeader(this.title, {this.icon});
+
+  final String title;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+    child: Row(
+      children: [
+        if (icon != null) ...[
+          Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 6),
+        ],
+        Text(
+          title,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Future<bool> _confirmListScopeMove(
+  BuildContext context,
+  TodoList list,
+  String? nextGroupId,
+  List<SyncGroup> groups,
+) async {
+  final next = groups.where((g) => g.id == nextGroupId).firstOrNull;
+  final target = next == null ? 'Local only' : next.name;
+  final answer = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Move "${list.name}" to $target?'),
+      content: const Text(
+        'Future updates follow the new Sync setting. People who already '
+        'received this list keep the history they have; moving it out of a '
+        'group stops new changes from reaching that group.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Move list'),
+        ),
+      ],
+    ),
+  );
+  return answer ?? false;
 }
 
 class ChecklistTemplatesScreen extends ConsumerWidget {
@@ -1413,15 +1542,42 @@ class _TaskBreakdownDialogState extends State<_TaskBreakdownDialog> {
   );
 }
 
-class _NewListDialog extends StatefulWidget {
-  const _NewListDialog();
+class _ListDraft {
+  const _ListDraft({required this.name, this.groupId});
 
-  @override
-  State<_NewListDialog> createState() => _NewListDialogState();
+  final String name;
+  final String? groupId;
 }
 
-class _NewListDialogState extends State<_NewListDialog> {
+class _ListDialog extends StatefulWidget {
+  const _ListDialog({
+    required this.title,
+    required this.confirm,
+    required this.groups,
+    this.initialName = '',
+    this.initialGroupId,
+  });
+
+  final String title;
+  final String confirm;
+  final List<SyncGroup> groups;
+  final String initialName;
+  final String? initialGroupId;
+
+  @override
+  State<_ListDialog> createState() => _ListDialogState();
+}
+
+class _ListDialogState extends State<_ListDialog> {
   final _controller = TextEditingController();
+  String? _groupId;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.text = widget.initialName;
+    _groupId = widget.initialGroupId;
+  }
 
   @override
   void dispose() {
@@ -1429,24 +1585,43 @@ class _NewListDialogState extends State<_NewListDialog> {
     super.dispose();
   }
 
+  void _submit() {
+    Navigator.of(
+      context,
+    ).pop(_ListDraft(name: _controller.text, groupId: _groupId));
+  }
+
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('New list'),
-    content: TextField(
-      controller: _controller,
-      autofocus: true,
-      decoration: const InputDecoration(hintText: 'List name'),
-      onSubmitted: (value) => Navigator.of(context).pop(value),
+    title: Text(widget.title),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextField(
+          controller: _controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'List name'),
+          onSubmitted: (_) => _submit(),
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String?>(
+          initialValue: _groupId,
+          decoration: const InputDecoration(labelText: 'Sync'),
+          items: [
+            const DropdownMenuItem(value: null, child: Text('Local only')),
+            for (final group in widget.groups)
+              DropdownMenuItem(value: group.id, child: Text(group.name)),
+          ],
+          onChanged: (value) => setState(() => _groupId = value),
+        ),
+      ],
     ),
     actions: [
       TextButton(
         onPressed: () => Navigator.of(context).pop(),
         child: const Text('Cancel'),
       ),
-      FilledButton(
-        onPressed: () => Navigator.of(context).pop(_controller.text),
-        child: const Text('Create'),
-      ),
+      FilledButton(onPressed: _submit, child: Text(widget.confirm)),
     ],
   );
 }

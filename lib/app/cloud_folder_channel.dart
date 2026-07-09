@@ -28,6 +28,18 @@ class IcloudFolderChannel implements CloudFolderLocator {
   Future<String?> resolveBookmark(String bookmark) =>
       _invoke('resolveBookmark', {'bookmark': bookmark});
 
+  @override
+  Future<bool> shareFolder(String path) async {
+    try {
+      return await channel.invokeMethod<bool>('shareFolder', {'path': path}) ??
+          false;
+    } on PlatformException {
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
   Future<String?> _invoke(String method, Map<String, String> args) async {
     try {
       return await channel.invokeMethod<String>(method, args);

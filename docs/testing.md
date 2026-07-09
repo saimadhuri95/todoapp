@@ -46,6 +46,30 @@ its CI suite in `test/data/sync_simulator_test.dart`.
 - Pairing, revocation, and key rotation remain covered by the dedicated
   pairing/mailbox suites.
 
+### Phase 8 sharing matrix
+
+`test/data/sharing_validation_matrix_test.dart` covers the automated slice of
+ADR 0004's validation matrix:
+
+- Apple-to-Apple iCloud-style group scope: one device publishes a family
+  group and another Apple device receives only that group.
+- Apple-to-non-Apple Dropbox-style group scope: a second group travels through
+  a separate mailbox root and does not leak local-only or iCloud-group rows.
+- Solo local regression: ungrouped lists/todos stay off every group mailbox.
+- List moves: a pre-existing list moved into a group republishes its full
+  history so new members receive it.
+- Member removal and key rotation: after mailbox wipe + new key, removed
+  members keep old history but cannot read future group writes.
+- Perf sanity: three group mailboxes with the same total todo count must stay
+  within a loose 2x + 500 ms envelope versus one mailbox on the same runner.
+
+Manual release legs still require real accounts/devices:
+
+- Two iPhones sharing "Family" through an iCloud shared folder.
+- iPhone plus Android/desktop sharing "Friends" through a Dropbox shared
+  folder.
+- A solo device with zero groups and no cloud account remains fully usable.
+
 ## 4. Widget tests
 
 Per screen as built, with the current coverage split across:

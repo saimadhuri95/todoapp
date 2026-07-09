@@ -52,7 +52,7 @@ flutter build ios \
 2. Authentication → Add platform → **Mobile and desktop applications** →
    custom redirect URI `knot://oauth`.
 3. API permissions: Microsoft Graph → delegated →
-   `Files.ReadWrite.AppFolder`, `offline_access`.
+   `Files.ReadWrite.AppFolder`, `offline_access`, `User.Read`.
 4. The *Application (client) ID* is `KNOT_MS_CLIENT_ID`.
 
 ## How sign-in flows through the code
@@ -64,3 +64,32 @@ flutter build ios \
 exchanges the code → tokens land in the keychain. Sync passes then use
 `CloudAccountService.mailboxStore()` (a per-provider `MailboxStore`) with
 transparent token refresh.
+
+## Android and desktop redirects
+
+- Android registers `knot://oauth` in `AndroidManifest.xml`; `MainActivity`
+  forwards matching intents to `OAuthCallbackChannel`.
+- iOS keeps the same custom-scheme channel via `AppDelegate`.
+- macOS, Windows, and Linux use a local loopback receiver:
+  `http://127.0.0.1:<ephemeral>/oauth`. This follows RFC 8252 and avoids
+  unreliable desktop custom-scheme registration.
+
+For provider consoles that require exact redirect entries, keep
+`knot://oauth` for mobile and add the loopback pattern supported by that
+provider for desktop/native app OAuth.
+
+## Shared group folders
+
+Dropbox personal sync should stay on the app-folder scope above. When a user
+creates or joins a Dropbox-backed sharing group, request incremental consent
+for the broader shared-folder file scopes, have the user mount the shared
+folder in Dropbox, and store the device-local group ref as
+`CloudAccountRef(accountId: "...", rootPath: "/Shared Folder/Knot").encode()`.
+The Dropbox ACL only gets members to the same physical folder; the group key
+remains the security boundary for todo contents.
+
+iCloud-backed groups use the existing iCloud Drive folder backend. Knot can
+open the platform sharing surface from Sync settings when a folder is
+configured. If the OS refuses to present one, use the manual fallback: open
+Files/Finder, long-press or right-click the group folder, and share it with
+the other Apple ID.

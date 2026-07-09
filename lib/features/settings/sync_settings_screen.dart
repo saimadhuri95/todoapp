@@ -70,6 +70,16 @@ class SyncSettingsScreen extends ConsumerWidget {
               ),
               onTap: () => _useIcloudFolder(context, ref),
             ),
+          if (ref.watch(cloudFolderProvider).isSupported && mailboxPath != null)
+            ListTile(
+              leading: const Icon(Icons.ios_share),
+              title: const Text('Share iCloud folder'),
+              subtitle: const Text(
+                'Invite another Apple ID, or open Files/Finder and share '
+                'the folder manually',
+              ),
+              onTap: () => _shareIcloudFolder(context, ref, mailboxPath),
+            ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.qr_code),
@@ -268,6 +278,25 @@ class SyncSettingsScreen extends ConsumerWidget {
     await _setMailboxPath(ref, path);
     messenger.showSnackBar(
       const SnackBar(content: Text('Syncing through iCloud Drive.')),
+    );
+  }
+
+  Future<void> _shareIcloudFolder(
+    BuildContext context,
+    WidgetRef ref,
+    String path,
+  ) async {
+    final opened = await ref.read(cloudFolderProvider).shareFolder(path);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          opened
+              ? 'Choose who can access the iCloud folder.'
+              : 'Open Files or Finder, long-press/right-click the folder, '
+                    'and share it with the other Apple ID.',
+        ),
+      ),
     );
   }
 

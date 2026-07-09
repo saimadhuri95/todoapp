@@ -4,6 +4,7 @@ import '../sync/device_identity.dart';
 import '../sync/mailbox_store.dart';
 import 'cloud_http.dart';
 import 'cloud_providers.dart';
+import 'oauth.dart';
 
 /// See the native implementation for semantics.
 class CloudAccount {
@@ -16,6 +17,17 @@ class CloudAccount {
   final String id;
   final CloudProviderId provider;
   final String label;
+}
+
+class CloudAccountRef {
+  const CloudAccountRef({required this.accountId, this.rootPath});
+
+  final String accountId;
+  final String? rootPath;
+
+  String encode() => accountId;
+
+  static CloudAccountRef decode(String ref) => CloudAccountRef(accountId: ref);
 }
 
 /// Web placeholder: cloud accounts are unavailable until a browser-safe
@@ -37,6 +49,8 @@ class CloudAccountService {
   Future<CloudAccount> connect(
     CloudProviderId id, {
     required Future<Uri> Function(Uri authorizationUrl) authenticate,
+    Uri? redirectUri,
+    OAuthConfig? configOverride,
   }) => throw UnsupportedError('Cloud sign-in is unavailable on web.');
 
   Future<CloudAccount> connectWebDav({
@@ -52,5 +66,10 @@ class CloudAccountService {
   Future<String> freshAccessToken([String? accountId]) =>
       throw StateError('No cloud account connected');
 
-  Future<MailboxStore?> mailboxStore({String? accountId}) async => null;
+  Future<MailboxStore?> mailboxStore({
+    String? accountId,
+    String? rootPath,
+  }) async => null;
+
+  Future<MailboxStore?> mailboxStoreForRef(String accountRef) async => null;
 }

@@ -23,6 +23,11 @@ abstract interface class CloudFolderLocator {
   /// access. Returns the folder's current path (it may have moved), or null
   /// if the bookmark can't be resolved.
   Future<String?> resolveBookmark(String bookmark);
+
+  /// Opens the platform's sharing surface for an iCloud/folder backend.
+  /// Returns false when the platform cannot present one; callers should then
+  /// point the user to the manual Files/Finder sharing fallback.
+  Future<bool> shareFolder(String path);
 }
 
 /// Platforms with no managed cloud folder (Windows/Linux/Android use the
@@ -41,4 +46,7 @@ class UnsupportedCloudFolder implements CloudFolderLocator {
 
   @override
   Future<String?> resolveBookmark(String bookmark) async => null;
+
+  @override
+  Future<bool> shareFolder(String path) async => false;
 }

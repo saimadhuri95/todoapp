@@ -72,6 +72,17 @@ class MainFlutterWindow: NSWindow {
             code: "bookmark", message: error.localizedDescription, details: nil))
         }
 
+      case "shareFolder":
+        guard let args = call.arguments as? [String: Any],
+          let path = args["path"] as? String
+        else {
+          result(false)
+          return
+        }
+        let url = URL(fileURLWithPath: path, isDirectory: true)
+        NSWorkspace.shared.activateFileViewerSelecting([url])
+        result(true)
+
       default:
         result(FlutterMethodNotImplemented)
       }

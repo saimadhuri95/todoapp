@@ -50,6 +50,33 @@ class CloudAccount {
   }
 }
 
+/// Device-local pointer from a sharing group to one signed-in account plus an
+/// optional provider-specific mailbox root (for example a Dropbox shared
+/// folder mount). Plain legacy refs are treated as just an account id.
+class CloudAccountRef {
+  const CloudAccountRef({required this.accountId, this.rootPath});
+
+  final String accountId;
+  final String? rootPath;
+
+  String encode() => rootPath == null || rootPath!.isEmpty
+      ? accountId
+      : jsonEncode({'accountId': accountId, 'rootPath': rootPath});
+
+  static CloudAccountRef decode(String ref) {
+    if (!ref.trimLeft().startsWith('{')) return CloudAccountRef(accountId: ref);
+    try {
+      final json = jsonDecode(ref) as Map<String, dynamic>;
+      return CloudAccountRef(
+        accountId: json['accountId'] as String,
+        rootPath: json['rootPath'] as String?,
+      );
+    } on Object {
+      return CloudAccountRef(accountId: ref);
+    }
+  }
+}
+
 /// Signed-in storage accounts (TASKS 8.4): the registry lives in the
 /// keychain as one JSON list; each account's secrets live beside it under
 /// namespaced keys (`cloud_tokens:<id>` / `cloud_webdav:<id>`), so
@@ -136,10 +163,15 @@ class CloudAccountService {
   Future<CloudAccount> connect(
     CloudProviderId id, {
     required Future<Uri> Function(Uri authorizationUrl) authenticate,
+    Uri? redirectUri,
+    OAuthConfig? configOverride,
   }) async {
-    final config = id.oauthConfig;
+    var config = configOverride ?? id.oauthConfig;
     if (config == null) {
       throw ArgumentError('$id does not use OAuth');
+    }
+    if (redirectUri != null) {
+      config = config.copyWith(redirectUri: redirectUri);
     }
     if (!config.isConfigured) {
       throw StateError(
@@ -149,11 +181,8 @@ class CloudAccountService {
     final attempt = await _flow.begin(config);
     final redirect = await authenticate(attempt.authorizationUrl);
     final tokens = await _flow.finish(config, attempt, redirect);
-    final account = CloudAccount(
-      id: _uuid.v7(),
-      provider: id,
-      label: id.displayName,
-    );
+    final label = await _accountLabel(id, tokens.accessToken) ?? id.displayName;
+    final account = CloudAccount(id: _uuid.v7(), provider: id, label: label);
     await keyStore.write(_tokensKey(account.id), tokens.encode());
     await _register(account);
     return account;
@@ -251,7 +280,10 @@ class CloudAccountService {
 
   /// Mailbox store for [accountId] (default: the primary account), or
   /// null when none/iCloud (which goes through the folder path).
-  Future<MailboxStore?> mailboxStore({String? accountId}) async {
+  Future<MailboxStore?> mailboxStore({
+    String? accountId,
+    String? rootPath,
+  }) async {
     final account = accountId == null
         ? await primaryAccount()
         : await _byId(accountId);
@@ -269,6 +301,7 @@ class CloudAccountService {
         return DropboxMailboxStore(
           http: _http,
           accessToken: () => freshAccessToken(account!.id),
+          rootPath: rootPath ?? '',
         );
       case CloudProviderId.googleDrive:
         return GoogleDriveMailboxStore(
@@ -287,6 +320,71 @@ class CloudAccountService {
     for (final account in await accounts()) {
       if (account.id == id) return account;
     }
+    return null;
+  }
+
+  Future<String?> _accountLabel(
+    CloudProviderId provider,
+    String accessToken,
+  ) async {
+    try {
+      return switch (provider) {
+        CloudProviderId.dropbox => await _dropboxAccountLabel(accessToken),
+        CloudProviderId.oneDrive => await _oneDriveAccountLabel(accessToken),
+        // Google Drive's appdata scope deliberately has no profile access.
+        _ => null,
+      };
+    } on Object {
+      // Labels are nice-to-have metadata; never fail a storage connection.
+      return null;
+    }
+  }
+
+  Future<MailboxStore?> mailboxStoreForRef(String accountRef) {
+    final ref = CloudAccountRef.decode(accountRef);
+    return mailboxStore(accountId: ref.accountId, rootPath: ref.rootPath);
+  }
+
+  Future<String?> _dropboxAccountLabel(String accessToken) async {
+    final response = await _http.send(
+      'POST',
+      Uri.parse('https://api.dropboxapi.com/2/users/get_current_account'),
+      headers: {'Authorization': 'Bearer $accessToken'},
+    );
+    if (!response.ok) return null;
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    final email = json['email'] as String?;
+    final name =
+        (json['name'] as Map<String, dynamic>?)?['display_name'] as String?;
+    return _nameEmailLabel(name: name, email: email);
+  }
+
+  Future<String?> _oneDriveAccountLabel(String accessToken) async {
+    final response = await _http.send(
+      'GET',
+      Uri.parse('https://graph.microsoft.com/v1.0/me'),
+      headers: {'Authorization': 'Bearer $accessToken'},
+    );
+    if (!response.ok) return null;
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    final email =
+        json['mail'] as String? ?? json['userPrincipalName'] as String?;
+    final name = json['displayName'] as String?;
+    return _nameEmailLabel(name: name, email: email);
+  }
+
+  String? _nameEmailLabel({String? name, String? email}) {
+    final cleanName = name?.trim();
+    final cleanEmail = email?.trim();
+    if (cleanName != null &&
+        cleanName.isNotEmpty &&
+        cleanEmail != null &&
+        cleanEmail.isNotEmpty &&
+        cleanName.toLowerCase() != cleanEmail.toLowerCase()) {
+      return '$cleanName ($cleanEmail)';
+    }
+    if (cleanEmail != null && cleanEmail.isNotEmpty) return cleanEmail;
+    if (cleanName != null && cleanName.isNotEmpty) return cleanName;
     return null;
   }
 
