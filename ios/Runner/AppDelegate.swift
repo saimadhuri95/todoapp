@@ -42,6 +42,33 @@ import UIKit
     let channel = FlutterMethodChannel(
       name: "com.sai.knot/cloud_folder", binaryMessenger: registrar.messenger())
     channel.setMethodCallHandler { call, result in
+      if call.method == "shareFolder" {
+        guard let args = call.arguments as? [String: Any],
+          let path = args["path"] as? String
+        else {
+          result(false)
+          return
+        }
+        let url = URL(fileURLWithPath: path, isDirectory: true)
+        let windows = UIApplication.shared.connectedScenes
+          .compactMap { $0 as? UIWindowScene }
+          .flatMap { $0.windows }
+        guard let root = windows.first(where: { $0.isKeyWindow })?.rootViewController else {
+          result(false)
+          return
+        }
+        let controller = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        if let popover = controller.popoverPresentationController {
+          popover.sourceView = root.view
+          popover.sourceRect = CGRect(
+            x: root.view.bounds.midX, y: root.view.bounds.midY, width: 1, height: 1)
+        }
+        root.present(controller, animated: true) {
+          result(true)
+        }
+        return
+      }
+
       guard call.method == "icloudDocumentsPath" else {
         result(FlutterMethodNotImplemented)
         return

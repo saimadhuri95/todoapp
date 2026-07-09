@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import 'package:todoapp/app/providers.dart';
 import 'package:todoapp/core/clock.dart';
 import 'package:todoapp/core/hlc.dart';
 import 'package:todoapp/data/db/database.dart';
+import 'package:todoapp/data/repositories/group_repository.dart';
 import 'package:todoapp/data/repositories/list_repository.dart';
 import 'package:todoapp/data/repositories/todo_repository.dart';
 import 'package:todoapp/main.dart';
@@ -29,6 +31,7 @@ void main() {
   HlcClock hlc() => HlcClock(nodeId: 'test-device', clock: clock);
   TodoRepository todos() => TodoRepository(db, hlc());
   ListRepository lists() => ListRepository(db, hlc());
+  GroupRepository groups() => GroupRepository(db, hlc());
 
   Widget app() => ProviderScope(
     overrides: [
@@ -179,5 +182,85 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(ListTile, 'Sync settings'), findsOneWidget);
+  });
+
+  testApp('drawer groups local and shared lists with badges', (tester) async {
+    final family = await groups().create(name: 'Family', backendKind: 'icloud');
+    await lists().create(name: 'Local errands');
+    final shared = await lists().create(name: 'Groceries');
+    await lists().setGroup(shared.id, family.id);
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('On this device'), findsOneWidget);
+    expect(find.text('Local errands'), findsOneWidget);
+    expect(find.text('Family'), findsOneWidget);
+    expect(find.text('Groceries'), findsOneWidget);
+    expect(find.text('Shared'), findsOneWidget);
+    expect(find.text('iCloud shared folder'), findsOneWidget);
+  });
+
+  testApp('new list Sync selector defaults to local only', (tester) async {
+    await groups().create(name: 'Family', backendKind: 'icloud');
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, 'New list'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sync'), findsOneWidget);
+    expect(find.text('Local only'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextField, 'List name'),
+      'Inbox 2',
+    );
+    await tester.tap(find.text('Create'));
+    await tester.pumpAndSettle();
+
+    final row =
+        await (db.todoLists.select()..where((l) => l.name.equals('Inbox 2')))
+            .getSingle();
+    expect(row.groupId, isNull);
+  });
+
+  testApp('editing a list confirms moving it into a sharing group', (
+    tester,
+  ) async {
+    final family = await groups().create(name: 'Family', backendKind: 'icloud');
+    await lists().create(name: 'Groceries');
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.widgetWithText(ListTile, 'Groceries'),
+        matching: find.byTooltip('Edit list'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Local only').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Family').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('People who already received'), findsOneWidget);
+    await tester.tap(find.text('Move list'));
+    await tester.pumpAndSettle();
+
+    final row =
+        await (db.todoLists.select()..where((l) => l.name.equals('Groceries')))
+            .getSingle();
+    expect(row.groupId, family.id);
   });
 }

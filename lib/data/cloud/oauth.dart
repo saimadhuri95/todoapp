@@ -33,6 +33,15 @@ class OAuthConfig {
   final Map<String, String> extraAuthParams;
 
   bool get isConfigured => clientId.isNotEmpty;
+
+  OAuthConfig copyWith({Uri? redirectUri, List<String>? scopes}) => OAuthConfig(
+    authorizationEndpoint: authorizationEndpoint,
+    tokenEndpoint: tokenEndpoint,
+    clientId: clientId,
+    redirectUri: redirectUri ?? this.redirectUri,
+    scopes: scopes ?? this.scopes,
+    extraAuthParams: extraAuthParams,
+  );
 }
 
 /// Issued tokens; serialized as JSON into the keychain.

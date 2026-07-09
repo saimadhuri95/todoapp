@@ -8,24 +8,32 @@ import 'cloud_http.dart';
 /// every path below is relative to `Apps/Knot/` and the token can touch
 /// nothing else). Contents are ciphertext before they get here.
 class DropboxMailboxStore implements MailboxStore {
-  DropboxMailboxStore({required this.http, required this.accessToken});
+  DropboxMailboxStore({
+    required this.http,
+    required this.accessToken,
+    this.rootPath = '',
+  });
 
   final CloudHttp http;
 
   /// Fresh token per call — the account service refreshes behind this.
   final Future<String> Function() accessToken;
 
+  /// Dropbox path that contains the Knot mailbox. Empty means the app folder
+  /// root; shared groups can point at a mounted shared folder.
+  final String rootPath;
+
   static final _api = Uri.parse('https://api.dropboxapi.com');
   static final _content = Uri.parse('https://content.dropboxapi.com');
 
   @override
   Future<List<String>> listDeviceDirs() async => (await _listFolder(
-    '',
+    _root,
   )).where((e) => e.isFolder).map((e) => e.name).toList();
 
   @override
   Future<List<String>> listFiles(String deviceDir) async => (await _listFolder(
-    '/$deviceDir',
+    _path(deviceDir),
   )).where((e) => !e.isFolder).map((e) => e.name).toList();
 
   @override
@@ -35,7 +43,7 @@ class DropboxMailboxStore implements MailboxStore {
       _content.replace(path: '/2/files/download'),
       headers: {
         'Authorization': 'Bearer ${await accessToken()}',
-        'Dropbox-API-Arg': jsonEncode({'path': '/$deviceDir/$name'}),
+        'Dropbox-API-Arg': jsonEncode({'path': _path(deviceDir, name)}),
       },
     );
     if (response.status == 409) return null; // not_found
@@ -51,7 +59,7 @@ class DropboxMailboxStore implements MailboxStore {
       headers: {
         'Authorization': 'Bearer ${await accessToken()}',
         'Dropbox-API-Arg': jsonEncode({
-          'path': '/$deviceDir/$name',
+          'path': _path(deviceDir, name),
           'mode': 'overwrite',
           'mute': true,
         }),
@@ -64,13 +72,31 @@ class DropboxMailboxStore implements MailboxStore {
 
   @override
   Future<void> delete(String deviceDir, String name) =>
-      _delete('/$deviceDir/$name');
+      _delete(_path(deviceDir, name));
 
   @override
   Future<void> wipeAll() async {
-    for (final entry in await _listFolder('')) {
-      await _delete('/${entry.name}');
+    for (final entry in await _listFolder(_root)) {
+      await _delete(_path(entry.name));
     }
+  }
+
+  String get _root {
+    final clean = rootPath
+        .trim()
+        .replaceAll('\\', '/')
+        .replaceAll(RegExp(r'^/+'), '')
+        .replaceAll(RegExp(r'/+$'), '');
+    return clean.isEmpty ? '' : '/$clean';
+  }
+
+  String _path(String first, [String? second]) {
+    final parts = [
+      if (_root.isNotEmpty) _root.substring(1),
+      first,
+      ?second,
+    ].where((part) => part.isNotEmpty).join('/');
+    return parts.isEmpty ? '' : '/$parts';
   }
 
   Future<void> _delete(String path) async {

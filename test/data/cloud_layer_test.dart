@@ -178,6 +178,34 @@ void main() {
       );
     });
 
+    test('connect fetches and persists a Dropbox account label', () async {
+      final http = FakeHttp()
+        ..on('POST', 'https://auth.example/token', {
+          'access_token': 'at-1',
+          'refresh_token': 'rt-1',
+        })
+        ..on('POST', 'https://api.dropboxapi.com/2/users/get_current_account', {
+          'email': 'ada@example.com',
+          'name': {'display_name': 'Ada Lovelace'},
+        });
+      final service = CloudAccountService(
+        keyStore: InMemoryKeyStore(),
+        http: http,
+        clock: clock,
+      );
+
+      final account = await service.connect(
+        CloudProviderId.dropbox,
+        configOverride: testConfig(),
+        authenticate: (url) async => Uri.parse(
+          'knot://oauth?code=c0de&state=${url.queryParameters['state']}',
+        ),
+      );
+
+      expect(account.label, 'Ada Lovelace (ada@example.com)');
+      expect((await service.accounts()).single.label, account.label);
+    });
+
     test(
       'freshAccessToken refreshes an expired token and persists it',
       () async {
@@ -307,6 +335,24 @@ void main() {
         );
       },
     );
+
+    test('write can root Dropbox mailboxes in a shared folder', () async {
+      final http = FakeHttp()
+        ..on('POST', 'https://content.dropboxapi.com/2/files/upload', {
+          'name': 'f.bin',
+        });
+      final store = DropboxMailboxStore(
+        http: http,
+        accessToken: () async => 'shared',
+        rootPath: '/Team Knot',
+      );
+
+      await store.write('dev', 'f.bin', [1]);
+
+      final arg =
+          jsonDecode(http.requests.single.$3['Dropbox-API-Arg']!) as Map;
+      expect(arg['path'], '/Team Knot/dev/f.bin');
+    });
   });
 
   group('OneDriveMailboxStore', () {
