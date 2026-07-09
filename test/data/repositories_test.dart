@@ -55,7 +55,7 @@ void main() {
       expect(todo.priority, 2);
 
       final stamps = await clocksFor(todo.id);
-      expect(stamps.keys, hasLength(15)); // every todos entry in syncColumns
+      expect(stamps.keys, hasLength(16)); // every todos entry in syncColumns
       expect(stamps.keys, contains('title'));
       expect(stamps.keys, contains('parentId'));
       expect(stamps.keys, contains('section'));
@@ -163,7 +163,7 @@ void main() {
 
         final childStamps = await clocksFor(children.first.id);
         expect(childStamps.keys, containsAll(['parentId', 'sortKey']));
-        expect(childStamps.keys, hasLength(15));
+        expect(childStamps.keys, hasLength(16));
       },
     );
 

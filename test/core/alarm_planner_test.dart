@@ -24,6 +24,7 @@ Todo todo(
   alarmOffsetsJson: alarms,
   lastDismissedMs: dismissed,
   snoozeUntilMs: snooze,
+  pinned: false,
   deleted: deleted,
 );
 

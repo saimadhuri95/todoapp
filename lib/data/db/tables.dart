@@ -98,6 +98,11 @@ class Todos extends Table {
   /// Snoozed-until moment (epoch ms); one extra fire at this time.
   IntColumn get snoozeUntilMs => integer().nullable()();
 
+  /// "Top 3" must-dos (schema v4, TASKS.md 6.34): pinned todos surface in a
+  /// section above Today. A synced LWW field like the rest; the 3-item cap is
+  /// a UI guardrail, not a storage constraint.
+  BoolColumn get pinned => boolean().withDefault(const Constant(false))();
+
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
   @override

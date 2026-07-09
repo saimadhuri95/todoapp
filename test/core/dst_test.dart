@@ -30,6 +30,7 @@ void main() {
     tagsJson: '[]',
     sortKey: '',
     alarmOffsetsJson: '[0]',
+    pinned: false,
     deleted: false,
   );
 
