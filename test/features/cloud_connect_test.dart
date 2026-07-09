@@ -52,6 +52,15 @@ class NoopSyncService extends SyncService {
   Future<void> syncSoon() async {}
 }
 
+Future<void> scrollTo(WidgetTester tester, Finder target) async {
+  await tester.scrollUntilVisible(
+    target,
+    120,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.pumpAndSettle();
+}
+
 void main() {
   late AppDatabase db;
 
@@ -79,23 +88,38 @@ void main() {
       await tester.pumpWidget(screen());
       await tester.pumpAndSettle();
 
-      expect(find.text('This device'), findsOneWidget);
+      // Groups section leads the screen now (8.8). The list is lazy, so
+      // scroll to each row and assert while it is on screen.
+      expect(find.text('Local'), findsOneWidget);
+      await scrollTo(tester, find.text('This device'));
       expect(find.text('No cloud connected'), findsOneWidget);
       expect(find.text('Paired devices'), findsOneWidget);
-      expect(find.text('iCloud Drive'), findsOneWidget);
-      expect(find.text('Dropbox'), findsOneWidget);
-      await tester.scrollUntilVisible(find.text('OneDrive'), 80);
-      expect(find.text('Google Drive'), findsOneWidget);
-      expect(find.text('OneDrive'), findsOneWidget);
-      // No client ids are dart-defined in tests: OAuth rows await setup.
-      expect(find.text('Setup required'), findsNWidgets(3));
+      await scrollTo(tester, find.text('iCloud Drive'));
+      // No client ids are dart-defined in tests: each OAuth row awaits
+      // setup as it scrolls into view.
+      for (final name in ['Dropbox', 'Google Drive', 'OneDrive']) {
+        await scrollTo(tester, find.text(name));
+        expect(
+          find.descendant(
+            of: find.widgetWithText(ListTile, name),
+            matching: find.text('Setup required'),
+          ),
+          findsOneWidget,
+        );
+      }
     });
 
     testApp('setup-required provider explains what is missing', (tester) async {
       await tester.pumpWidget(screen());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Details').first);
+      await scrollTo(tester, find.widgetWithText(ListTile, 'Dropbox'));
+      await tester.tap(
+        find.descendant(
+          of: find.widgetWithText(ListTile, 'Dropbox'),
+          matching: find.text('Details'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Dropbox needs setup'), findsOneWidget);
@@ -114,6 +138,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await scrollTo(tester, find.widgetWithText(ListTile, 'iCloud Drive'));
       await tester.tap(
         find.descendant(
           of: find.widgetWithText(ListTile, 'iCloud Drive'),
@@ -164,6 +189,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await scrollTo(tester, find.widgetWithText(ListTile, 'WebDAV'));
       await tester.tap(
         find.descendant(
           of: find.widgetWithText(ListTile, 'WebDAV'),
@@ -202,6 +228,7 @@ void main() {
       await tester.pumpWidget(screen());
       await tester.pumpAndSettle();
 
+      await scrollTo(tester, find.widgetWithText(ListTile, 'iCloud Drive'));
       await tester.tap(
         find.descendant(
           of: find.widgetWithText(ListTile, 'iCloud Drive'),

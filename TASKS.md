@@ -438,11 +438,14 @@ you a peer of someone else's storage without sharing credentials.
   joining a shared group; personal mailbox keeps the app folder); iCloud
   `UICloudSharingController` via the cloud-folder channel with manual
   Files-app sharing as the documented fallback
-- [ ] 8.8 UI — Sharing & storage screen (evolves the 7.5 connect screen):
-  "Your groups" cards (Local first, then name + provider chip + member
-  and list counts; invite / manage lists / leave), "New group" wizard
-  (name → backend → sign-in/reuse account → pick lists → invite QR),
-  "Join group" scan flow, accounts list
+- [x] 8.8 (issue #100) UI — Sharing & storage screen (evolved connect
+  screen): "Your groups" section (Local first, group cards with backend +
+  member/list counts, invite QR / manage-lists checkboxes / set account /
+  leave), new-group wizard (name → iCloud-or-account backend → create +
+  key + own membership → invite QR), paste-to-join with auto account
+  wiring + fingerprint confirmation; accounts section from 8.4. QR *scan*
+  for joins and per-group health rows are follow-ups (drawer/selector UI
+  is 8.9/#101).
 - [ ] 8.9 UI — drawer sections per group (people icon + provider glyph,
   shared-list badges) and a "Sync" selector in list creation/editor
   (`Local only` default / group names); move-list-between-groups flow
