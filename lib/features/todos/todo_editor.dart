@@ -41,7 +41,11 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
   late DateTime? _dueAt = widget.todo.dueAtMs == null
       ? null
       : DateTime.fromMillisecondsSinceEpoch(widget.todo.dueAtMs!);
-  late String? _recurrence = widget.todo.recurrenceRule;
+  // The dropdown holds the base FREQ rule; the completion-anchor extension
+  // (TASKS.md 6.56) is a separate switch, recombined on save.
+  late String? _recurrence = _stripAnchor(widget.todo.recurrenceRule);
+  late bool _repeatFromCompletion =
+      widget.todo.recurrenceRule?.contains('ANCHOR=COMPLETION') ?? false;
   late int _priority = widget.todo.priority;
   late String? _listId = widget.todo.listId;
   late final Set<int> _alarmOffsets = widget.todo.alarmOffsetsMinutes.toSet();
@@ -60,6 +64,26 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
     'FREQ=MONTHLY': 'Monthly',
     'FREQ=YEARLY': 'Yearly',
   };
+
+  /// The stored rule minus the `ANCHOR=` extension, so it matches a dropdown
+  /// option; null if nothing is left.
+  static String? _stripAnchor(String? rule) {
+    if (rule == null) return null;
+    final base = rule
+        .split(';')
+        .where((p) => !p.startsWith('ANCHOR='))
+        .join(';');
+    return base.isEmpty ? null : base;
+  }
+
+  /// The dropdown rule plus the completion-anchor extension when the switch
+  /// is on (TASKS.md 6.56).
+  String? _composedRule() {
+    if (_recurrence == null) return null;
+    return _repeatFromCompletion
+        ? '${_recurrence!};ANCHOR=COMPLETION'
+        : _recurrence;
+  }
 
   static const _priorityLabels = ['None', 'Low', 'Medium', 'High'];
 
@@ -110,7 +134,7 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
       notes: Value(_notes.text),
       listId: Value(_listId),
       dueAtMs: Value(_dueAt?.millisecondsSinceEpoch),
-      recurrenceRule: Value(_recurrence),
+      recurrenceRule: Value(_composedRule()),
       priority: Value(_priority),
       tags: Value(tags),
       section: Value(_section.text),
@@ -222,6 +246,16 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
           ],
           onChanged: (v) => setState(() => _recurrence = v),
         ),
+        if (_recurrence != null)
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Reschedule from completion'),
+            subtitle: const Text(
+              'Count the next due date from when you finish',
+            ),
+            value: _repeatFromCompletion,
+            onChanged: (v) => setState(() => _repeatFromCompletion = v),
+          ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String?>(
           initialValue: _listId,
