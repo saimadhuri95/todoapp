@@ -61,28 +61,25 @@ void main() {
   });
 
   testApp('a fourth pin is refused with a hint', (tester) async {
-    for (final title in ['a', 'b', 'c', 'd']) {
-      await todos().create(title: title);
+    final repo = todos();
+    // Pre-pin three via the repo so the UI only drives the blocked 4th tap.
+    for (final title in ['a', 'b', 'c']) {
+      await repo.setPinned((await repo.create(title: title)).id, true);
     }
+    final fourth = await repo.create(title: 'd');
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
 
-    // Pin the first three.
-    for (var i = 0; i < 3; i++) {
-      await tester.tap(find.byIcon(Icons.push_pin_outlined).first);
-      await tester.pumpAndSettle();
-    }
     expect(find.byIcon(Icons.push_pin), findsNWidgets(3));
+    expect(find.byIcon(Icons.push_pin_outlined), findsOneWidget);
 
-    // The fourth attempt is blocked and hints at the cap.
-    await tester.tap(find.byIcon(Icons.push_pin_outlined).first);
-    await tester.pumpAndSettle();
+    // The fourth attempt is blocked and hints at the cap. Use pump (not
+    // pumpAndSettle) so the persistent SnackBar timer doesn't stall settle.
+    await tester.tap(find.byIcon(Icons.push_pin_outlined));
+    await tester.pump(); // schedule the snackbar
+    await tester.pump(const Duration(milliseconds: 750)); // animate it in
 
     expect(find.text('You can pin up to 3 todos'), findsOneWidget);
-    expect(find.byIcon(Icons.push_pin), findsNWidgets(3));
-    final pinnedCount = (await todos().watchActive().first)
-        .where((t) => t.pinned)
-        .length;
-    expect(pinnedCount, 3);
+    expect((await repo.getById(fourth.id))!.pinned, isFalse);
   });
 }
