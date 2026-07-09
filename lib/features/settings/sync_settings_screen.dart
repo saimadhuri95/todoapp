@@ -7,9 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/providers.dart';
 import '../../app/sync_service.dart';
-import '../../core/file_system.dart';
 import '../../core/platform_info.dart';
 import '../../data/db/database.dart';
+import '../../data/sync/mailbox_store_factory.dart';
 import 'scan_invitation_screen.dart';
 
 /// Sync & devices (TASKS.md 3.6 UI, 3.12, 3.14 first cut).
@@ -54,12 +54,16 @@ class SyncSettingsScreen extends ConsumerWidget {
               title: const Text('Sync folder'),
               subtitle: Text(
                 mailboxPath ??
-                    'Not set — pick a folder your cloud drive syncs '
-                        '(iCloud Drive, Google Drive, Dropbox…)',
+                    (platformIsAndroid
+                        ? 'Not set - choose a cloud-synced folder with '
+                              'Android system folder access'
+                        : 'Not set - pick a folder your cloud drive syncs '
+                              '(iCloud Drive, Google Drive, Dropbox...)'),
               ),
               onTap: () => _pickMailboxFolder(context, ref),
             ),
-          if (ref.watch(cloudFolderProvider).isSupported)
+          if (platformSupportsIcloud &&
+              ref.watch(cloudFolderProvider).isSupported)
             ListTile(
               leading: const Icon(Icons.cloud_outlined),
               title: const Text('Use iCloud Drive'),
@@ -70,7 +74,9 @@ class SyncSettingsScreen extends ConsumerWidget {
               ),
               onTap: () => _useIcloudFolder(context, ref),
             ),
-          if (ref.watch(cloudFolderProvider).isSupported && mailboxPath != null)
+          if (platformSupportsIcloud &&
+              ref.watch(cloudFolderProvider).isSupported &&
+              mailboxPath != null)
             ListTile(
               leading: const Icon(Icons.ios_share),
               title: const Text('Share iCloud folder'),
@@ -219,7 +225,9 @@ class SyncSettingsScreen extends ConsumerWidget {
     if (confirmed != true) return;
     await ref.read(pairingServiceProvider).revoke(device.id);
     final mailboxPath = ref.read(mailboxPathProvider);
-    if (mailboxPath != null) await resetDirectory(mailboxPath);
+    if (mailboxPath != null) {
+      await createFolderMailboxStore(mailboxPath)?.wipeAll();
+    }
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Revoked. Re-pair your other devices.')),
@@ -251,13 +259,14 @@ class SyncSettingsScreen extends ConsumerWidget {
 
   Future<void> _pickMailboxFolder(BuildContext context, WidgetRef ref) =>
       _guarded(context, 'Folder picker', () async {
-        final path = await getDirectoryPath();
+        final folder = ref.read(cloudFolderProvider);
+        final path = platformIsAndroid
+            ? await folder.documentsPath()
+            : await getDirectoryPath();
         if (path == null) return;
-        // Security-scoped bookmark keeps the grant across relaunches on
-        // sandboxed macOS (4.18); null elsewhere — the plain path suffices.
-        final bookmark = await ref
-            .read(cloudFolderProvider)
-            .createBookmark(path);
+        // Security-scoped bookmarks keep macOS grants across relaunches.
+        // Android stores the SAF tree URI as its durable bookmark.
+        final bookmark = await folder.createBookmark(path);
         await _setMailboxPath(ref, path, bookmark: bookmark);
       });
 

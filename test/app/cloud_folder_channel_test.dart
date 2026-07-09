@@ -69,6 +69,42 @@ void main() {
     expect(await locator.resolveBookmark('AAAA'), isNull);
   });
 
+  test('Android SAF picker returns a persistable tree URI', () async {
+    const android = AndroidSafFolderChannel();
+    mockNative((call) async {
+      expect(call.method, 'pickAndroidTree');
+      return 'content://com.android.externalstorage.documents/tree/primary%3AKnot';
+    });
+    expect(
+      await android.documentsPath(),
+      'content://com.android.externalstorage.documents/tree/primary%3AKnot',
+    );
+    expect(android.isSupported, isTrue);
+  });
+
+  test('Android SAF bookmark helpers pass content URI through', () async {
+    const android = AndroidSafFolderChannel();
+    mockNative(
+      (call) async => switch (call.method) {
+        'createBookmark'
+            when (call.arguments as Map)['path'] == 'content://tree/knot' =>
+          'content://tree/knot',
+        'resolveBookmark'
+            when (call.arguments as Map)['bookmark'] == 'content://tree/knot' =>
+          'content://tree/knot',
+        _ => throw PlatformException(code: 'unexpected'),
+      },
+    );
+    expect(
+      await android.createBookmark('content://tree/knot'),
+      'content://tree/knot',
+    );
+    expect(
+      await android.resolveBookmark('content://tree/knot'),
+      'content://tree/knot',
+    );
+  });
+
   test('unsupported platforms report unsupported and null', () async {
     const unsupported = UnsupportedCloudFolder();
     expect(unsupported.isSupported, isFalse);

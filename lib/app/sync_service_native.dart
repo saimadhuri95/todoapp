@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/widgets.dart';
@@ -8,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/alarm_planner.dart';
 import '../data/sync/lan_discovery.dart';
 import '../data/sync/lan_transport.dart';
-import '../data/sync/mailbox_store.dart';
+import '../data/sync/mailbox_store_factory.dart';
 import '../data/sync/mailbox_transport.dart';
 import '../data/sync/sync_orchestrator.dart';
 import 'alarm_service.dart';
@@ -52,7 +51,7 @@ Future<SyncOrchestrator?> buildOrchestrator(
     final backendRef = group.localAccountRef;
     if (key == null || backendRef == null || backendRef.isEmpty) continue;
     final store = switch (group.backendKind) {
-      'folder' || 'icloud' => FolderMailboxStore(Directory(backendRef)),
+      'folder' || 'icloud' => createFolderMailboxStore(backendRef),
       _ =>
         await ref
             .read(cloudAccountServiceProvider)
@@ -80,7 +79,7 @@ Future<SyncOrchestrator?> buildOrchestrator(
   // folder remains for desktop and iCloud Drive setups.
   final store =
       cloudStore ??
-      (mailboxPath == null ? null : FolderMailboxStore(Directory(mailboxPath)));
+      (mailboxPath == null ? null : createFolderMailboxStore(mailboxPath));
   return SyncOrchestrator(
     engine: engine,
     groupKey: groupKey,

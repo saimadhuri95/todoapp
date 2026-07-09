@@ -3,14 +3,16 @@
 /// folder access goes behind a Dart abstraction; the method-channel
 /// implementation is in `lib/app/cloud_folder_channel.dart`.
 abstract interface class CloudFolderLocator {
-  /// Whether this platform can offer a managed cloud folder at all
-  /// (iOS/macOS iCloud Drive). UI hides the option when false.
+  /// Whether this platform can offer a platform-managed folder flow at all
+  /// (iOS/macOS iCloud Drive, Android Storage Access Framework).
   bool get isSupported;
 
   /// Path to a Documents directory inside the app's iCloud Drive container,
   /// created on demand. Null when unavailable: not signed in to iCloud,
   /// iCloud Drive disabled, or the app was built without the iCloud
   /// entitlement (see docs/packaging.md — needs the Apple Developer account).
+  /// On Android this returns a persistable `content://` tree URI selected by
+  /// the user through the system folder picker.
   Future<String?> documentsPath();
 
   /// App-scoped security bookmark for a user-picked folder (TASKS.md 4.18).
@@ -30,8 +32,8 @@ abstract interface class CloudFolderLocator {
   Future<bool> shareFolder(String path);
 }
 
-/// Platforms with no managed cloud folder (Windows/Linux/Android use the
-/// generic directory picker instead).
+/// Platforms with no managed cloud folder (Windows/Linux use the generic
+/// directory picker instead).
 class UnsupportedCloudFolder implements CloudFolderLocator {
   const UnsupportedCloudFolder();
 
