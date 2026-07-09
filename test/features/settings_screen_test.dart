@@ -77,6 +77,25 @@ void main() {
     expect(find.text('Sync now'), findsOneWidget);
   });
 
+  testApp('accent color picker updates the theme seed and persists', (
+    tester,
+  ) async {
+    await tester.pumpWidget(screen());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Accent color'), findsOneWidget);
+    expect(container.read(accentColorProvider), accentColorChoices.first);
+
+    // Pick the second swatch.
+    final target = accentColorChoices[1];
+    await tester.tap(find.byKey(ValueKey(target)));
+    await tester.pumpAndSettle();
+
+    expect(container.read(accentColorProvider), target);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('accentColor'), 1);
+  });
+
   testApp('disabling alarms persists the toggle and clears the schedule', (
     tester,
   ) async {

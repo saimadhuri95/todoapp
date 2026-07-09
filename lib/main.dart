@@ -53,6 +53,10 @@ Future<void> main() async {
   final density =
       DisplayDensity.values.asNameMap()[prefs.getString('displayDensity')] ??
       DisplayDensity.standard;
+  final accentIndex = (prefs.getInt('accentColor') ?? 0).clamp(
+    0,
+    accentColorChoices.length - 1,
+  );
 
   late final ProviderContainer container;
   final scheduler = LocalNotificationsScheduler(
@@ -88,6 +92,7 @@ Future<void> main() async {
         cloudOnboardingDueProvider.overrideWith((_) => true),
       alarmsEnabledProvider.overrideWith((_) => alarmsEnabled),
       themeModeProvider.overrideWith((_) => themeMode),
+      accentColorProvider.overrideWith((_) => accentColorChoices[accentIndex]),
       displayDensityProvider.overrideWith((_) => density),
       alarmSchedulerProvider.overrideWithValue(scheduler),
     ],
@@ -139,10 +144,14 @@ class TodoApp extends ConsumerWidget {
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     themeMode: ref.watch(themeModeProvider),
-    theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal)),
+    theme: ThemeData(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: ref.watch(accentColorProvider),
+      ),
+    ),
     darkTheme: ThemeData(
       colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.teal,
+        seedColor: ref.watch(accentColorProvider),
         brightness: Brightness.dark,
       ),
     ),

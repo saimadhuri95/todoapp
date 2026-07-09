@@ -57,6 +57,22 @@ class SettingsScreen extends ConsumerWidget {
             onChanged: (mode) => _setThemeMode(ref, mode),
           ),
         ),
+        ListTile(
+          leading: const Icon(Icons.color_lens_outlined),
+          title: const Text('Accent color'),
+          subtitle: Wrap(
+            spacing: 8,
+            children: [
+              for (final color in accentColorChoices)
+                _AccentSwatch(
+                  key: ValueKey(color),
+                  color: color,
+                  selected: ref.watch(accentColorProvider) == color,
+                  onTap: () => _setAccentColor(ref, color),
+                ),
+            ],
+          ),
+        ),
         SwitchListTile(
           secondary: const Icon(Icons.fit_screen_outlined),
           title: const Text('Glanceable mode'),
@@ -141,6 +157,12 @@ class SettingsScreen extends ConsumerWidget {
     ref.read(themeModeProvider.notifier).state = mode;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('themeMode', mode.name);
+  }
+
+  Future<void> _setAccentColor(WidgetRef ref, Color color) async {
+    ref.read(accentColorProvider.notifier).state = color;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('accentColor', accentColorChoices.indexOf(color));
   }
 
   ExportService _service(WidgetRef ref) => ExportService(
@@ -386,5 +408,46 @@ class _PassphraseDialogState extends State<_PassphraseDialog> {
       ),
       FilledButton(onPressed: _submit, child: const Text('OK')),
     ],
+  );
+}
+
+/// A tappable accent-color swatch for the settings picker (TASKS.md 6.53).
+class _AccentSwatch extends StatelessWidget {
+  const _AccentSwatch({
+    required this.color,
+    required this.selected,
+    required this.onTap,
+    super.key,
+  });
+
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    selected: selected,
+    button: true,
+    child: InkResponse(
+      onTap: onTap,
+      radius: 22,
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: selected
+                ? Theme.of(context).colorScheme.onSurface
+                : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: selected
+            ? const Icon(Icons.check, color: Colors.white, size: 18)
+            : null,
+      ),
+    ),
   );
 }
