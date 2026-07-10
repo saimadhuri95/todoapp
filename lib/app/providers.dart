@@ -334,6 +334,10 @@ final activeSmartFilterProvider = Provider<SavedSmartFilter?>((ref) {
 /// Search text applied to the active list (client-side filter).
 final searchQueryProvider = StateProvider<String>((_) => '');
 
+/// "I have 10 minutes" quick-win filter toggle (TASKS.md 6.35): when on, the
+/// active list is narrowed to short, estimated todos via [quickWins].
+final quickWinFilterProvider = StateProvider<bool>((_) => false);
+
 /// Selected todo id for the wide-layout detail pane.
 final selectedTodoIdProvider = StateProvider<String?>((_) => null);
 

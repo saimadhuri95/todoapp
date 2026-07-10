@@ -91,6 +91,8 @@ class TodoRepository {
     Value<String?> section = const Value.absent(),
     Value<String> sortKey = const Value.absent(),
     Value<List<int>> alarmOffsetsMinutes = const Value.absent(),
+    Value<int?> estimateMinutes = const Value.absent(),
+    Value<int?> energy = const Value.absent(),
   }) {
     final companion = TodosCompanion(
       title: title,
@@ -100,6 +102,8 @@ class TodoRepository {
       dueAtMs: dueAtMs,
       recurrenceRule: recurrenceRule,
       priority: priority,
+      estimateMinutes: estimateMinutes,
+      energy: energy,
       tagsJson: tags.present
           ? Value(jsonEncode(tags.value))
           : const Value.absent(),
@@ -123,6 +127,8 @@ class TodoRepository {
       if (section.present) 'section',
       if (sortKey.present) 'sortKey',
       if (alarmOffsetsMinutes.present) 'alarmOffsetsJson',
+      if (estimateMinutes.present) 'estimateMinutes',
+      if (energy.present) 'energy',
     ];
     return _write(id, companion, changed);
   }

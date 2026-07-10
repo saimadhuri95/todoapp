@@ -225,6 +225,7 @@ class _TodoListPane extends ConsumerWidget {
     final overdue = ref.watch(overdueTodosProvider);
     final dismissedPromptIds = ref.watch(dismissedOverduePromptIdsProvider);
     final query = ref.watch(searchQueryProvider);
+    final quickWin = ref.watch(quickWinFilterProvider);
     final now = ref.watch(clockProvider).now();
     final somedayView = ref.watch(listFilterProvider) == kSomedayFilter;
     final dateFilter = ref.watch(dateFilterProvider);
@@ -244,6 +245,19 @@ class _TodoListPane extends ConsumerWidget {
             onChanged: (q) => ref.read(searchQueryProvider.notifier).state = q,
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: FilterChip(
+              avatar: const Icon(Icons.bolt, size: 18),
+              label: const Text('I have 10 minutes'),
+              selected: quickWin,
+              onSelected: (v) =>
+                  ref.read(quickWinFilterProvider.notifier).state = v,
+            ),
+          ),
+        ),
         if (dateFilter != null || smartFilter != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
@@ -260,7 +274,8 @@ class _TodoListPane extends ConsumerWidget {
         Expanded(
           child: switch (todos) {
             AsyncData(value: final items) => () {
-              final filtered = filterTodos(items, query);
+              final searched = filterTodos(items, query);
+              final filtered = quickWin ? quickWins(searched) : searched;
               return _buildList(
                 context,
                 ref,

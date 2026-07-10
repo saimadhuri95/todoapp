@@ -24,6 +24,8 @@ const Map<String, Map<String, String>> syncColumns = {
     'lastDismissedMs': 'last_dismissed_ms',
     'snoozeUntilMs': 'snooze_until_ms',
     'pinned': 'pinned',
+    'estimateMinutes': 'estimate_minutes',
+    'energy': 'energy',
     'deleted': 'deleted',
   },
   'todo_lists': {
