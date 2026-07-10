@@ -306,6 +306,10 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
             hintText: 'comma, separated',
           ),
         ),
+        if (widget.todo.parentId == null) ...[
+          const SizedBox(height: 16),
+          _SubtaskChecklist(parent: widget.todo),
+        ],
         const SizedBox(height: 16),
         const Text('Estimate'),
         Wrap(
@@ -335,10 +339,6 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
               ),
           ],
         ),
-        if (widget.todo.parentId == null) ...[
-          const SizedBox(height: 16),
-          _SubtaskChecklist(parent: widget.todo),
-        ],
       ],
     );
   }
