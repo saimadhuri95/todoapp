@@ -59,6 +59,7 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
+- **Session 2026-07-09 (accessibility pass, 5.5 code-level):** one PR of 5 related a11y fixes to the todo list — (1) `Semantics(label: 'Mark "<title>" complete')` on the completion checkbox, (2) `Semantics(label: 'Reorder "<title>"', button:true)` on the drag handle, (3) tile subtitle now exposes a comma-joined screen-reader label via `Semantics`+`ExcludeSemantics` (visual keeps `|`, SR no longer reads "vertical bar"), (4) section headers wrapped in `Semantics(header:true)` for heading navigation, (5) Delete added to the per-todo actions menu so it's reachable without the swipe gesture (keyboard/SR path). New `test/features/accessibility_test.dart` (3 widget/semantics cases). 405 pass (2 known macOS-host sync fails), DST green. Full screen-reader/device verification + remaining screens deferred. Isolated worktree.
 - **Session 2026-07-08 (change attribution, 6.51 partial):** shipped the isolated data-layer building block: `TodoRepository.lastChangedBy(id)` picks the max HLC across a todo's `field_clocks`, extracts the writer's node id, and resolves it to that device's `devices.name` (falling back to the raw node id for an unsynced peer; null when no clocks). New `test/data/attribution_test.dart` (4 cases: no clocks, local writer, name resolution, newest-write-across-devices wins). Assignee chip + notification-text wiring stay deferred (need Phase 8 groups). lib/data 86.2%. Isolated worktree.
 - **Session 2026-07-08 (Eisenhower view, 6.49):** Eisenhower matrix view done. New pure `lib/features/todos/eisenhower.dart` (`eisenhowerBuckets(todos, now, {urgentWindow})` → 4 quadrants by importance `priority>=2` × urgency `overdue|due within 24h`, undated never urgent) + `EisenhowerScreen` (2×2 quadrant cards over `allActiveTodosProvider`, tap → editor) + a `grid_view` app-bar action. Tests: 5 pure cases (quadrant sort, overdue-important, undated-important, empty, configurable window). 379 pass (2 known macOS-host sync fails), DST green. Kanban (sections-as-columns) deferred. Isolated worktree.
 - **Session 2026-07-09 (folder/docs cleanup, 3.12/6.10/6.12):** Android
@@ -231,6 +232,11 @@ fixes; 4.18 is the follow-on persistence bug the picker fix will expose.
 - [x] 5.3 Export/import JSON (`export_service.dart` + settings UI): includes tombstones; import upserts with fresh HLC stamps so restores sync onward
 - [x] 5.4 Dark mode (light/dark themes since Phase 1, follows system)
 - [ ] 5.5 Accessibility pass: screen readers, contrast, font scaling, full keyboard nav (manual work, needs devices)
+  — code-level pass done on the todo list: semantic labels on the completion
+  checkbox + drag handle, screen-reader-friendly (comma, not "|") tile
+  subtitle, section headers marked as headings, and Delete reachable from the
+  actions menu (not swipe-only). Real screen-reader/device verification and a
+  wider sweep of remaining screens still pending.
 - [x] 5.6 L10n scaffold: gen_l10n wired (l10n.yaml, app_en.arb, delegates in MaterialApp); full string extraction is ongoing as screens are touched
 - [x] 5.7 List perf: flattened rows + ListView.builder (lazy at 10k); sync payload/start-time budgets still to measure
 - [ ] 5.8 Battery audit: sync frequency, wake locks, background refresh behavior (needs devices)

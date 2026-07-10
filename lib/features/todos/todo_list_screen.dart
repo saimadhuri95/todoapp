@@ -448,10 +448,15 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-    child: Text(
-      title,
-      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-        color: Theme.of(context).colorScheme.primary,
+    // Mark as a heading so screen readers can jump between sections
+    // (Today / Upcoming / …) by heading navigation (TASKS.md 5.5).
+    child: Semantics(
+      header: true,
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
     ),
   );
@@ -502,9 +507,12 @@ class _TodoTile extends ConsumerWidget {
         minVerticalPadding: large ? 14 : null,
         leading: Transform.scale(
           scale: large ? 1.4 : 1,
-          child: Checkbox(
-            value: false,
-            onChanged: (_) => _completeTodoWithUndo(context, ref, todo),
+          child: Semantics(
+            label: 'Mark "${todo.title}" complete',
+            child: Checkbox(
+              value: false,
+              onChanged: (_) => _completeTodoWithUndo(context, ref, todo),
+            ),
           ),
         ),
         title: LinkifiedText(
@@ -520,9 +528,13 @@ class _TodoTile extends ConsumerWidget {
             _TodoActionsButton(todo: todo),
             ReorderableDragStartListener(
               index: dragIndex,
-              child: const Padding(
-                padding: EdgeInsets.all(8),
-                child: Icon(Icons.drag_handle),
+              child: Semantics(
+                label: 'Reorder "${todo.title}"',
+                button: true,
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Icon(Icons.drag_handle),
+                ),
               ),
             ),
           ],
@@ -607,7 +619,12 @@ class _TodoSubtitle extends ConsumerWidget {
       lines.add('$done/${subtasks.length} checklist items');
     }
     if (lines.isEmpty) return const SizedBox.shrink();
-    return Text(lines.join(' | '));
+    // Visually the fields are pipe-separated; a screen reader would read that
+    // as "vertical bar", so expose a comma-joined label instead (TASKS.md 5.5).
+    return Semantics(
+      label: lines.join(', '),
+      child: ExcludeSemantics(child: Text(lines.join(' | '))),
+    );
   }
 }
 
@@ -630,14 +647,26 @@ class _TodoActionsButton extends ConsumerWidget {
           if (lines == null || lines.isEmpty) return;
           await ref.read(todoRepositoryProvider).createSubtasks(todo.id, lines);
           break;
+        case 'delete':
+          await _deleteTodoWithUndo(context, ref, todo);
+          break;
       }
     },
+    // Delete lives here too, not only on the swipe gesture, so screen-reader
+    // and keyboard users have a reachable path (TASKS.md 5.5).
     itemBuilder: (_) => const [
       PopupMenuItem(
         value: 'breakdown',
         child: ListTile(
           leading: Icon(Icons.splitscreen_outlined),
           title: Text('Break down'),
+        ),
+      ),
+      PopupMenuItem(
+        value: 'delete',
+        child: ListTile(
+          leading: Icon(Icons.delete_outline),
+          title: Text('Delete'),
         ),
       ),
     ],
