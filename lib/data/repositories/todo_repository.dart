@@ -344,6 +344,26 @@ class TodoRepository {
   Future<Todo?> getById(String id) =>
       (_db.todos.select()..where((t) => t.id.equals(id))).getSingleOrNull();
 
+  /// The device that most recently wrote any field of todo [id] — the
+  /// "changed by ..." attribution (TASKS.md 6.51). The winning field
+  /// clock's HLC carries the writer's node id; this resolves it to that
+  /// device's display name, falling back to the raw node id for a peer whose
+  /// identity row hasn't synced yet. Null when the row has no clocks.
+  Future<String?> lastChangedBy(String id) async {
+    final clocks =
+        await (_db.fieldClocks.select()
+              ..where((c) => c.entity.equals('todos') & c.rowId.equals(id)))
+            .get();
+    if (clocks.isEmpty) return null;
+    final latest = clocks
+        .map((c) => Hlc.parse(c.hlc))
+        .reduce((a, b) => a.compareTo(b) >= 0 ? a : b);
+    final device =
+        await (_db.devices.select()..where((d) => d.id.equals(latest.nodeId)))
+            .getSingleOrNull();
+    return device?.name ?? latest.nodeId;
+  }
+
   Stream<List<Todo>> watchSubtasks(String parentId) =>
       (_db.todos.select()
             ..where(

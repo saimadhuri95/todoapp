@@ -59,6 +59,7 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
+- **Session 2026-07-08 (change attribution, 6.51 partial):** shipped the isolated data-layer building block: `TodoRepository.lastChangedBy(id)` picks the max HLC across a todo's `field_clocks`, extracts the writer's node id, and resolves it to that device's `devices.name` (falling back to the raw node id for an unsynced peer; null when no clocks). New `test/data/attribution_test.dart` (4 cases: no clocks, local writer, name resolution, newest-write-across-devices wins). Assignee chip + notification-text wiring stay deferred (need Phase 8 groups). lib/data 86.2%. Isolated worktree.
 - **Session 2026-07-08 (Eisenhower view, 6.49):** Eisenhower matrix view done. New pure `lib/features/todos/eisenhower.dart` (`eisenhowerBuckets(todos, now, {urgentWindow})` → 4 quadrants by importance `priority>=2` × urgency `overdue|due within 24h`, undated never urgent) + `EisenhowerScreen` (2×2 quadrant cards over `allActiveTodosProvider`, tap → editor) + a `grid_view` app-bar action. Tests: 5 pure cases (quadrant sort, overdue-important, undated-important, empty, configurable window). 379 pass (2 known macOS-host sync fails), DST green. Kanban (sections-as-columns) deferred. Isolated worktree.
 - **Session 2026-07-09 (folder/docs cleanup, 3.12/6.10/6.12):** Android
   folder sync now uses Storage Access Framework end to end: Sync settings opens
@@ -502,6 +503,9 @@ you a peer of someone else's storage without sharing credentials.
   Android sticky today-notification
 - [ ] 6.51 (R7.2/R7.3) Assignee chip on shared-list tasks + "changed by
   <device>" attribution from HLC metadata (feeds 6.2 notification text)
+  — attribution building block done: `TodoRepository.lastChangedBy(id)` reads
+  the winning field-clock's HLC node id and resolves it to a device name;
+  assignee chip + notification-text wiring still pending (need Phase 8 groups)
 - [ ] 6.52 (R8.2/R8.3/R8.4) iOS lock-screen widget; Siri Shortcuts / Android
   App Actions; desktop tray quick-add + today count (ties into 5.1/5.2)
 - [x] 6.53 (R9.3) Theming: accent color + per-list colors/icons
