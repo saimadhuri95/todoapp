@@ -103,6 +103,14 @@ class Todos extends Table {
   /// a UI guardrail, not a storage constraint.
   BoolColumn get pinned => boolean().withDefault(const Constant(false))();
 
+  /// Rough time estimate in minutes (schema v7, TASKS.md 6.35): drives the
+  /// "I have 10 minutes" quick-win filter. Null = unestimated.
+  IntColumn get estimateMinutes => integer().nullable()();
+
+  /// Energy required (schema v7, TASKS.md 6.35): 0 low / 1 medium / 2 high.
+  /// Null = unset. Metadata only for now; feeds future energy-aware views.
+  IntColumn get energy => integer().nullable()();
+
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
   @override

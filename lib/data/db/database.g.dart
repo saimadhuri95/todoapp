@@ -983,6 +983,26 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _estimateMinutesMeta = const VerificationMeta(
+    'estimateMinutes',
+  );
+  @override
+  late final GeneratedColumn<int> estimateMinutes = GeneratedColumn<int>(
+    'estimate_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _energyMeta = const VerificationMeta('energy');
+  @override
+  late final GeneratedColumn<int> energy = GeneratedColumn<int>(
+    'energy',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _deletedMeta = const VerificationMeta(
     'deleted',
   );
@@ -1016,6 +1036,8 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
     lastDismissedMs,
     snoozeUntilMs,
     pinned,
+    estimateMinutes,
+    energy,
     deleted,
   ];
   @override
@@ -1142,6 +1164,21 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
         pinned.isAcceptableOrUnknown(data['pinned']!, _pinnedMeta),
       );
     }
+    if (data.containsKey('estimate_minutes')) {
+      context.handle(
+        _estimateMinutesMeta,
+        estimateMinutes.isAcceptableOrUnknown(
+          data['estimate_minutes']!,
+          _estimateMinutesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('energy')) {
+      context.handle(
+        _energyMeta,
+        energy.isAcceptableOrUnknown(data['energy']!, _energyMeta),
+      );
+    }
     if (data.containsKey('deleted')) {
       context.handle(
         _deletedMeta,
@@ -1221,6 +1258,14 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
         DriftSqlType.bool,
         data['${effectivePrefix}pinned'],
       )!,
+      estimateMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}estimate_minutes'],
+      ),
+      energy: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}energy'],
+      ),
       deleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}deleted'],
@@ -1271,6 +1316,14 @@ class Todo extends DataClass implements Insertable<Todo> {
   /// section above Today. A synced LWW field like the rest; the 3-item cap is
   /// a UI guardrail, not a storage constraint.
   final bool pinned;
+
+  /// Rough time estimate in minutes (schema v7, TASKS.md 6.35): drives the
+  /// "I have 10 minutes" quick-win filter. Null = unestimated.
+  final int? estimateMinutes;
+
+  /// Energy required (schema v7, TASKS.md 6.35): 0 low / 1 medium / 2 high.
+  /// Null = unset. Metadata only for now; feeds future energy-aware views.
+  final int? energy;
   final bool deleted;
   const Todo({
     required this.id,
@@ -1289,6 +1342,8 @@ class Todo extends DataClass implements Insertable<Todo> {
     this.lastDismissedMs,
     this.snoozeUntilMs,
     required this.pinned,
+    this.estimateMinutes,
+    this.energy,
     required this.deleted,
   });
   @override
@@ -1326,6 +1381,12 @@ class Todo extends DataClass implements Insertable<Todo> {
       map['snooze_until_ms'] = Variable<int>(snoozeUntilMs);
     }
     map['pinned'] = Variable<bool>(pinned);
+    if (!nullToAbsent || estimateMinutes != null) {
+      map['estimate_minutes'] = Variable<int>(estimateMinutes);
+    }
+    if (!nullToAbsent || energy != null) {
+      map['energy'] = Variable<int>(energy);
+    }
     map['deleted'] = Variable<bool>(deleted);
     return map;
   }
@@ -1364,6 +1425,12 @@ class Todo extends DataClass implements Insertable<Todo> {
           ? const Value.absent()
           : Value(snoozeUntilMs),
       pinned: Value(pinned),
+      estimateMinutes: estimateMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(estimateMinutes),
+      energy: energy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(energy),
       deleted: Value(deleted),
     );
   }
@@ -1390,6 +1457,8 @@ class Todo extends DataClass implements Insertable<Todo> {
       lastDismissedMs: serializer.fromJson<int?>(json['lastDismissedMs']),
       snoozeUntilMs: serializer.fromJson<int?>(json['snoozeUntilMs']),
       pinned: serializer.fromJson<bool>(json['pinned']),
+      estimateMinutes: serializer.fromJson<int?>(json['estimateMinutes']),
+      energy: serializer.fromJson<int?>(json['energy']),
       deleted: serializer.fromJson<bool>(json['deleted']),
     );
   }
@@ -1413,6 +1482,8 @@ class Todo extends DataClass implements Insertable<Todo> {
       'lastDismissedMs': serializer.toJson<int?>(lastDismissedMs),
       'snoozeUntilMs': serializer.toJson<int?>(snoozeUntilMs),
       'pinned': serializer.toJson<bool>(pinned),
+      'estimateMinutes': serializer.toJson<int?>(estimateMinutes),
+      'energy': serializer.toJson<int?>(energy),
       'deleted': serializer.toJson<bool>(deleted),
     };
   }
@@ -1434,6 +1505,8 @@ class Todo extends DataClass implements Insertable<Todo> {
     Value<int?> lastDismissedMs = const Value.absent(),
     Value<int?> snoozeUntilMs = const Value.absent(),
     bool? pinned,
+    Value<int?> estimateMinutes = const Value.absent(),
+    Value<int?> energy = const Value.absent(),
     bool? deleted,
   }) => Todo(
     id: id ?? this.id,
@@ -1460,6 +1533,10 @@ class Todo extends DataClass implements Insertable<Todo> {
         ? snoozeUntilMs.value
         : this.snoozeUntilMs,
     pinned: pinned ?? this.pinned,
+    estimateMinutes: estimateMinutes.present
+        ? estimateMinutes.value
+        : this.estimateMinutes,
+    energy: energy.present ? energy.value : this.energy,
     deleted: deleted ?? this.deleted,
   );
   Todo copyWithCompanion(TodosCompanion data) {
@@ -1490,6 +1567,10 @@ class Todo extends DataClass implements Insertable<Todo> {
           ? data.snoozeUntilMs.value
           : this.snoozeUntilMs,
       pinned: data.pinned.present ? data.pinned.value : this.pinned,
+      estimateMinutes: data.estimateMinutes.present
+          ? data.estimateMinutes.value
+          : this.estimateMinutes,
+      energy: data.energy.present ? data.energy.value : this.energy,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
     );
   }
@@ -1513,6 +1594,8 @@ class Todo extends DataClass implements Insertable<Todo> {
           ..write('lastDismissedMs: $lastDismissedMs, ')
           ..write('snoozeUntilMs: $snoozeUntilMs, ')
           ..write('pinned: $pinned, ')
+          ..write('estimateMinutes: $estimateMinutes, ')
+          ..write('energy: $energy, ')
           ..write('deleted: $deleted')
           ..write(')'))
         .toString();
@@ -1536,6 +1619,8 @@ class Todo extends DataClass implements Insertable<Todo> {
     lastDismissedMs,
     snoozeUntilMs,
     pinned,
+    estimateMinutes,
+    energy,
     deleted,
   );
   @override
@@ -1558,6 +1643,8 @@ class Todo extends DataClass implements Insertable<Todo> {
           other.lastDismissedMs == this.lastDismissedMs &&
           other.snoozeUntilMs == this.snoozeUntilMs &&
           other.pinned == this.pinned &&
+          other.estimateMinutes == this.estimateMinutes &&
+          other.energy == this.energy &&
           other.deleted == this.deleted);
 }
 
@@ -1578,6 +1665,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
   final Value<int?> lastDismissedMs;
   final Value<int?> snoozeUntilMs;
   final Value<bool> pinned;
+  final Value<int?> estimateMinutes;
+  final Value<int?> energy;
   final Value<bool> deleted;
   final Value<int> rowid;
   const TodosCompanion({
@@ -1597,6 +1686,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     this.lastDismissedMs = const Value.absent(),
     this.snoozeUntilMs = const Value.absent(),
     this.pinned = const Value.absent(),
+    this.estimateMinutes = const Value.absent(),
+    this.energy = const Value.absent(),
     this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1617,6 +1708,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     this.lastDismissedMs = const Value.absent(),
     this.snoozeUntilMs = const Value.absent(),
     this.pinned = const Value.absent(),
+    this.estimateMinutes = const Value.absent(),
+    this.energy = const Value.absent(),
     this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1638,6 +1731,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     Expression<int>? lastDismissedMs,
     Expression<int>? snoozeUntilMs,
     Expression<bool>? pinned,
+    Expression<int>? estimateMinutes,
+    Expression<int>? energy,
     Expression<bool>? deleted,
     Expression<int>? rowid,
   }) {
@@ -1658,6 +1753,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
       if (lastDismissedMs != null) 'last_dismissed_ms': lastDismissedMs,
       if (snoozeUntilMs != null) 'snooze_until_ms': snoozeUntilMs,
       if (pinned != null) 'pinned': pinned,
+      if (estimateMinutes != null) 'estimate_minutes': estimateMinutes,
+      if (energy != null) 'energy': energy,
       if (deleted != null) 'deleted': deleted,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1680,6 +1777,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     Value<int?>? lastDismissedMs,
     Value<int?>? snoozeUntilMs,
     Value<bool>? pinned,
+    Value<int?>? estimateMinutes,
+    Value<int?>? energy,
     Value<bool>? deleted,
     Value<int>? rowid,
   }) {
@@ -1700,6 +1799,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
       lastDismissedMs: lastDismissedMs ?? this.lastDismissedMs,
       snoozeUntilMs: snoozeUntilMs ?? this.snoozeUntilMs,
       pinned: pinned ?? this.pinned,
+      estimateMinutes: estimateMinutes ?? this.estimateMinutes,
+      energy: energy ?? this.energy,
       deleted: deleted ?? this.deleted,
       rowid: rowid ?? this.rowid,
     );
@@ -1756,6 +1857,12 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     if (pinned.present) {
       map['pinned'] = Variable<bool>(pinned.value);
     }
+    if (estimateMinutes.present) {
+      map['estimate_minutes'] = Variable<int>(estimateMinutes.value);
+    }
+    if (energy.present) {
+      map['energy'] = Variable<int>(energy.value);
+    }
     if (deleted.present) {
       map['deleted'] = Variable<bool>(deleted.value);
     }
@@ -1784,6 +1891,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
           ..write('lastDismissedMs: $lastDismissedMs, ')
           ..write('snoozeUntilMs: $snoozeUntilMs, ')
           ..write('pinned: $pinned, ')
+          ..write('estimateMinutes: $estimateMinutes, ')
+          ..write('energy: $energy, ')
           ..write('deleted: $deleted, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -4787,6 +4896,8 @@ typedef $$TodosTableCreateCompanionBuilder =
       Value<int?> lastDismissedMs,
       Value<int?> snoozeUntilMs,
       Value<bool> pinned,
+      Value<int?> estimateMinutes,
+      Value<int?> energy,
       Value<bool> deleted,
       Value<int> rowid,
     });
@@ -4808,6 +4919,8 @@ typedef $$TodosTableUpdateCompanionBuilder =
       Value<int?> lastDismissedMs,
       Value<int?> snoozeUntilMs,
       Value<bool> pinned,
+      Value<int?> estimateMinutes,
+      Value<int?> energy,
       Value<bool> deleted,
       Value<int> rowid,
     });
@@ -4944,6 +5057,16 @@ class $$TodosTableFilterComposer extends Composer<_$AppDatabase, $TodosTable> {
 
   ColumnFilters<bool> get pinned => $composableBuilder(
     column: $table.pinned,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get estimateMinutes => $composableBuilder(
+    column: $table.estimateMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get energy => $composableBuilder(
+    column: $table.energy,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5103,6 +5226,16 @@ class $$TodosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get estimateMinutes => $composableBuilder(
+    column: $table.estimateMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get energy => $composableBuilder(
+    column: $table.energy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get deleted => $composableBuilder(
     column: $table.deleted,
     builder: (column) => ColumnOrderings(column),
@@ -5215,6 +5348,14 @@ class $$TodosTableAnnotationComposer
 
   GeneratedColumn<bool> get pinned =>
       $composableBuilder(column: $table.pinned, builder: (column) => column);
+
+  GeneratedColumn<int> get estimateMinutes => $composableBuilder(
+    column: $table.estimateMinutes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get energy =>
+      $composableBuilder(column: $table.energy, builder: (column) => column);
 
   GeneratedColumn<bool> get deleted =>
       $composableBuilder(column: $table.deleted, builder: (column) => column);
@@ -5339,6 +5480,8 @@ class $$TodosTableTableManager
                 Value<int?> lastDismissedMs = const Value.absent(),
                 Value<int?> snoozeUntilMs = const Value.absent(),
                 Value<bool> pinned = const Value.absent(),
+                Value<int?> estimateMinutes = const Value.absent(),
+                Value<int?> energy = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TodosCompanion(
@@ -5358,6 +5501,8 @@ class $$TodosTableTableManager
                 lastDismissedMs: lastDismissedMs,
                 snoozeUntilMs: snoozeUntilMs,
                 pinned: pinned,
+                estimateMinutes: estimateMinutes,
+                energy: energy,
                 deleted: deleted,
                 rowid: rowid,
               ),
@@ -5379,6 +5524,8 @@ class $$TodosTableTableManager
                 Value<int?> lastDismissedMs = const Value.absent(),
                 Value<int?> snoozeUntilMs = const Value.absent(),
                 Value<bool> pinned = const Value.absent(),
+                Value<int?> estimateMinutes = const Value.absent(),
+                Value<int?> energy = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TodosCompanion.insert(
@@ -5398,6 +5545,8 @@ class $$TodosTableTableManager
                 lastDismissedMs: lastDismissedMs,
                 snoozeUntilMs: snoozeUntilMs,
                 pinned: pinned,
+                estimateMinutes: estimateMinutes,
+                energy: energy,
                 deleted: deleted,
                 rowid: rowid,
               ),

@@ -47,6 +47,8 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
   late bool _repeatFromCompletion =
       widget.todo.recurrenceRule?.contains('ANCHOR=COMPLETION') ?? false;
   late int _priority = widget.todo.priority;
+  late int? _estimateMinutes = widget.todo.estimateMinutes;
+  late int? _energy = widget.todo.energy;
   late String? _listId = widget.todo.listId;
   late final Set<int> _alarmOffsets = widget.todo.alarmOffsetsMinutes.toSet();
 
@@ -86,6 +88,14 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
   }
 
   static const _priorityLabels = ['None', 'Low', 'Medium', 'High'];
+
+  /// Quick estimate presets in minutes (TASKS.md 6.35).
+  static const _estimatePresets = [5, 10, 15, 30, 60];
+
+  /// Energy levels; index maps to the stored `energy` value (0/1/2). Labels
+  /// stay distinct from the priority segments so neither the UI nor tests
+  /// confuse the two.
+  static const _energyLabels = ['Low energy', 'Medium energy', 'High energy'];
 
   @override
   void dispose() {
@@ -136,6 +146,8 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
       dueAtMs: Value(_dueAt?.millisecondsSinceEpoch),
       recurrenceRule: Value(_composedRule()),
       priority: Value(_priority),
+      estimateMinutes: Value(_estimateMinutes),
+      energy: Value(_energy),
       tags: Value(tags),
       section: Value(_section.text),
       alarmOffsetsMinutes: Value(
@@ -293,6 +305,35 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
             labelText: 'Tags',
             hintText: 'comma, separated',
           ),
+        ),
+        const SizedBox(height: 16),
+        const Text('Estimate'),
+        Wrap(
+          spacing: 8,
+          children: [
+            for (final minutes in _estimatePresets)
+              ChoiceChip(
+                label: Text('$minutes min'),
+                selected: _estimateMinutes == minutes,
+                onSelected: (selected) => setState(
+                  () => _estimateMinutes = selected ? minutes : null,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        const Text('Energy'),
+        Wrap(
+          spacing: 8,
+          children: [
+            for (var level = 0; level < _energyLabels.length; level++)
+              ChoiceChip(
+                label: Text(_energyLabels[level]),
+                selected: _energy == level,
+                onSelected: (selected) =>
+                    setState(() => _energy = selected ? level : null),
+              ),
+          ],
         ),
         if (widget.todo.parentId == null) ...[
           const SizedBox(height: 16),

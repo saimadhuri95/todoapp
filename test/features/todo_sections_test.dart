@@ -10,6 +10,7 @@ Todo todo(
   String tagsJson = '[]',
   bool pinned = false,
   String? section,
+  int? estimateMinutes,
 }) => Todo(
   id: id,
   title: title,
@@ -21,6 +22,7 @@ Todo todo(
   sortKey: '',
   alarmOffsetsJson: '[]',
   pinned: pinned,
+  estimateMinutes: estimateMinutes,
   deleted: false,
 );
 
@@ -142,6 +144,26 @@ void main() {
 
     test('blank query returns everything', () {
       expect(filterTodos(items, '  '), items);
+    });
+  });
+
+  group('quickWins', () {
+    test('keeps only todos estimated at or under the ceiling', () {
+      final items = [
+        todo('quick', estimateMinutes: 5),
+        todo('exactly', estimateMinutes: 10),
+        todo('long', estimateMinutes: 30),
+        todo('unestimated'),
+      ];
+      expect(quickWins(items).map((t) => t.id), ['quick', 'exactly']);
+    });
+
+    test('respects a custom ceiling', () {
+      final items = [
+        todo('a', estimateMinutes: 15),
+        todo('b', estimateMinutes: 45),
+      ];
+      expect(quickWins(items, maxMinutes: 20).map((t) => t.id), ['a']);
     });
   });
 }

@@ -142,3 +142,15 @@ List<Todo> filterTodos(List<Todo> todos, String query) {
         todo,
   ];
 }
+
+/// Default ceiling for the "I have 10 minutes" quick-win filter (TASKS.md 6.35).
+const kQuickWinMinutes = 10;
+
+/// Keeps only todos estimated at [maxMinutes] or fewer (TASKS.md 6.35).
+/// Unestimated todos are dropped — a quick-win view is about what you can
+/// confidently finish now, so an unknown-length task doesn't qualify.
+List<Todo> quickWins(List<Todo> todos, {int maxMinutes = kQuickWinMinutes}) => [
+  for (final todo in todos)
+    if (todo.estimateMinutes != null && todo.estimateMinutes! <= maxMinutes)
+      todo,
+];

@@ -25,7 +25,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.open() => AppDatabase(openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -56,6 +56,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 6 && to >= 6) {
         // "Top 3" pins (TASKS.md 6.34): existing todos default to unpinned.
         await m.addColumn(todos, todos.pinned);
+      }
+      if (from < 7 && to >= 7) {
+        // Estimates + energy (TASKS.md 6.35): existing todos stay unestimated.
+        await m.addColumn(todos, todos.estimateMinutes);
+        await m.addColumn(todos, todos.energy);
       }
     },
     beforeOpen: (details) async {
