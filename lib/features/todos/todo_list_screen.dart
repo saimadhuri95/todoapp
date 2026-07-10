@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -168,6 +169,10 @@ Future<void> _completeTodoWithUndo(
   WidgetRef ref,
   Todo todo,
 ) async {
+  // Celebration feedback (TASKS.md 6.54): a crisp haptic the instant a todo
+  // is checked off. Fire-and-forget with errors swallowed so a missing haptic
+  // engine never blocks or breaks the completion itself.
+  unawaited(HapticFeedback.mediumImpact().catchError((Object _) {}));
   final repo = ref.read(todoRepositoryProvider);
   await repo.complete(todo.id);
   final after = await repo.getById(todo.id);
