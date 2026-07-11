@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app/alarm_service.dart';
+import 'app/background_mode.dart';
 import 'app/cloud_folder_channel.dart';
 import 'app/key_store_factory.dart';
 import 'app/notification_scheduler.dart';
@@ -20,7 +21,7 @@ import 'features/cloud/cloud_onboarding.dart';
 import 'features/todos/todo_list_screen.dart';
 import 'l10n/generated/app_localizations.dart';
 
-Future<void> main() async {
+Future<void> main([List<String> args = const []]) async {
   WidgetsFlutterBinding.ensureInitialized();
   if (platformIsDesktop) {
     // The global quick-capture hotkey raises the window (TASKS.md 6.14).
@@ -46,6 +47,7 @@ Future<void> main() async {
     }
   }
   final alarmsEnabled = prefs.getBool('alarmsEnabled') ?? defaultAlarmsEnabled;
+  final backgroundAtLogin = prefs.getBool('backgroundAtLogin') ?? false;
   // Connected OAuth/WebDAV cloud account, read back from the key store
   // (the same one CloudAccountService writes).
   final cloudProvider = await CloudAccountService(
@@ -103,6 +105,7 @@ Future<void> main() async {
       kioskBootLaunchProvider.overrideWith(
         (_) => prefs.getBool('kioskBootLaunch') ?? false,
       ),
+      backgroundAtLoginProvider.overrideWith((_) => backgroundAtLogin),
       alarmSchedulerProvider.overrideWithValue(scheduler),
     ],
   );
@@ -112,6 +115,15 @@ Future<void> main() async {
       child: const SyncBootstrap(child: TodoApp()),
     ),
   );
+  if (platformIsDesktop && backgroundAtLogin) {
+    // Re-arm hide-on-close (and refresh the login item after the app moved
+    // or updated); a `--hidden` login launch starts without a window
+    // (TASKS.md 5.2).
+    await container.read(backgroundModeProvider).setEnabled(true);
+    if (args.contains('--hidden')) {
+      await windowManager.hide();
+    }
+  }
 }
 
 /// Starts the background sync service (auto-triggers, LAN server, mDNS)
