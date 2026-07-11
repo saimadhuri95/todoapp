@@ -60,6 +60,9 @@ dependencies:
   xml: ^6.6.1
   wakelock_plus: ^1.6.1
   battery_plus: ^7.1.0
+  quick_actions: ^1.1.0
+  hotkey_manager: ^0.2.3
+  window_manager: ^0.5.2
 
 dev_dependencies:
   flutter_test:

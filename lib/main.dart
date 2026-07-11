@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'app/alarm_service.dart';
 import 'app/cloud_folder_channel.dart';
 import 'app/key_store_factory.dart';
 import 'app/notification_scheduler.dart';
 import 'app/providers.dart';
+import 'app/quick_capture.dart';
 import 'app/sync_service.dart';
 import 'core/clock.dart';
 import 'core/platform_info.dart';
@@ -20,6 +22,10 @@ import 'l10n/generated/app_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (platformIsDesktop) {
+    // The global quick-capture hotkey raises the window (TASKS.md 6.14).
+    await windowManager.ensureInitialized();
+  }
   final prefs = await SharedPreferences.getInstance();
   var deviceId = prefs.getString('deviceId');
   if (deviceId == null) {
@@ -125,12 +131,14 @@ class _SyncBootstrapState extends ConsumerState<SyncBootstrap> {
     super.initState();
     ref.read(syncServiceProvider).start();
     ref.read(alarmServiceProvider).start();
+    ref.read(quickCaptureServiceProvider).start();
   }
 
   @override
   void dispose() {
     ref.read(syncServiceProvider).stop();
     ref.read(alarmServiceProvider).stop();
+    ref.read(quickCaptureServiceProvider).stop();
     super.dispose();
   }
 

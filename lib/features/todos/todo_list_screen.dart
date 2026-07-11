@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../app/quick_capture.dart';
 import '../../core/natural_date.dart';
 import '../../data/db/database.dart';
 import '../../data/repositories/todo_repository.dart';
@@ -34,6 +35,11 @@ class TodoListScreen extends ConsumerWidget {
     final wide = MediaQuery.sizeOf(context).width >= kWideLayoutBreakpoint;
     final overdue = ref.watch(overdueTodosProvider);
     final stale = ref.watch(staleTodoCandidatesProvider).value ?? const [];
+    // Global capture triggers (hotkey / launcher shortcut, TASKS.md 6.14)
+    // land here as provider bumps and open the same quick-add dialog.
+    ref.listen(quickCaptureRequestsProvider, (_, _) {
+      _showAddDialog(context, ref);
+    });
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyN, control: true): () =>
