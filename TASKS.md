@@ -489,7 +489,7 @@ you a peer of someone else's storage without sharing credentials.
 
 - [ ] 6.43 (R6.2) Snooze presets on the notification (10 min / 1 h / this
   evening / tomorrow) — extends 2.8's fixed 10 min
-- [ ] 6.44 (R6.3) Nag/escalating reminders: per-task "repeat every N minutes
+- [x] 6.44 (R6.3) Nag/escalating reminders: per-task "repeat every N minutes
   until done", local scheduling only
 
 **P3 — optional tail (one line each; expand into subtasks when picked up)**

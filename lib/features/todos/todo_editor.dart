@@ -51,12 +51,24 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
   late int? _energy = widget.todo.energy;
   late String? _listId = widget.todo.listId;
   late final Set<int> _alarmOffsets = widget.todo.alarmOffsetsMinutes.toSet();
+  late int? _nagInterval = widget.todo.nagIntervalMinutes;
 
   static const _alarmOptions = {
     0: 'At due time',
     10: '10 min before',
     60: '1 hour before',
     1440: '1 day before',
+  };
+
+  /// Nag presets (TASKS.md 6.44): repeat the reminder every N minutes after
+  /// the due time until the todo is completed or dismissed.
+  static const _nagOptions = {
+    null: 'No nagging',
+    5: 'Every 5 min until done',
+    10: 'Every 10 min until done',
+    15: 'Every 15 min until done',
+    30: 'Every 30 min until done',
+    60: 'Every hour until done',
   };
 
   static const _recurrenceOptions = {
@@ -153,6 +165,7 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
       alarmOffsetsMinutes: Value(
         _dueAt == null ? const [] : (_alarmOffsets.toList()..sort()),
       ),
+      nagIntervalMinutes: Value(_dueAt == null ? null : _nagInterval),
     );
     final after = await repo.getById(widget.todo.id);
     if (!mounted) return;
@@ -254,6 +267,16 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
               ),
             ),
           ),
+          DropdownButtonFormField<int?>(
+            initialValue: _nagInterval,
+            decoration: const InputDecoration(labelText: 'Nag'),
+            items: [
+              for (final e in _nagOptions.entries)
+                DropdownMenuItem(value: e.key, child: Text(e.value)),
+            ],
+            onChanged: (v) => setState(() => _nagInterval = v),
+          ),
+          const SizedBox(height: 12),
         ],
         DropdownButtonFormField<String?>(
           initialValue: _recurrence,

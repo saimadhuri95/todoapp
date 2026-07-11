@@ -10,6 +10,7 @@ Todo todo(
   int? dismissed,
   int? snooze,
   int? completedAtMs,
+  int? nag,
   bool deleted = false,
 }) => Todo(
   id: id,
@@ -25,6 +26,7 @@ Todo todo(
   lastDismissedMs: dismissed,
   snoozeUntilMs: snooze,
   pinned: false,
+  nagIntervalMinutes: nag,
   deleted: deleted,
 );
 
@@ -120,6 +122,88 @@ void main() {
     expect(plan.first.fireAtMs, inMin(60));
     final sorted = [...plan]..sort();
     expect(plan, sorted);
+  });
+
+  group('nag reminders (6.44)', () {
+    test('future due: rings at due, then every N minutes after', () {
+      final due = inMin(30);
+      final plan = planAlarms(
+        [todo('a', dueAtMs: due, alarms: '[0]', nag: 10)],
+        now: now,
+        cap: 4,
+      );
+
+      expect(plan.map((a) => a.fireAtMs).toList(), [
+        due,
+        inMin(40),
+        inMin(50),
+        inMin(60),
+      ]);
+      // The whole chain shares the occurrence, so one dismiss silences it.
+      expect(plan.map((a) => a.occurrenceMs).toSet(), {due});
+    });
+
+    test('long-overdue todo nags from now, not from the missed repeats', () {
+      // Due 3 days ago with a 15-min nag: the next fire is within 15 min
+      // of now, not thousands of replayed repeats.
+      final due = nowMs - const Duration(days: 3).inMilliseconds;
+      final plan = planAlarms(
+        [todo('a', dueAtMs: due, alarms: '[0]', nag: 15)],
+        now: now,
+        cap: 2,
+      );
+
+      expect(plan, hasLength(2));
+      expect(plan.first.fireAtMs, greaterThan(nowMs));
+      expect(plan.first.fireAtMs, lessThanOrEqualTo(inMin(15)));
+      expect(plan[1].fireAtMs - plan[0].fireAtMs, 15 * 60000);
+      expect(plan.first.occurrenceMs, due);
+    });
+
+    test('nag without explicit offsets still rings at the due time', () {
+      final due = inMin(30);
+      final plan = planAlarms(
+        [todo('a', dueAtMs: due, nag: 10)],
+        now: now,
+        cap: 2,
+      );
+
+      expect(plan.map((a) => a.fireAtMs).toList(), [due, inMin(40)]);
+    });
+
+    test('dismissing the occurrence silences the whole chain', () {
+      final due = inMin(-20);
+      final plan = planAlarms([
+        todo('a', dueAtMs: due, alarms: '[0]', nag: 10, dismissed: due),
+      ], now: now);
+
+      expect(plan, isEmpty);
+    });
+
+    test('recurring nag anchors to the latest already-due occurrence', () {
+      // Daily todo anchored 10 days ago, due at 09:00; now is 12:00. The
+      // nag chain hangs off *today's* occurrence.
+      final anchor = DateTime.utc(2026, 6, 26, 9).millisecondsSinceEpoch;
+      final todayOcc = DateTime.utc(2026, 7, 6, 9).millisecondsSinceEpoch;
+      final plan = planAlarms(
+        [
+          todo(
+            'a',
+            dueAtMs: anchor,
+            alarms: '[0]',
+            nag: 60,
+            rrule: 'FREQ=DAILY',
+          ),
+        ],
+        now: now,
+        cap: 3,
+        horizon: const Duration(hours: 20),
+      );
+
+      expect(plan, isNotEmpty);
+      expect(plan.first.occurrenceMs, todayOcc);
+      expect(plan.first.fireAtMs, inMin(60)); // 13:00, next hourly nag
+    });
   });
 
   test('snooze adds one extra fire and dismissal clears it', () {

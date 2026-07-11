@@ -26,6 +26,7 @@ const Map<String, Map<String, String>> syncColumns = {
     'pinned': 'pinned',
     'estimateMinutes': 'estimate_minutes',
     'energy': 'energy',
+    'nagIntervalMinutes': 'nag_interval_minutes',
     'deleted': 'deleted',
   },
   'todo_lists': {

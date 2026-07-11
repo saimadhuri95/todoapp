@@ -42,6 +42,11 @@ void main() {
   testWidgets('editor groups priority and reminders with semantic labels', (
     tester,
   ) async {
+    // The full form (due + reminders + nag + repeat + priority) outgrew the
+    // default 600px test surface; a taller one keeps both groups on-screen.
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     final semantics = tester.ensureSemantics();
     final todo = await container
         .read(todoRepositoryProvider)
