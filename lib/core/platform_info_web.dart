@@ -7,6 +7,7 @@ bool get platformIsWindows => false;
 bool get platformIsDesktop => false;
 bool get platformSupportsIcloud => false;
 bool get platformSupportsCameraScanner => false;
+bool get platformSupportsVoiceInput => true; // Web Speech API
 bool get defaultAlarmsEnabled => false;
 
 String get platformDeviceName => 'Web browser';

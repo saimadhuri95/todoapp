@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../app/quick_capture.dart';
+import '../../app/voice_input.dart';
 import '../../core/natural_date.dart';
+import '../../core/platform_info.dart';
 import '../../data/db/database.dart';
 import '../../data/repositories/todo_repository.dart';
 import '../settings/settings_screen.dart';
@@ -1529,11 +1531,44 @@ class _AddTodoDialog extends ConsumerStatefulWidget {
 class _AddTodoDialogState extends ConsumerState<_AddTodoDialog> {
   final _controller = TextEditingController();
   DateTime? _preview;
+  var _listening = false;
+  VoiceInput? _activeVoice; // captured at start; ref is unusable in dispose()
+
+  /// The field's contents when dictation started; the recognizer's running
+  /// transcript is appended after it, so speaking never clobbers typed text.
+  var _voiceBase = '';
 
   @override
   void dispose() {
+    if (_listening) _activeVoice?.stop();
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _toggleVoice() async {
+    final voice = ref.read(voiceInputProvider);
+    _activeVoice = voice;
+    if (_listening) {
+      await voice.stop();
+      if (mounted) setState(() => _listening = false);
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    if (!await voice.ensureAvailable()) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Voice input is not available here')),
+      );
+      return;
+    }
+    if (!mounted) return;
+    _voiceBase = _controller.text.isEmpty ? '' : '${_controller.text} ';
+    setState(() => _listening = true);
+    await voice.start((text, isFinal) {
+      if (!mounted) return;
+      _controller.text = '$_voiceBase$text';
+      _reparse(_controller.text);
+      if (isFinal) setState(() => _listening = false);
+    });
   }
 
   void _reparse(String value) {
@@ -1563,6 +1598,18 @@ class _AddTodoDialogState extends ConsumerState<_AddTodoDialog> {
       decoration: InputDecoration(
         hintText: 'What needs doing? Try "pay rent friday 5pm"',
         helperText: _preview == null ? ' ' : _formatPreview(_preview!),
+        // Dictation (TASKS.md 6.46, on-device only); hidden where no
+        // platform speech API exists (Linux).
+        suffixIcon: !platformSupportsVoiceInput
+            ? null
+            : IconButton(
+                tooltip: _listening ? 'Stop dictation' : 'Dictate',
+                icon: Icon(_listening ? Icons.mic : Icons.mic_none),
+                color: _listening
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+                onPressed: _toggleVoice,
+              ),
       ),
       onSubmitted: (value) => Navigator.of(context).pop(value),
     ),

@@ -43,6 +43,10 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Knot uses the camera only to scan another device’s pairing QR code.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Dictate todos with the microphone (processed on this device).</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Turn your speech into todo text (on-device recognition).</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Knot finds your other devices on this network to sync your todos directly, without any server.</string>
 	<key>UIApplicationSceneManifest</key>
