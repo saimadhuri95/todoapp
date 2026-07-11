@@ -62,10 +62,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Theme'), findsOneWidget);
+    expect(find.text('Wall display'), findsOneWidget);
     expect(find.text('Enable alarms on this device'), findsOneWidget);
     expect(find.text('Sync & devices'), findsOneWidget);
+    // The wall-display tile pushed the import/export block below the fold.
+    await tester.drag(find.byType(ListView), const Offset(0, -200));
+    await tester.pumpAndSettle();
     expect(find.text('Export todos'), findsOneWidget);
     expect(find.text('Import todos'), findsOneWidget);
+    await tester.drag(find.byType(ListView), const Offset(0, 200));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Sync & devices'));
     await tester.pumpAndSettle();

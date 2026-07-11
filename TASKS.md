@@ -372,7 +372,7 @@ driver/dispatcher scenario and Apple-first direction.
   subtasks + reusable breakdown templates (local only, no AI) — depends 6.13
 - [ ] 6.37 (R15.1) Checklist templates: save list/task+subtasks as template,
   instantiate with checked-state reset (subsumes 6.9's "duplicate yesterday")
-- [ ] 6.38 (R16.1) Kiosk mode, extends 6.5: keep-screen-on while charging,
+- [x] 6.38 (R16.1) Kiosk mode, extends 6.5: keep-screen-on while charging,
   Android boot auto-launch, burn-in-safe dimming + clock header
 - [x] 6.39 (R16.2) Old-hardware floor: verify on ~2 GB-RAM Android / oldest
   supported OS; document minimum versions in README
