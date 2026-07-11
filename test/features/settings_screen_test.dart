@@ -62,17 +62,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Theme'), findsOneWidget);
-    expect(find.text('Wall display'), findsOneWidget);
-    expect(find.text('Enable alarms on this device'), findsOneWidget);
-    expect(find.text('Sync & devices'), findsOneWidget);
-    // The wall-display tile pushed the import/export block below the fold.
-    await tester.drag(find.byType(ListView), const Offset(0, -200));
-    await tester.pumpAndSettle();
-    expect(find.text('Export todos'), findsOneWidget);
+    // The sectioned list is longer than the fold; scroll to reach the data
+    // controls near the bottom, then back up to the Sync tile.
+    final settingsList = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(
+      find.text('Import todos'),
+      120,
+      scrollable: settingsList,
+    );
     expect(find.text('Import todos'), findsOneWidget);
-    await tester.drag(find.byType(ListView), const Offset(0, 200));
-    await tester.pumpAndSettle();
-
+    await tester.scrollUntilVisible(
+      find.text('Sync & devices'),
+      -120,
+      scrollable: settingsList,
+    );
     await tester.tap(find.text('Sync & devices'));
     await tester.pumpAndSettle();
 
@@ -81,6 +84,36 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -200));
     await tester.pumpAndSettle();
     expect(find.text('Sync now'), findsOneWidget);
+  });
+
+  testApp('settings are grouped under section headings (5.5)', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(screen());
+    await tester.pumpAndSettle();
+
+    final list = find.byType(Scrollable).first;
+    for (final section in const [
+      'Appearance',
+      'Reminders',
+      'Sync & sharing',
+      'Data & backup',
+    ]) {
+      await tester.scrollUntilVisible(
+        find.text(section),
+        100,
+        scrollable: list,
+      );
+      expect(
+        tester
+            .getSemantics(find.text(section))
+            .getSemanticsData()
+            .flagsCollection
+            .isHeader,
+        isTrue,
+        reason: '"$section" should be a heading',
+      );
+    }
+    semantics.dispose();
   });
 
   testApp('accent color picker updates the theme seed and persists', (

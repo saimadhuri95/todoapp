@@ -45,6 +45,7 @@ class SettingsScreen extends ConsumerWidget {
     appBar: AppBar(title: const Text('Settings')),
     body: ListView(
       children: [
+        const _SettingsSection('Appearance'),
         ListTile(
           leading: const Icon(Icons.palette_outlined),
           title: const Text('Theme'),
@@ -104,6 +105,7 @@ class SettingsScreen extends ConsumerWidget {
             value: ref.watch(kioskBootLaunchProvider),
             onChanged: (enabled) => _setKioskBootLaunch(ref, enabled),
           ),
+        const _SettingsSection('Reminders'),
         SwitchListTile(
           secondary: const Icon(Icons.alarm),
           title: const Text('Enable alarms on this device'),
@@ -113,6 +115,7 @@ class SettingsScreen extends ConsumerWidget {
           value: ref.watch(alarmsEnabledProvider),
           onChanged: (enabled) => _setAlarmsEnabled(context, ref, enabled),
         ),
+        const _SettingsSection('Sync & sharing'),
         ListTile(
           leading: const Icon(Icons.cloud_outlined),
           title: const Text('Sharing & storage'),
@@ -131,7 +134,7 @@ class SettingsScreen extends ConsumerWidget {
             MaterialPageRoute<void>(builder: (_) => const SyncSettingsScreen()),
           ),
         ),
-        const Divider(),
+        const _SettingsSection('Data & backup'),
         ListTile(
           leading: const Icon(Icons.upload_file),
           title: const Text('Export todos'),
@@ -476,6 +479,29 @@ class _AccentSwatch extends StatelessWidget {
         child: selected
             ? const Icon(Icons.check, color: Colors.white, size: 18)
             : null,
+      ),
+    ),
+  );
+}
+
+/// A titled section divider for the settings list (TASKS.md 5.5). Marked as a
+/// heading so screen readers can jump between Appearance / Reminders / Sync /
+/// Data groups, and so the long flat list is scannable for everyone.
+class _SettingsSection extends StatelessWidget {
+  const _SettingsSection(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+    child: Semantics(
+      header: true,
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
     ),
   );
