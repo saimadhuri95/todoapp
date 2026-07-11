@@ -14,6 +14,17 @@ import 'package:todoapp/features/settings/sync_settings_screen.dart';
 
 import '../support/widget_test_support.dart';
 
+/// Give the test a tall viewport so the whole sync screen is laid out. On the
+/// macOS host `Platform.isMacOS` renders extra iCloud/scan tiles that push the
+/// device list and status text below the default 600px fold — where a lazy
+/// ListView never builds them — so those rows aren't found. Linux CI has no
+/// such tiles and fits, which is why this only bites locally on macOS.
+void _useTallViewport(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1200, 2400);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+}
+
 void main() {
   late AppDatabase db;
   late InMemoryKeyStore keyStore;
@@ -35,6 +46,7 @@ void main() {
   );
 
   testApp('shows empty device list and unset folder initially', (tester) async {
+    _useTallViewport(tester);
     await tester.pumpWidget(screen());
     await tester.pumpAndSettle();
 
@@ -82,6 +94,7 @@ void main() {
   testApp('showing an invitation renders a QR and registers this device', (
     tester,
   ) async {
+    _useTallViewport(tester);
     await tester.pumpWidget(screen());
     await tester.pumpAndSettle();
 

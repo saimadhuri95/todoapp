@@ -135,8 +135,9 @@ void main() {
     await tester.tap(find.byTooltip('Settings'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Enable alarms on this device'), findsOneWidget);
-    expect(find.text('Sync & devices'), findsOneWidget);
+    // The sectioned settings list opens on the Appearance group.
+    expect(find.text('Appearance'), findsOneWidget);
+    expect(find.text('Theme'), findsOneWidget);
   });
 
   testApp('cancel and empty title do not create todos', (tester) async {
