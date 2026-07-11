@@ -837,9 +837,12 @@ class _ListsDrawer extends ConsumerWidget {
     Widget listTile(TodoList list, {SyncGroup? group}) => ListTile(
       leading: group == null
           ? const Icon(Icons.list)
-          : const Badge(
-              label: Text('Shared'),
-              child: Icon(Icons.list_alt_outlined),
+          : Semantics(
+              label: 'Shared list',
+              child: const Badge(
+                label: Text('Shared'),
+                child: Icon(Icons.list_alt_outlined),
+              ),
             ),
       title: Text(list.name),
       subtitle: group == null ? null : Text(group.backendKindLabel),
