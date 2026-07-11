@@ -94,6 +94,9 @@ Future<void> main() async {
       themeModeProvider.overrideWith((_) => themeMode),
       accentColorProvider.overrideWith((_) => accentColorChoices[accentIndex]),
       displayDensityProvider.overrideWith((_) => density),
+      kioskBootLaunchProvider.overrideWith(
+        (_) => prefs.getBool('kioskBootLaunch') ?? false,
+      ),
       alarmSchedulerProvider.overrideWithValue(scheduler),
     ],
   );

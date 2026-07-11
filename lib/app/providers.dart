@@ -95,6 +95,12 @@ final displayDensityProvider = StateProvider<DisplayDensity>(
   (_) => DisplayDensity.standard,
 );
 
+/// Kiosk boot auto-launch (TASKS.md 6.38, Android only): reopen the app
+/// after the device restarts so a wall-mounted tablet comes back by itself.
+/// Seeded from the `kioskBootLaunch` pref in main(); the native
+/// BootLaunchReceiver reads the same pref directly.
+final kioskBootLaunchProvider = StateProvider<bool>((_) => false);
+
 /// When the last sync pass finished on this device (null = none yet this
 /// run); written by SyncService, shown in sync settings (TASKS.md 6.3).
 final lastSyncPassProvider = StateProvider<DateTime?>((_) => null);

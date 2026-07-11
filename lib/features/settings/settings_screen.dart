@@ -9,10 +9,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../app/alarm_service.dart';
 import '../../app/notification_scheduler.dart';
 import '../../app/providers.dart';
+import '../../core/platform_info.dart';
 import '../../data/backup_service.dart';
 import '../../data/export_service.dart';
 import '../../data/import_parsers.dart';
 import '../cloud/cloud_connect_screen.dart';
+import '../kiosk/kiosk_screen.dart';
 import 'sync_settings_screen.dart';
 
 enum _ExportFormat {
@@ -82,6 +84,26 @@ class SettingsScreen extends ConsumerWidget {
           value: ref.watch(displayDensityProvider) == DisplayDensity.large,
           onChanged: (large) => _setDensity(ref, large),
         ),
+        ListTile(
+          leading: const Icon(Icons.tv_outlined),
+          title: const Text('Wall display'),
+          subtitle: const Text(
+            'Full-screen clock and today — stays awake while on power',
+          ),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute<void>(builder: (_) => const KioskScreen())),
+        ),
+        if (platformIsAndroid)
+          SwitchListTile(
+            secondary: const Icon(Icons.restart_alt),
+            title: const Text('Launch on boot'),
+            subtitle: const Text(
+              'Reopen Knot after this device restarts (kiosk tablets)',
+            ),
+            value: ref.watch(kioskBootLaunchProvider),
+            onChanged: (enabled) => _setKioskBootLaunch(ref, enabled),
+          ),
         SwitchListTile(
           secondary: const Icon(Icons.alarm),
           title: const Text('Enable alarms on this device'),
@@ -150,6 +172,13 @@ class SettingsScreen extends ConsumerWidget {
     ref.read(displayDensityProvider.notifier).state = density;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('displayDensity', density.name);
+  }
+
+  Future<void> _setKioskBootLaunch(WidgetRef ref, bool enabled) async {
+    ref.read(kioskBootLaunchProvider.notifier).state = enabled;
+    // The native BootLaunchReceiver reads this exact pref on boot.
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('kioskBootLaunch', enabled);
   }
 
   Future<void> _setThemeMode(WidgetRef ref, ThemeMode? mode) async {
