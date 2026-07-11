@@ -152,7 +152,7 @@ the ordinary merge engine; todo_alarms/alarm_dismissals tables unused.
 - [ ] 2.11 Manual alarm matrix — needs real devices (user; iOS also needs Xcode)
 - [x] 3.15 (moved here) Alarm dismissal sync — by construction: dismissal is a synced field write; test in sync_engine_test
 - [ ] 5.1 (moved here) Linux resident process — in-app timers while running done; tray/autostart still open
-- [ ] 5.2 (moved here) "Run in background at login" toggle — open
+- [x] 5.2 (moved here) "Run in background at login" toggle — done (settings toggle, login item, hide-on-close)
 
 ## Phase 3 — Sync engine (executed SECOND — right after Phase 1)
 
@@ -230,7 +230,7 @@ fixes; 4.18 is the follow-on persistence bug the picker fix will expose.
 ## Phase 5 — Polish & hardening (executed LAST)
 
 - [ ] 5.1 *(moved into the alarms phase)* Linux alarms (opt-in, same toggle): resident background/tray process at login (autostart + XDG Background portal under Flatpak) posting libnotify notifications; systemd user timers as fallback
-- [ ] 5.2 *(moved into the alarms phase)* Optional "run in background at login" toggle on all desktops (live sync + cross-device dismissal while window closed)
+- [x] 5.2 *(moved into the alarms phase)* Optional "run in background at login" toggle on all desktops (live sync + cross-device dismissal while window closed)
 - [x] 5.3 Export/import JSON (`export_service.dart` + settings UI): includes tombstones; import upserts with fresh HLC stamps so restores sync onward
 - [x] 5.4 Dark mode (light/dark themes since Phase 1, follows system)
 - [ ] 5.5 Accessibility pass: screen readers, contrast, font scaling, full keyboard nav (manual work, needs devices)

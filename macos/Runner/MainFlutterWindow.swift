@@ -1,5 +1,6 @@
 import Cocoa
 import FlutterMacOS
+import ServiceManagement
 
 class MainFlutterWindow: NSWindow {
   override func awakeFromNib() {
@@ -82,6 +83,31 @@ class MainFlutterWindow: NSWindow {
         let url = URL(fileURLWithPath: path, isDirectory: true)
         NSWorkspace.shared.activateFileViewerSelecting([url])
         result(true)
+
+      case "setLoginItem":
+        // Run-in-background at login (TASKS.md 5.2). SMAppService is the
+        // sandbox-safe registration; anything older than macOS 13 reports
+        // false and the toggle stays best-effort.
+        guard let args = call.arguments as? [String: Any],
+          let enabled = args["enabled"] as? Bool
+        else {
+          result(FlutterError(code: "bad-args", message: "enabled required", details: nil))
+          return
+        }
+        if #available(macOS 13.0, *) {
+          do {
+            if enabled {
+              try SMAppService.mainApp.register()
+            } else {
+              try SMAppService.mainApp.unregister()
+            }
+            result(true)
+          } catch {
+            result(false)
+          }
+        } else {
+          result(false)
+        }
 
       default:
         result(FlutterMethodNotImplemented)

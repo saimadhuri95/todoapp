@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/alarm_service.dart';
+import '../../app/background_mode.dart';
 import '../../app/notification_scheduler.dart';
 import '../../app/providers.dart';
 import '../../core/platform_info.dart';
@@ -105,6 +106,27 @@ class SettingsScreen extends ConsumerWidget {
             value: ref.watch(kioskBootLaunchProvider),
             onChanged: (enabled) => _setKioskBootLaunch(ref, enabled),
           ),
+        if (platformIsDesktop) ...[
+          SwitchListTile(
+            secondary: const Icon(Icons.login),
+            title: const Text('Run in background at login'),
+            subtitle: const Text(
+              'Start with your computer; closing the window keeps '
+              'sync and alarms running',
+            ),
+            value: ref.watch(backgroundAtLoginProvider),
+            onChanged: (enabled) => _setBackgroundAtLogin(ref, enabled),
+          ),
+          if (ref.watch(backgroundAtLoginProvider))
+            ListTile(
+              leading: const Icon(Icons.power_settings_new),
+              title: const Text('Quit Knot'),
+              subtitle: const Text(
+                'Fully exit — closing the window only hides it now',
+              ),
+              onTap: () => ref.read(backgroundModeProvider).quit(),
+            ),
+        ],
         const _SettingsSection('Reminders'),
         SwitchListTile(
           secondary: const Icon(Icons.alarm),
@@ -182,6 +204,13 @@ class SettingsScreen extends ConsumerWidget {
     // The native BootLaunchReceiver reads this exact pref on boot.
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('kioskBootLaunch', enabled);
+  }
+
+  Future<void> _setBackgroundAtLogin(WidgetRef ref, bool enabled) async {
+    ref.read(backgroundAtLoginProvider.notifier).state = enabled;
+    await ref.read(backgroundModeProvider).setEnabled(enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('backgroundAtLogin', enabled);
   }
 
   Future<void> _setThemeMode(WidgetRef ref, ThemeMode? mode) async {
