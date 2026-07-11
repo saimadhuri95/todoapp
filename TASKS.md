@@ -312,7 +312,7 @@ driver/dispatcher scenario and Apple-first direction.
 - [ ] 6.13 (R3.1) Subtasks/checklists: `parentId` column (schema migration),
   repository support, editor checklist UI; sub-items are ordinary CRDT rows
   with per-field HLC; unit + widget tests
-- [ ] 6.14 (R2.2) Global quick capture: desktop global-hotkey quick-add
+- [x] 6.14 (R2.2) Global quick capture: desktop global-hotkey quick-add
   window; Android long-press app shortcut + iOS Home-screen quick action
   straight into quick add (widgets themselves = 6.24)
 - [x] 6.15 (R13.3) Inbox: modeled as `listId == null` (deliberately not a
