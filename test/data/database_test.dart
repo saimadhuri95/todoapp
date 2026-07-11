@@ -116,4 +116,17 @@ void main() {
     expect(migrated.section, isNull);
     expect(migrated.sortKey, '');
   });
+
+  test('schema migration v7 to v8 adds the nag interval column', () async {
+    await db.customStatement('PRAGMA foreign_keys = OFF');
+    await db.customStatement(
+      'ALTER TABLE todos DROP COLUMN nag_interval_minutes',
+    );
+    await db.todos.insertOne(TodosCompanion.insert(id: 't1', title: 'Pre-v8'));
+
+    await db.migration.onUpgrade(db.createMigrator(), 7, 8);
+
+    final migrated = await db.todos.all().getSingle();
+    expect(migrated.nagIntervalMinutes, isNull);
+  });
 }

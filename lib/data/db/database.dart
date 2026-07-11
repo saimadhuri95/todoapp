@@ -25,7 +25,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.open() => AppDatabase(openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -61,6 +61,10 @@ class AppDatabase extends _$AppDatabase {
         // Estimates + energy (TASKS.md 6.35): existing todos stay unestimated.
         await m.addColumn(todos, todos.estimateMinutes);
         await m.addColumn(todos, todos.energy);
+      }
+      if (from < 8 && to >= 8) {
+        // Nag reminders (TASKS.md 6.44): existing todos don't nag.
+        await m.addColumn(todos, todos.nagIntervalMinutes);
       }
     },
     beforeOpen: (details) async {

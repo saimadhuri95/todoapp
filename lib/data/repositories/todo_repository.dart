@@ -93,6 +93,7 @@ class TodoRepository {
     Value<List<int>> alarmOffsetsMinutes = const Value.absent(),
     Value<int?> estimateMinutes = const Value.absent(),
     Value<int?> energy = const Value.absent(),
+    Value<int?> nagIntervalMinutes = const Value.absent(),
   }) {
     final companion = TodosCompanion(
       title: title,
@@ -104,6 +105,7 @@ class TodoRepository {
       priority: priority,
       estimateMinutes: estimateMinutes,
       energy: energy,
+      nagIntervalMinutes: nagIntervalMinutes,
       tagsJson: tags.present
           ? Value(jsonEncode(tags.value))
           : const Value.absent(),
@@ -129,6 +131,7 @@ class TodoRepository {
       if (alarmOffsetsMinutes.present) 'alarmOffsetsJson',
       if (estimateMinutes.present) 'estimateMinutes',
       if (energy.present) 'energy',
+      if (nagIntervalMinutes.present) 'nagIntervalMinutes',
     ];
     return _write(id, companion, changed);
   }

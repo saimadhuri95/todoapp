@@ -46,6 +46,7 @@ class SyncEngine {
     'priority',
     'tagsJson',
     'alarmOffsetsJson',
+    'nagIntervalMinutes',
     'deleted',
   };
 

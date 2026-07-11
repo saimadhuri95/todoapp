@@ -78,9 +78,16 @@ List<AlarmInstance> planAlarms(
       );
     }
 
-    final offsets = todo.alarmOffsetsMinutes;
     final dueMs = todo.dueAtMs;
-    if (offsets.isEmpty || dueMs == null) continue;
+    if (dueMs == null) continue;
+    final nag = todo.nagIntervalMinutes;
+    // Nagging without explicit offsets still rings at the due time itself
+    // (TASKS.md 6.44 — "remind every N minutes until done" implies the
+    // first reminder).
+    final offsets = todo.alarmOffsetsMinutes.isEmpty && nag != null && nag > 0
+        ? const [0]
+        : todo.alarmOffsetsMinutes;
+    if (offsets.isEmpty) continue;
     final maxOffsetMs = offsets.reduce((a, b) => a > b ? a : b) * 60000;
 
     for (final occurrenceMs in _occurrences(
@@ -107,10 +114,91 @@ List<AlarmInstance> planAlarms(
         }
       }
     }
+
+    if (nag != null && nag > 0) {
+      _planNags(
+        todo,
+        dueMs,
+        nag,
+        planned,
+        nowMs: nowMs,
+        horizonMs: horizonMs,
+        cap: cap,
+      );
+    }
   }
 
   planned.sort();
   return planned.length <= cap ? planned : planned.sublist(0, cap);
+}
+
+/// Nag repeats (TASKS.md 6.44): once an occurrence is due and neither
+/// completed nor dismissed, keep firing every [nagMinutes] until it is.
+/// Chains anchor to their occurrence — dismissing the occurrence (or
+/// completing the todo) silences the whole chain on every device — but only
+/// future fires are planned, so a long-overdue todo nags from now on rather
+/// than replaying missed repeats.
+void _planNags(
+  Todo todo,
+  int dueMs,
+  int nagMinutes,
+  List<AlarmInstance> planned, {
+  required int nowMs,
+  required int horizonMs,
+  required int cap,
+}) {
+  final stepMs = nagMinutes * 60000;
+  final dismissed = todo.lastDismissedMs;
+  final occurrences = <int>{
+    // The most recent already-due occurrence is what "until done" is about.
+    ?_latestOccurrenceAtOrBefore(todo, dueMs, nowMs),
+    ..._occurrences(
+      todo,
+      dueMs,
+      afterMs: nowMs,
+      horizonMs: horizonMs,
+      perTodoCap: cap,
+    ),
+  };
+  for (final occurrenceMs in occurrences) {
+    if (dismissed != null && occurrenceMs <= dismissed) continue;
+    final firstK = occurrenceMs >= nowMs
+        ? 1
+        : (nowMs - occurrenceMs) ~/ stepMs + 1;
+    for (var k = firstK; k < firstK + cap; k++) {
+      final fireAtMs = occurrenceMs + k * stepMs;
+      if (fireAtMs > horizonMs) break;
+      if (fireAtMs <= nowMs) continue;
+      planned.add(
+        AlarmInstance(
+          todoId: todo.id,
+          title: todo.title,
+          fireAtMs: fireAtMs,
+          occurrenceMs: occurrenceMs,
+        ),
+      );
+    }
+  }
+}
+
+/// The most recent occurrence at or before [nowMs]; null when the todo
+/// isn't due yet. Bounded forward walk — recurrence rules have no
+/// "previous occurrence" query.
+int? _latestOccurrenceAtOrBefore(Todo todo, int dueMs, int nowMs) {
+  if (dueMs > nowMs) return null;
+  final rule = todo.recurrenceRule;
+  if (rule == null) return dueMs;
+  final recurrence = Recurrence.parse(rule);
+  final anchor = DateTime.fromMillisecondsSinceEpoch(dueMs);
+  var latest = dueMs;
+  var cursor = anchor;
+  for (var i = 0; i < 5000; i++) {
+    cursor = recurrence.nextAfter(cursor, anchor: anchor);
+    final ms = cursor.millisecondsSinceEpoch;
+    if (ms > nowMs) break;
+    latest = ms;
+  }
+  return latest;
 }
 
 Iterable<int> _occurrences(

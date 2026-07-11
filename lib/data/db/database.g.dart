@@ -1003,6 +1003,16 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _nagIntervalMinutesMeta =
+      const VerificationMeta('nagIntervalMinutes');
+  @override
+  late final GeneratedColumn<int> nagIntervalMinutes = GeneratedColumn<int>(
+    'nag_interval_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _deletedMeta = const VerificationMeta(
     'deleted',
   );
@@ -1038,6 +1048,7 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
     pinned,
     estimateMinutes,
     energy,
+    nagIntervalMinutes,
     deleted,
   ];
   @override
@@ -1179,6 +1190,15 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
         energy.isAcceptableOrUnknown(data['energy']!, _energyMeta),
       );
     }
+    if (data.containsKey('nag_interval_minutes')) {
+      context.handle(
+        _nagIntervalMinutesMeta,
+        nagIntervalMinutes.isAcceptableOrUnknown(
+          data['nag_interval_minutes']!,
+          _nagIntervalMinutesMeta,
+        ),
+      );
+    }
     if (data.containsKey('deleted')) {
       context.handle(
         _deletedMeta,
@@ -1266,6 +1286,10 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
         DriftSqlType.int,
         data['${effectivePrefix}energy'],
       ),
+      nagIntervalMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}nag_interval_minutes'],
+      ),
       deleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}deleted'],
@@ -1324,6 +1348,12 @@ class Todo extends DataClass implements Insertable<Todo> {
   /// Energy required (schema v7, TASKS.md 6.35): 0 low / 1 medium / 2 high.
   /// Null = unset. Metadata only for now; feeds future energy-aware views.
   final int? energy;
+
+  /// Nag interval in minutes (schema v8, TASKS.md 6.44): once an occurrence
+  /// is due, keep re-firing every N minutes until it is completed or
+  /// dismissed. Null = no nagging. Scheduling itself stays local; the
+  /// setting syncs like any other LWW field.
+  final int? nagIntervalMinutes;
   final bool deleted;
   const Todo({
     required this.id,
@@ -1344,6 +1374,7 @@ class Todo extends DataClass implements Insertable<Todo> {
     required this.pinned,
     this.estimateMinutes,
     this.energy,
+    this.nagIntervalMinutes,
     required this.deleted,
   });
   @override
@@ -1386,6 +1417,9 @@ class Todo extends DataClass implements Insertable<Todo> {
     }
     if (!nullToAbsent || energy != null) {
       map['energy'] = Variable<int>(energy);
+    }
+    if (!nullToAbsent || nagIntervalMinutes != null) {
+      map['nag_interval_minutes'] = Variable<int>(nagIntervalMinutes);
     }
     map['deleted'] = Variable<bool>(deleted);
     return map;
@@ -1431,6 +1465,9 @@ class Todo extends DataClass implements Insertable<Todo> {
       energy: energy == null && nullToAbsent
           ? const Value.absent()
           : Value(energy),
+      nagIntervalMinutes: nagIntervalMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nagIntervalMinutes),
       deleted: Value(deleted),
     );
   }
@@ -1459,6 +1496,7 @@ class Todo extends DataClass implements Insertable<Todo> {
       pinned: serializer.fromJson<bool>(json['pinned']),
       estimateMinutes: serializer.fromJson<int?>(json['estimateMinutes']),
       energy: serializer.fromJson<int?>(json['energy']),
+      nagIntervalMinutes: serializer.fromJson<int?>(json['nagIntervalMinutes']),
       deleted: serializer.fromJson<bool>(json['deleted']),
     );
   }
@@ -1484,6 +1522,7 @@ class Todo extends DataClass implements Insertable<Todo> {
       'pinned': serializer.toJson<bool>(pinned),
       'estimateMinutes': serializer.toJson<int?>(estimateMinutes),
       'energy': serializer.toJson<int?>(energy),
+      'nagIntervalMinutes': serializer.toJson<int?>(nagIntervalMinutes),
       'deleted': serializer.toJson<bool>(deleted),
     };
   }
@@ -1507,6 +1546,7 @@ class Todo extends DataClass implements Insertable<Todo> {
     bool? pinned,
     Value<int?> estimateMinutes = const Value.absent(),
     Value<int?> energy = const Value.absent(),
+    Value<int?> nagIntervalMinutes = const Value.absent(),
     bool? deleted,
   }) => Todo(
     id: id ?? this.id,
@@ -1537,6 +1577,9 @@ class Todo extends DataClass implements Insertable<Todo> {
         ? estimateMinutes.value
         : this.estimateMinutes,
     energy: energy.present ? energy.value : this.energy,
+    nagIntervalMinutes: nagIntervalMinutes.present
+        ? nagIntervalMinutes.value
+        : this.nagIntervalMinutes,
     deleted: deleted ?? this.deleted,
   );
   Todo copyWithCompanion(TodosCompanion data) {
@@ -1571,6 +1614,9 @@ class Todo extends DataClass implements Insertable<Todo> {
           ? data.estimateMinutes.value
           : this.estimateMinutes,
       energy: data.energy.present ? data.energy.value : this.energy,
+      nagIntervalMinutes: data.nagIntervalMinutes.present
+          ? data.nagIntervalMinutes.value
+          : this.nagIntervalMinutes,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
     );
   }
@@ -1596,6 +1642,7 @@ class Todo extends DataClass implements Insertable<Todo> {
           ..write('pinned: $pinned, ')
           ..write('estimateMinutes: $estimateMinutes, ')
           ..write('energy: $energy, ')
+          ..write('nagIntervalMinutes: $nagIntervalMinutes, ')
           ..write('deleted: $deleted')
           ..write(')'))
         .toString();
@@ -1621,6 +1668,7 @@ class Todo extends DataClass implements Insertable<Todo> {
     pinned,
     estimateMinutes,
     energy,
+    nagIntervalMinutes,
     deleted,
   );
   @override
@@ -1645,6 +1693,7 @@ class Todo extends DataClass implements Insertable<Todo> {
           other.pinned == this.pinned &&
           other.estimateMinutes == this.estimateMinutes &&
           other.energy == this.energy &&
+          other.nagIntervalMinutes == this.nagIntervalMinutes &&
           other.deleted == this.deleted);
 }
 
@@ -1667,6 +1716,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
   final Value<bool> pinned;
   final Value<int?> estimateMinutes;
   final Value<int?> energy;
+  final Value<int?> nagIntervalMinutes;
   final Value<bool> deleted;
   final Value<int> rowid;
   const TodosCompanion({
@@ -1688,6 +1738,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     this.pinned = const Value.absent(),
     this.estimateMinutes = const Value.absent(),
     this.energy = const Value.absent(),
+    this.nagIntervalMinutes = const Value.absent(),
     this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1710,6 +1761,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     this.pinned = const Value.absent(),
     this.estimateMinutes = const Value.absent(),
     this.energy = const Value.absent(),
+    this.nagIntervalMinutes = const Value.absent(),
     this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1733,6 +1785,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     Expression<bool>? pinned,
     Expression<int>? estimateMinutes,
     Expression<int>? energy,
+    Expression<int>? nagIntervalMinutes,
     Expression<bool>? deleted,
     Expression<int>? rowid,
   }) {
@@ -1755,6 +1808,8 @@ class TodosCompanion extends UpdateCompanion<Todo> {
       if (pinned != null) 'pinned': pinned,
       if (estimateMinutes != null) 'estimate_minutes': estimateMinutes,
       if (energy != null) 'energy': energy,
+      if (nagIntervalMinutes != null)
+        'nag_interval_minutes': nagIntervalMinutes,
       if (deleted != null) 'deleted': deleted,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1779,6 +1834,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     Value<bool>? pinned,
     Value<int?>? estimateMinutes,
     Value<int?>? energy,
+    Value<int?>? nagIntervalMinutes,
     Value<bool>? deleted,
     Value<int>? rowid,
   }) {
@@ -1801,6 +1857,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
       pinned: pinned ?? this.pinned,
       estimateMinutes: estimateMinutes ?? this.estimateMinutes,
       energy: energy ?? this.energy,
+      nagIntervalMinutes: nagIntervalMinutes ?? this.nagIntervalMinutes,
       deleted: deleted ?? this.deleted,
       rowid: rowid ?? this.rowid,
     );
@@ -1863,6 +1920,9 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     if (energy.present) {
       map['energy'] = Variable<int>(energy.value);
     }
+    if (nagIntervalMinutes.present) {
+      map['nag_interval_minutes'] = Variable<int>(nagIntervalMinutes.value);
+    }
     if (deleted.present) {
       map['deleted'] = Variable<bool>(deleted.value);
     }
@@ -1893,6 +1953,7 @@ class TodosCompanion extends UpdateCompanion<Todo> {
           ..write('pinned: $pinned, ')
           ..write('estimateMinutes: $estimateMinutes, ')
           ..write('energy: $energy, ')
+          ..write('nagIntervalMinutes: $nagIntervalMinutes, ')
           ..write('deleted: $deleted, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -4898,6 +4959,7 @@ typedef $$TodosTableCreateCompanionBuilder =
       Value<bool> pinned,
       Value<int?> estimateMinutes,
       Value<int?> energy,
+      Value<int?> nagIntervalMinutes,
       Value<bool> deleted,
       Value<int> rowid,
     });
@@ -4921,6 +4983,7 @@ typedef $$TodosTableUpdateCompanionBuilder =
       Value<bool> pinned,
       Value<int?> estimateMinutes,
       Value<int?> energy,
+      Value<int?> nagIntervalMinutes,
       Value<bool> deleted,
       Value<int> rowid,
     });
@@ -5067,6 +5130,11 @@ class $$TodosTableFilterComposer extends Composer<_$AppDatabase, $TodosTable> {
 
   ColumnFilters<int> get energy => $composableBuilder(
     column: $table.energy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get nagIntervalMinutes => $composableBuilder(
+    column: $table.nagIntervalMinutes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5236,6 +5304,11 @@ class $$TodosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get nagIntervalMinutes => $composableBuilder(
+    column: $table.nagIntervalMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get deleted => $composableBuilder(
     column: $table.deleted,
     builder: (column) => ColumnOrderings(column),
@@ -5356,6 +5429,11 @@ class $$TodosTableAnnotationComposer
 
   GeneratedColumn<int> get energy =>
       $composableBuilder(column: $table.energy, builder: (column) => column);
+
+  GeneratedColumn<int> get nagIntervalMinutes => $composableBuilder(
+    column: $table.nagIntervalMinutes,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<bool> get deleted =>
       $composableBuilder(column: $table.deleted, builder: (column) => column);
@@ -5482,6 +5560,7 @@ class $$TodosTableTableManager
                 Value<bool> pinned = const Value.absent(),
                 Value<int?> estimateMinutes = const Value.absent(),
                 Value<int?> energy = const Value.absent(),
+                Value<int?> nagIntervalMinutes = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TodosCompanion(
@@ -5503,6 +5582,7 @@ class $$TodosTableTableManager
                 pinned: pinned,
                 estimateMinutes: estimateMinutes,
                 energy: energy,
+                nagIntervalMinutes: nagIntervalMinutes,
                 deleted: deleted,
                 rowid: rowid,
               ),
@@ -5526,6 +5606,7 @@ class $$TodosTableTableManager
                 Value<bool> pinned = const Value.absent(),
                 Value<int?> estimateMinutes = const Value.absent(),
                 Value<int?> energy = const Value.absent(),
+                Value<int?> nagIntervalMinutes = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TodosCompanion.insert(
@@ -5547,6 +5628,7 @@ class $$TodosTableTableManager
                 pinned: pinned,
                 estimateMinutes: estimateMinutes,
                 energy: energy,
+                nagIntervalMinutes: nagIntervalMinutes,
                 deleted: deleted,
                 rowid: rowid,
               ),

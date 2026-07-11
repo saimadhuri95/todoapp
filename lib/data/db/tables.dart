@@ -111,6 +111,12 @@ class Todos extends Table {
   /// Null = unset. Metadata only for now; feeds future energy-aware views.
   IntColumn get energy => integer().nullable()();
 
+  /// Nag interval in minutes (schema v8, TASKS.md 6.44): once an occurrence
+  /// is due, keep re-firing every N minutes until it is completed or
+  /// dismissed. Null = no nagging. Scheduling itself stays local; the
+  /// setting syncs like any other LWW field.
+  IntColumn get nagIntervalMinutes => integer().nullable()();
+
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
   @override
