@@ -81,11 +81,14 @@ class _QuadrantCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${quadrant.title} (${todos.length})',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(color: scheme.primary),
+                Semantics(
+                  header: true,
+                  child: Text(
+                    '${quadrant.title} (${todos.length})',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(color: scheme.primary),
+                  ),
                 ),
                 Text(
                   quadrant.subtitle,

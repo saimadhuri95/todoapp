@@ -229,23 +229,29 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
                 ),
         ),
         if (_dueAt != null) ...[
-          Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 4),
-            child: Wrap(
-              spacing: 8,
-              children: [
-                for (final option in _alarmOptions.entries)
-                  FilterChip(
-                    label: Text(option.value),
-                    avatar: const Icon(Icons.alarm, size: 16),
-                    selected: _alarmOffsets.contains(option.key),
-                    onSelected: (selected) => setState(() {
-                      selected
-                          ? _alarmOffsets.add(option.key)
-                          : _alarmOffsets.remove(option.key);
-                    }),
-                  ),
-              ],
+          // Group label for screen readers, no visual heading (keeps the
+          // form height unchanged): announces these chips as "Reminders".
+          Semantics(
+            container: true,
+            label: 'Reminders',
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 4),
+              child: Wrap(
+                spacing: 8,
+                children: [
+                  for (final option in _alarmOptions.entries)
+                    FilterChip(
+                      label: Text(option.value),
+                      avatar: const Icon(Icons.alarm, size: 16),
+                      selected: _alarmOffsets.contains(option.key),
+                      onSelected: (selected) => setState(() {
+                        selected
+                            ? _alarmOffsets.add(option.key)
+                            : _alarmOffsets.remove(option.key);
+                      }),
+                    ),
+                ],
+              ),
             ),
           ),
         ],
@@ -288,13 +294,19 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
           ),
         ),
         const SizedBox(height: 16),
-        SegmentedButton<int>(
-          segments: [
-            for (var p = 0; p < _priorityLabels.length; p++)
-              ButtonSegment(value: p, label: Text(_priorityLabels[p])),
-          ],
-          selected: {_priority},
-          onSelectionChanged: (s) => setState(() => _priority = s.first),
+        // Group label for screen readers (no visual heading, so the form's
+        // height is unchanged): announces these segments as "Priority".
+        Semantics(
+          container: true,
+          label: 'Priority',
+          child: SegmentedButton<int>(
+            segments: [
+              for (var p = 0; p < _priorityLabels.length; p++)
+                ButtonSegment(value: p, label: Text(_priorityLabels[p])),
+            ],
+            selected: {_priority},
+            onSelectionChanged: (s) => setState(() => _priority = s.first),
+          ),
         ),
         const SizedBox(height: 16),
         FilledButton(onPressed: _save, child: const Text('Save')),
