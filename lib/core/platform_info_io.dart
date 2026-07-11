@@ -11,6 +11,13 @@ bool get platformIsDesktop =>
 bool get platformSupportsIcloud => Platform.isIOS || Platform.isMacOS;
 bool get platformSupportsCameraScanner =>
     Platform.isIOS || Platform.isAndroid || Platform.isMacOS;
+// speech_to_text backends: SpeechRecognizer (Android/iOS/macOS), SAPI
+// (Windows). No Linux implementation.
+bool get platformSupportsVoiceInput =>
+    Platform.isIOS ||
+    Platform.isAndroid ||
+    Platform.isMacOS ||
+    Platform.isWindows;
 bool get defaultAlarmsEnabled => Platform.isAndroid || Platform.isIOS;
 
 String get platformDeviceName => Platform.localHostname;

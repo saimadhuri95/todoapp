@@ -497,7 +497,7 @@ you a peer of someone else's storage without sharing credentials.
 
 - [x] 6.45 (R1.6) Syncthing-tolerant mailbox: audit format for third-party
   folder replication (conflicted-copy filenames), document in docs/sync.md
-- [ ] 6.46 (R2.4) Voice input via platform speech APIs (on-device only)
+- [x] 6.46 (R2.4) Voice input via platform speech APIs (on-device only)
 - [x] 6.47 (R3.8) Attachments — design doc first (size caps, lazy fetch in
   encrypted mailbox), implementation only after sign-off
   — design landed as `docs/decisions/0002-attachments.md`; implementation

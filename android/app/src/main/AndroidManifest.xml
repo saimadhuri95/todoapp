@@ -4,6 +4,8 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- Voice input into quick add (TASKS.md 6.46, on-device dictation) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application
         android:label="Knot"
         android:name="${applicationName}"
@@ -73,6 +75,10 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- speech_to_text: discover the on-device recognition service (6.46) -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
         </intent>
         <!-- url_launcher: open http(s) links from todo titles/notes (6.4) -->
         <intent>

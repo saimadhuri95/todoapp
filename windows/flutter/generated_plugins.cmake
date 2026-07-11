@@ -10,6 +10,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_timezone
   hotkey_manager_windows
   screen_retriever_windows
+  speech_to_text_windows
   url_launcher_windows
   window_manager
 )
