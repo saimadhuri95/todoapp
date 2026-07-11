@@ -6,6 +6,11 @@ import '../core/platform_info.dart';
 /// Platform seam for dictation into quick add (TASKS.md 6.46), so the UI
 /// and tests never touch the speech plugin directly.
 abstract interface class VoiceInput {
+  /// Whether this platform has a speech backend at all — decides if the
+  /// mic button is shown. Lives on the seam (not a bare platform check in
+  /// the UI) so widget tests behave the same on every CI host.
+  bool get supported;
+
   /// Initializes the recognizer and asks for mic/speech permission.
   /// False when the platform, hardware, or user says no.
   Future<bool> ensureAvailable();
@@ -27,8 +32,11 @@ class SpeechVoiceInput implements VoiceInput {
   var _ready = false;
 
   @override
+  bool get supported => platformSupportsVoiceInput;
+
+  @override
   Future<bool> ensureAvailable() async {
-    if (!platformSupportsVoiceInput) return false;
+    if (!supported) return false;
     if (_ready) return true;
     try {
       _ready = await _speech.initialize();

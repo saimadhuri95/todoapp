@@ -29,6 +29,9 @@ class FakeVoiceInput implements VoiceInput {
   var stopped = 0;
 
   @override
+  bool get supported => true;
+
+  @override
   Future<bool> ensureAvailable() async => available;
 
   @override

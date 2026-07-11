@@ -8,7 +8,6 @@ import '../../app/providers.dart';
 import '../../app/quick_capture.dart';
 import '../../app/voice_input.dart';
 import '../../core/natural_date.dart';
-import '../../core/platform_info.dart';
 import '../../data/db/database.dart';
 import '../../data/repositories/todo_repository.dart';
 import '../settings/settings_screen.dart';
@@ -1600,7 +1599,7 @@ class _AddTodoDialogState extends ConsumerState<_AddTodoDialog> {
         helperText: _preview == null ? ' ' : _formatPreview(_preview!),
         // Dictation (TASKS.md 6.46, on-device only); hidden where no
         // platform speech API exists (Linux).
-        suffixIcon: !platformSupportsVoiceInput
+        suffixIcon: !ref.watch(voiceInputProvider).supported
             ? null
             : IconButton(
                 tooltip: _listening ? 'Stop dictation' : 'Dictate',
