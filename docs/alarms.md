@@ -42,7 +42,8 @@ alarm_dismissals tables are unused.
 - `UNUserNotificationCenter` with `UNCalendarNotificationTrigger`.
 - **64 pending-notification cap**: schedule the nearest N (≈50, leaving head-
   room), refill on every foreground and via `BGAppRefreshTask`.
-- Notification actions: Complete, Snooze 10m.
+- Notification actions: Dismiss, Snooze presets (10 min / 1 hour / this
+  evening / tomorrow — TASKS.md 6.43, `core/snooze_presets.dart`).
 
 ### Windows (opt-in)
 - `ScheduledToastNotification` — delivered by the OS even when the app is

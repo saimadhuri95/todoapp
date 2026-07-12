@@ -23,6 +23,7 @@ Todo todo(
   alarmOffsetsJson: '[]',
   pinned: pinned,
   estimateMinutes: estimateMinutes,
+  currentStreak: 0,
   deleted: false,
 );
 
@@ -164,6 +165,35 @@ void main() {
         todo('b', estimateMinutes: 45),
       ];
       expect(quickWins(items, maxMinutes: 20).map((t) => t.id), ['a']);
+    });
+  });
+
+  group('realisticDayMeter (TASKS.md 6.55)', () {
+    test('sums estimates, ignoring unestimated todos', () {
+      final items = [
+        todo('a', estimateMinutes: 30),
+        todo('b', estimateMinutes: 45),
+        todo('c'),
+      ];
+      final meter = realisticDayMeter(items, 480);
+      expect(meter.plannedMinutes, 75);
+      expect(meter.availableMinutes, 480);
+      expect(meter.isOverCommitted, isFalse);
+      expect(meter.remainingMinutes, 405);
+    });
+
+    test('flags over-commitment once planned exceeds available', () {
+      final items = [
+        todo('a', estimateMinutes: 300),
+        todo('b', estimateMinutes: 240),
+      ];
+      final meter = realisticDayMeter(items, 480);
+      expect(meter.isOverCommitted, isTrue);
+      expect(meter.remainingMinutes, -60);
+    });
+
+    test('empty day is never over-committed', () {
+      expect(realisticDayMeter(const [], 480).isOverCommitted, isFalse);
     });
   });
 }

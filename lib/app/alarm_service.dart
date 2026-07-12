@@ -53,8 +53,26 @@ class AlarmService {
               (t) => t.deleted.equals(false) & t.completedAtMs.isNull(),
             ))
             .get();
+    // Attribution (TASKS.md 6.51) only for todos on a shared list — most
+    // todos are local-only and this is one query per candidate.
+    final lists = await db.todoLists.select().get();
+    final sharedListIds = {
+      for (final list in lists)
+        if (list.groupId != null) list.id,
+    };
+    final repo = _ref.read(todoRepositoryProvider);
+    final changedByTodoId = <String, String>{};
+    for (final todo in todos) {
+      if (!sharedListIds.contains(todo.listId)) continue;
+      final changedBy = await repo.lastChangedBy(todo.id);
+      if (changedBy != null) changedByTodoId[todo.id] = changedBy;
+    }
     await scheduler.replaceAll(
-      planAlarms(todos, now: _ref.read(clockProvider).now()),
+      planAlarms(
+        todos,
+        now: _ref.read(clockProvider).now(),
+        changedByTodoId: changedByTodoId,
+      ),
     );
   }
 

@@ -119,6 +119,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.text('Run in background at login'),
+        120,
+        scrollable: find.byType(Scrollable).first,
+      );
       final toggle = find.text('Run in background at login');
       expect(toggle, findsOneWidget);
 

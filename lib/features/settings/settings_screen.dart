@@ -86,6 +86,60 @@ class SettingsScreen extends ConsumerWidget {
           value: ref.watch(displayDensityProvider) == DisplayDensity.large,
           onChanged: (large) => _setDensity(ref, large),
         ),
+        SwitchListTile(
+          secondary: const Icon(Icons.accessibility_new_outlined),
+          title: const Text('Simple mode'),
+          subtitle: const Text(
+            'Extra-large text, list + checkbox only — for caregiving or '
+            'low-vision setups',
+          ),
+          value: ref.watch(simpleModeProvider),
+          onChanged: (enabled) => _setSimpleMode(ref, enabled),
+        ),
+        ListTile(
+          leading: const Icon(Icons.swipe_outlined),
+          title: const Text('Swipe actions'),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              children: [
+                _SwipeActionDropdown(
+                  label: 'Swipe right',
+                  value: ref.watch(swipeStartToEndActionProvider),
+                  onChanged: (action) => _setSwipeAction(
+                    ref,
+                    swipeStartToEndActionProvider,
+                    'swipeStartToEndAction',
+                    action,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                _SwipeActionDropdown(
+                  label: 'Swipe left',
+                  value: ref.watch(swipeEndToStartActionProvider),
+                  onChanged: (action) => _setSwipeAction(
+                    ref,
+                    swipeEndToStartActionProvider,
+                    'swipeEndToStartAction',
+                    action,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          isThreeLine: true,
+        ),
+        ListTile(
+          leading: const Icon(Icons.volunteer_activism_outlined),
+          title: const Text('Caregiver setup guide'),
+          subtitle: const Text(
+            'Share a list and set up reminders for someone else',
+          ),
+          onTap: () => showDialog<void>(
+            context: context,
+            builder: (context) => const _CaregiverGuideDialog(),
+          ),
+        ),
         ListTile(
           leading: const Icon(Icons.tv_outlined),
           title: const Text('Wall display'),
@@ -136,6 +190,22 @@ class SettingsScreen extends ConsumerWidget {
           ),
           value: ref.watch(alarmsEnabledProvider),
           onChanged: (enabled) => _setAlarmsEnabled(context, ref, enabled),
+        ),
+        ListTile(
+          leading: const Icon(Icons.hourglass_bottom_outlined),
+          title: const Text('Realistic day'),
+          subtitle: const Text(
+            'Hours available for estimated work — flags an over-full Today',
+          ),
+          trailing: DropdownButton<int>(
+            value: ref.watch(dailyAvailableMinutesProvider),
+            underline: const SizedBox.shrink(),
+            items: [
+              for (final hours in const [2, 4, 6, 8, 10, 12])
+                DropdownMenuItem(value: hours * 60, child: Text('${hours}h')),
+            ],
+            onChanged: (minutes) => _setDailyAvailableMinutes(ref, minutes),
+          ),
         ),
         const _SettingsSection('Sync & sharing'),
         ListTile(
@@ -197,6 +267,32 @@ class SettingsScreen extends ConsumerWidget {
     ref.read(displayDensityProvider.notifier).state = density;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('displayDensity', density.name);
+  }
+
+  Future<void> _setSwipeAction(
+    WidgetRef ref,
+    StateProvider<SwipeAction?> provider,
+    String prefKey,
+    SwipeAction? action,
+  ) async {
+    ref.read(provider.notifier).state = action;
+    final prefs = await SharedPreferences.getInstance();
+    // 'none' is a real, persisted choice — distinct from "pref unset", which
+    // falls back to each direction's default (see main()).
+    await prefs.setString(prefKey, action?.name ?? 'none');
+  }
+
+  Future<void> _setSimpleMode(WidgetRef ref, bool enabled) async {
+    ref.read(simpleModeProvider.notifier).state = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('simpleMode', enabled);
+  }
+
+  Future<void> _setDailyAvailableMinutes(WidgetRef ref, int? minutes) async {
+    if (minutes == null) return;
+    ref.read(dailyAvailableMinutesProvider.notifier).state = minutes;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('dailyAvailableMinutes', minutes);
   }
 
   Future<void> _setKioskBootLaunch(WidgetRef ref, bool enabled) async {
@@ -510,6 +606,87 @@ class _AccentSwatch extends StatelessWidget {
             : null,
       ),
     ),
+  );
+}
+
+/// One swipe-direction picker (TASKS.md 6.48): "None" plus every
+/// [SwipeAction].
+class _SwipeActionDropdown extends StatelessWidget {
+  const _SwipeActionDropdown({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final SwipeAction? value;
+  final ValueChanged<SwipeAction?> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(label, style: Theme.of(context).textTheme.labelSmall),
+      DropdownButton<SwipeAction?>(
+        value: value,
+        underline: const SizedBox.shrink(),
+        items: [
+          const DropdownMenuItem(value: null, child: Text('None')),
+          for (final action in SwipeAction.values)
+            DropdownMenuItem(value: action, child: Text(action.label)),
+        ],
+        onChanged: onChanged,
+      ),
+    ],
+  );
+}
+
+/// Caregiver setup guide (TASKS.md 6.57, R17.2): a quick pointer to the two
+/// features that make Knot usable for setting a todo list up on someone
+/// else's behalf — a shared list and nag-until-done reminders — rather than
+/// a full separate onboarding flow.
+class _CaregiverGuideDialog extends StatelessWidget {
+  const _CaregiverGuideDialog();
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Setting Knot up for someone else'),
+    content: const SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '1. Turn on Simple mode above on their device — large text, '
+            'list + checkbox only.',
+          ),
+          SizedBox(height: 8),
+          Text(
+            '2. Create a sharing group (Sharing & storage) and share their '
+            'list with your account, so you can add and check off tasks '
+            'together.',
+          ),
+          SizedBox(height: 8),
+          Text(
+            '3. Set a Nag interval on important todos (the editor\'s "Nag" '
+            'dropdown) so a reminder keeps ringing every few minutes until '
+            'it\'s dismissed or done.',
+          ),
+          SizedBox(height: 12),
+          Text(
+            'Knot is not a medical device and reminders are not a '
+            'substitute for medical supervision.',
+            style: TextStyle(fontStyle: FontStyle.italic),
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Close'),
+      ),
+    ],
   );
 }
 

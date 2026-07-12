@@ -64,6 +64,11 @@ final syncGroupsProvider = StreamProvider<List<SyncGroup>>(
   (ref) => ref.watch(groupRepositoryProvider).watchAll(),
 );
 
+/// Member devices of one group, for the assignee picker (TASKS.md 6.51).
+final groupMembersProvider = StreamProvider.family<List<Device>, String>(
+  (ref, groupId) => ref.watch(groupRepositoryProvider).watchMembers(groupId),
+);
+
 /// Theme override — system/light/dark (TASKS.md 6.6). Seeded from the
 /// `themeMode` pref in main(), persisted on change in settings.
 final themeModeProvider = StateProvider<ThemeMode>((_) => ThemeMode.system);
@@ -93,6 +98,47 @@ enum DisplayDensity { standard, large }
 
 final displayDensityProvider = StateProvider<DisplayDensity>(
   (_) => DisplayDensity.standard,
+);
+
+/// Minutes of the day the user has for estimated work, driving the
+/// realistic-day meter (TASKS.md 6.55). Seeded from the
+/// `dailyAvailableMinutes` pref in main(), persisted on change in settings.
+/// Default: an 8-hour workday.
+const kDefaultDailyAvailableMinutes = 480;
+
+final dailyAvailableMinutesProvider = StateProvider<int>(
+  (_) => kDefaultDailyAvailableMinutes,
+);
+
+/// Simple mode (TASKS.md 6.57, R17.1/R17.2): extra-large text/checkboxes and
+/// a list+check-only tile, for caregiving/low-vision setups. Seeded from the
+/// `simpleMode` pref in main(), persisted on change in settings. Not a
+/// medical device — see the store-listing disclaimer in docs/packaging.md.
+final simpleModeProvider = StateProvider<bool>((_) => false);
+
+/// Configurable swipe actions (TASKS.md 6.48): what swiping a todo tile in
+/// either direction does. Snooze uses the 10-minute preset — the same
+/// quick default as the old fixed notification snooze.
+enum SwipeAction {
+  complete,
+  snooze,
+  delete;
+
+  String get label => switch (this) {
+    SwipeAction.complete => 'Complete',
+    SwipeAction.snooze => 'Snooze 10 min',
+    SwipeAction.delete => 'Delete',
+  };
+}
+
+/// Swipe right (startToEnd). Seeded from the `swipeStartToEndAction` pref
+/// in main(), persisted on change in settings. Default matches the
+/// pre-6.48 UX: only the left swipe did anything.
+final swipeStartToEndActionProvider = StateProvider<SwipeAction?>((_) => null);
+
+/// Swipe left (endToStart). Default: delete, matching pre-6.48 behavior.
+final swipeEndToStartActionProvider = StateProvider<SwipeAction?>(
+  (_) => SwipeAction.delete,
 );
 
 /// Kiosk boot auto-launch (TASKS.md 6.38, Android only): reopen the app

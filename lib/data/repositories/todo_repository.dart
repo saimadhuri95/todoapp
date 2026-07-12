@@ -94,6 +94,7 @@ class TodoRepository {
     Value<int?> estimateMinutes = const Value.absent(),
     Value<int?> energy = const Value.absent(),
     Value<int?> nagIntervalMinutes = const Value.absent(),
+    Value<String?> assigneeDeviceId = const Value.absent(),
   }) {
     final companion = TodosCompanion(
       title: title,
@@ -106,6 +107,7 @@ class TodoRepository {
       estimateMinutes: estimateMinutes,
       energy: energy,
       nagIntervalMinutes: nagIntervalMinutes,
+      assigneeDeviceId: assigneeDeviceId,
       tagsJson: tags.present
           ? Value(jsonEncode(tags.value))
           : const Value.absent(),
@@ -132,9 +134,17 @@ class TodoRepository {
       if (estimateMinutes.present) 'estimateMinutes',
       if (energy.present) 'energy',
       if (nagIntervalMinutes.present) 'nagIntervalMinutes',
+      if (assigneeDeviceId.present) 'assigneeDeviceId',
     ];
     return _write(id, companion, changed);
   }
+
+  /// Assigns/unassigns a shared-list task to a group member (TASKS.md 6.51).
+  Future<void> setAssignee(String id, String? deviceId) => _write(
+    id,
+    TodosCompanion(assigneeDeviceId: Value(deviceId)),
+    const ['assigneeDeviceId'],
+  );
 
   Future<List<Todo>> createSubtasks(
     String parentId,
@@ -250,13 +260,18 @@ class TodoRepository {
     final next = recurrence.anchor == RecurrenceAnchor.completion
         ? recurrence.nextFromCompletion(now, anchor: due)
         : recurrence.nextAfter(now.isAfter(due) ? now : due, anchor: due);
+    // Habit streaks (TASKS.md 6.11): completing at or before the due moment
+    // extends the streak; completing an already-overdue occurrence resets it
+    // to 1 (this completion still counts, it just wasn't on time).
+    final nextStreak = now.isAfter(due) ? 1 : (todo!.currentStreak + 1);
     return _write(
       id,
       TodosCompanion(
         dueAtMs: Value(next.millisecondsSinceEpoch),
         snoozeUntilMs: const Value(null),
+        currentStreak: Value(nextStreak),
       ),
-      const ['dueAtMs', 'snoozeUntilMs'],
+      const ['dueAtMs', 'snoozeUntilMs', 'currentStreak'],
     );
   }
 

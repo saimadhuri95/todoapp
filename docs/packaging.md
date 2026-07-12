@@ -123,6 +123,11 @@ GitHub account or another account with written permission.
   a new build (4.15).
 - Google Play metadata, launch sequencing, and the per-release ASO loop live
   in [docs/launch.md](launch.md).
+- **Disclaimer (TASKS.md 6.57):** Simple mode + nag reminders make Knot
+  usable as a caregiver's reminder tool, but it is **not a medical device**
+  and reminders are not a substitute for medical supervision. Both store
+  listings' full descriptions carry this line verbatim so it isn't only
+  in-app copy.
 
 ## Auto-update strategy (4.8)
 

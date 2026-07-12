@@ -53,6 +53,7 @@ class LwwApplier {
     ('todo_lists', 'groupId'): 'sync_groups',
     ('group_members', 'groupId'): 'sync_groups',
     ('group_members', 'deviceId'): 'devices',
+    ('todos', 'assigneeDeviceId'): 'devices',
   };
 
   /// Returns true if the write was applied, false if it lost LWW (or was a

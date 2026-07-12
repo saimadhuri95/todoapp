@@ -9,6 +9,7 @@ class AlarmInstance implements Comparable<AlarmInstance> {
     required this.title,
     required this.fireAtMs,
     required this.occurrenceMs,
+    this.changedBy,
   });
 
   final String todoId;
@@ -20,6 +21,11 @@ class AlarmInstance implements Comparable<AlarmInstance> {
   /// The due occurrence this alarm belongs to — what [dismissAlarm]
   /// records, so all offsets (and all devices) silence together.
   final int occurrenceMs;
+
+  /// Device that last touched this todo, for shared-list attribution in the
+  /// notification body ("changed by ...", TASKS.md 6.51). Null when the
+  /// todo isn't on a shared list or has no clocks yet.
+  final String? changedBy;
 
   @override
   int compareTo(AlarmInstance other) => fireAtMs.compareTo(other.fireAtMs);
@@ -58,6 +64,7 @@ List<AlarmInstance> planAlarms(
   required DateTime now,
   int cap = 50,
   Duration horizon = const Duration(days: 365),
+  Map<String, String> changedByTodoId = const {},
 }) {
   final nowMs = now.millisecondsSinceEpoch;
   final horizonMs = nowMs + horizon.inMilliseconds;
@@ -65,6 +72,7 @@ List<AlarmInstance> planAlarms(
 
   for (final todo in todos) {
     if (todo.deleted || todo.completedAtMs != null) continue;
+    final changedBy = changedByTodoId[todo.id];
 
     final snooze = todo.snoozeUntilMs;
     if (snooze != null && snooze > nowMs) {
@@ -74,6 +82,7 @@ List<AlarmInstance> planAlarms(
           title: todo.title,
           fireAtMs: snooze,
           occurrenceMs: snooze,
+          changedBy: changedBy,
         ),
       );
     }
@@ -109,6 +118,7 @@ List<AlarmInstance> planAlarms(
               title: todo.title,
               fireAtMs: fireAtMs,
               occurrenceMs: occurrenceMs,
+              changedBy: changedBy,
             ),
           );
         }
@@ -124,6 +134,7 @@ List<AlarmInstance> planAlarms(
         nowMs: nowMs,
         horizonMs: horizonMs,
         cap: cap,
+        changedBy: changedBy,
       );
     }
   }
@@ -146,6 +157,7 @@ void _planNags(
   required int nowMs,
   required int horizonMs,
   required int cap,
+  String? changedBy,
 }) {
   final stepMs = nagMinutes * 60000;
   final dismissed = todo.lastDismissedMs;
@@ -175,6 +187,7 @@ void _planNags(
           title: todo.title,
           fireAtMs: fireAtMs,
           occurrenceMs: occurrenceMs,
+          changedBy: changedBy,
         ),
       );
     }

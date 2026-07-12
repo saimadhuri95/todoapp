@@ -154,3 +154,30 @@ List<Todo> quickWins(List<Todo> todos, {int maxMinutes = kQuickWinMinutes}) => [
     if (todo.estimateMinutes != null && todo.estimateMinutes! <= maxMinutes)
       todo,
 ];
+
+/// "Realistic day" meter (TASKS.md 6.55, R14.4): sums the estimated minutes
+/// of [todaysTodos] (unestimated items don't count towards either side —
+/// they're simply not measured) against [availableMinutes] of the day.
+class DayMeter {
+  const DayMeter({
+    required this.plannedMinutes,
+    required this.availableMinutes,
+  });
+
+  final int plannedMinutes;
+  final int availableMinutes;
+
+  /// True once planned time exceeds what's available — a gentle
+  /// over-commitment hint, not a hard block (R14.4).
+  bool get isOverCommitted => plannedMinutes > availableMinutes;
+
+  int get remainingMinutes => availableMinutes - plannedMinutes;
+}
+
+DayMeter realisticDayMeter(List<Todo> todaysTodos, int availableMinutes) {
+  final planned = todaysTodos.fold<int>(
+    0,
+    (sum, todo) => sum + (todo.estimateMinutes ?? 0),
+  );
+  return DayMeter(plannedMinutes: planned, availableMinutes: availableMinutes);
+}

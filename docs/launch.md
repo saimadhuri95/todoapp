@@ -74,6 +74,8 @@ Good to know
   written permission
 - "Free" describes the intended user experience, not permission for third
   parties to redistribute or repackage the app
+- Knot is not a medical device, and its reminders are not a substitute for
+  medical supervision
 
 If you want a private, serverless todo app with encrypted cross-device sync,
 Knot is built for that.

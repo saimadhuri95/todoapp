@@ -55,7 +55,7 @@ void main() {
       expect(todo.priority, 2);
 
       final stamps = await clocksFor(todo.id);
-      expect(stamps.keys, hasLength(19)); // every todos entry in syncColumns
+      expect(stamps.keys, hasLength(21)); // every todos entry in syncColumns
       expect(stamps.keys, contains('title'));
       expect(stamps.keys, contains('parentId'));
       expect(stamps.keys, contains('section'));
@@ -163,7 +163,7 @@ void main() {
 
         final childStamps = await clocksFor(children.first.id);
         expect(childStamps.keys, containsAll(['parentId', 'sortKey']));
-        expect(childStamps.keys, hasLength(19));
+        expect(childStamps.keys, hasLength(21));
       },
     );
 
@@ -273,6 +273,7 @@ void main() {
       final row = (await todos.getById(todo.id))!;
       expect(row.completedAtMs, isNull); // never leaves the active list
       expect(row.dueAtMs, at(DateTime.utc(2026, 7, 6, 9)));
+      expect(row.currentStreak, 1); // on-time completion (TASKS.md 6.11)
     });
 
     test(
@@ -364,6 +365,57 @@ void main() {
       await todos.complete(todo.id);
 
       expect((await todos.getById(todo.id))!.completedAtMs, isNotNull);
+    });
+
+    test('habit streak (6.11) extends on time, resets when overdue', () async {
+      final onTime = await todos.create(
+        title: 'meds',
+        dueAtMs: at(DateTime.utc(2026, 7, 5, 13)), // this afternoon, not yet
+        recurrenceRule: 'FREQ=DAILY',
+      );
+      await todos.complete(onTime.id); // now < due → extends
+      await todos.complete(onTime.id); // next due is now < due again
+      expect((await todos.getById(onTime.id))!.currentStreak, 2);
+
+      final overdue = await todos.create(
+        title: 'meds',
+        dueAtMs: at(DateTime.utc(2026, 7, 1, 9)), // 4 days overdue
+        recurrenceRule: 'FREQ=DAILY',
+      );
+      await todos.complete(overdue.id); // now > due → resets
+      expect((await todos.getById(overdue.id))!.currentStreak, 1);
+    });
+  });
+
+  group('assignee (TASKS.md 6.51)', () {
+    setUp(() async {
+      await db.devices.insertOne(
+        DevicesCompanion.insert(
+          id: 'device-2',
+          name: 'Her Phone',
+          platform: 'ios',
+          publicKey: 'pk',
+        ),
+      );
+    });
+
+    test('setAssignee stamps the field', () async {
+      final todo = await todos.create(title: 't');
+
+      await todos.setAssignee(todo.id, 'device-2');
+
+      final row = (await todos.getById(todo.id))!;
+      expect(row.assigneeDeviceId, 'device-2');
+      expect(await clocksFor(todo.id), contains('assigneeDeviceId'));
+    });
+
+    test('setAssignee(null) unassigns', () async {
+      final todo = await todos.create(title: 't');
+      await todos.setAssignee(todo.id, 'device-2');
+
+      await todos.setAssignee(todo.id, null);
+
+      expect((await todos.getById(todo.id))!.assigneeDeviceId, isNull);
     });
   });
 
