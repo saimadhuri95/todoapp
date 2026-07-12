@@ -25,7 +25,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.open() => AppDatabase(openConnection());
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -65,6 +65,12 @@ class AppDatabase extends _$AppDatabase {
       if (from < 8 && to >= 8) {
         // Nag reminders (TASKS.md 6.44): existing todos don't nag.
         await m.addColumn(todos, todos.nagIntervalMinutes);
+      }
+      if (from < 9 && to >= 9) {
+        // Assignee chips (6.51) + habit streaks (6.11): existing todos are
+        // unassigned with a zero streak.
+        await m.addColumn(todos, todos.assigneeDeviceId);
+        await m.addColumn(todos, todos.currentStreak);
       }
     },
     beforeOpen: (details) async {

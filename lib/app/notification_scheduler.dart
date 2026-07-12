@@ -9,6 +9,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../core/alarm_planner.dart';
 import '../core/clock.dart';
 import '../core/platform_info.dart';
+import '../core/snooze_presets.dart';
 
 /// What a notification action reports back to the app.
 typedef AlarmActionHandler =
@@ -36,7 +37,6 @@ class LocalNotificationsScheduler implements AlarmScheduler {
   var _initialized = false;
 
   static const _dismissAction = 'dismiss';
-  static const _snoozeAction = 'snooze';
   static const _syncInfoId = 0x4b4e4f54;
 
   Future<void> initialize() async {
@@ -54,7 +54,10 @@ class LocalNotificationsScheduler implements AlarmScheduler {
         'knot_alarm',
         actions: [
           DarwinNotificationAction.plain(_dismissAction, 'Dismiss'),
-          DarwinNotificationAction.plain(_snoozeAction, 'Snooze 10 min'),
+          // Snooze presets (TASKS.md 6.43): iOS shows the first as a quick
+          // action and the rest via long-press/expand.
+          for (final preset in SnoozePreset.values)
+            DarwinNotificationAction.plain(preset.actionId, preset.label),
         ],
       ),
     ];
@@ -126,7 +129,7 @@ class LocalNotificationsScheduler implements AlarmScheduler {
       await _plugin.zonedSchedule(
         id: _idFor(alarm),
         title: alarm.title,
-        body: 'Due now',
+        body: _body(alarm),
         scheduledDate: tz.TZDateTime.fromMillisecondsSinceEpoch(
           tz.local,
           alarm.fireAtMs,
@@ -148,7 +151,7 @@ class LocalNotificationsScheduler implements AlarmScheduler {
           _plugin.show(
             id: _idFor(alarm),
             title: alarm.title,
-            body: 'Due now',
+            body: _body(alarm),
             notificationDetails: _details(),
             payload: _payload(alarm),
           );
@@ -179,7 +182,7 @@ class LocalNotificationsScheduler implements AlarmScheduler {
     );
   }
 
-  NotificationDetails _details() => const NotificationDetails(
+  NotificationDetails _details() => NotificationDetails(
     android: AndroidNotificationDetails(
       'knot_alarms',
       'Alarms',
@@ -187,15 +190,27 @@ class LocalNotificationsScheduler implements AlarmScheduler {
       importance: Importance.max,
       priority: Priority.high,
       category: AndroidNotificationCategory.alarm,
+      // Snooze presets (TASKS.md 6.43): Android renders the first few as
+      // buttons; the rest still fire correctly if the OS exposes them via
+      // an overflow affordance.
       actions: [
-        AndroidNotificationAction(_dismissAction, 'Dismiss'),
-        AndroidNotificationAction(_snoozeAction, 'Snooze 10 min'),
+        const AndroidNotificationAction(_dismissAction, 'Dismiss'),
+        for (final preset in SnoozePreset.values)
+          AndroidNotificationAction(preset.actionId, preset.label),
       ],
     ),
-    iOS: DarwinNotificationDetails(categoryIdentifier: 'knot_alarm'),
-    macOS: DarwinNotificationDetails(categoryIdentifier: 'knot_alarm'),
-    linux: LinuxNotificationDetails(urgency: LinuxNotificationUrgency.critical),
+    iOS: const DarwinNotificationDetails(categoryIdentifier: 'knot_alarm'),
+    macOS: const DarwinNotificationDetails(categoryIdentifier: 'knot_alarm'),
+    linux: const LinuxNotificationDetails(
+      urgency: LinuxNotificationUrgency.critical,
+    ),
   );
+
+  /// "Due now", plus attribution when the todo is on a shared list and
+  /// someone else's edit is what's ringing (TASKS.md 6.51/6.2).
+  static String _body(AlarmInstance alarm) => alarm.changedBy == null
+      ? 'Due now'
+      : 'Due now — changed by ${alarm.changedBy}';
 
   static String _payload(AlarmInstance alarm) =>
       jsonEncode({'todoId': alarm.todoId, 'occ': alarm.occurrenceMs});

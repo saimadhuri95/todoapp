@@ -59,6 +59,8 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
+- **Session 2026-07-11 (7-issue combined batch: 6.51/6.55/6.49/6.43/6.11/6.57/6.48, branch `feature/phase6-in-progress-batch`):**
+  every remaining open `in-progress`/`in progress`-labeled GitHub issue done in one PR per explicit user direction (normally these ship as separate PRs — see the token-budget/isolated-worktree convention above). Schema v9 adds `todos.assigneeDeviceId` (FK devices) + `todos.currentStreak`. (1) **6.51 assignee + attribution:** `TodoRepository.setAssignee`, `GroupRepository.watchMembers`, tap-to-reassign chip on shared-list tiles, `AlarmInstance.changedBy` threaded through `planAlarms`/`AlarmService.replan` into the notification body ("changed by ..."). (2) **6.55 realistic-day meter:** `realisticDayMeter()` in `todo_sections.dart`, `dailyAvailableMinutesProvider` (settings dropdown), Today section header shows "Xh of Yh planned" in error color once over-committed. (3) **6.49 kanban:** `kanbanColumns()` groups by `section` (unsectioned column always leads), `KanbanScreen` with tap-to-move-column + "new column" — alongside the existing Eisenhower view. (4) **6.43 snooze presets:** `core/snooze_presets.dart` (`resolveSnoozeUntil`: 10m/1h/this-evening/tomorrow, wall-clock presets roll to the next day once the hour's passed), replaces the old single "Snooze 10 min" notification action with all four. (5) **6.11 habit streaks + focus timer:** `TodoRepository.complete` increments `currentStreak` on on-time completion, resets to 1 when overdue (🔥 badge shown at streak ≥ 2); `FocusTimerController` (ephemeral, one session app-wide, real `Timer`) + duration-picker action + banner, end notification respects the desktop alarms opt-in. (6) **6.57 simple mode:** `simpleModeProvider`, settings toggle, tile collapses to checkbox+title only at 1.8x scale; caregiver setup guide dialog; "not a medical device" line added to docs/launch.md + docs/packaging.md. (7) **6.48 configurable swipe:** `SwipeAction` enum, independent left/right pickers (default: right=none, left=delete, preserving old UX), `Dismissible.confirmDismiss` always returns false so complete/snooze don't visually yank a tile the stream hasn't removed yet. 464 tests green locally (fixed 2 pre-existing settings-screen widget tests whose target tile got pushed below the fold by new settings rows), lib/data 85.7%, DST green. **Next: open the PR, watch CI, merge.**
 - **Session 2026-07-11 (5-issue batch: 6.44/6.38/6.14/6.46/5.2):** five GitHub issues fixed, PR'd, CI-gated and merged in one loop (PRs #131–#134 + #136; issues #78/#52/#36/#58/#71 closed). (1) **6.44 nag reminders:** schema v8 `todos.nagIntervalMinutes` (synced LWW field), planner nag chains — every undismissed due occurrence re-fires every N min, overdue anchors from *now*, chain shares the occurrence id so dismiss/complete silences everywhere; editor "Nag" dropdown. (2) **6.38 kiosk:** `KioskScreen` (Settings → Wall display: clock header + pinned/overdue/today, 8-position burn-in pixel ring, night dim), `KioskPower` seam (battery_plus + wakelock_plus, awake while `!= discharging`), Android `BootLaunchReceiver` + "Launch on boot" toggle (needs Display-over-apps on API 29+). (3) **6.14 quick capture:** `QuickCaptureService` → `quickCaptureRequestsProvider` bump opens quick-add; desktop Ctrl/Cmd+Shift+K system hotkey (hotkey_manager + window_manager raise; CI + flatpak now carry keybinder-3.0), Android launcher shortcut + iOS quick action (quick_actions). (4) **6.46 voice input:** `VoiceInput` seam over speech_to_text (`onDevice: true`, dictation mode; `supported` lives on the seam so tests are CI-host-independent), mic suffix button in quick add appends transcript + live natural-date parse; mic/speech Info.plist keys + entitlements + RECORD_AUDIO added; hidden on Linux (no backend). (5) **5.2 background-at-login:** `BackgroundMode` seam — macOS SMAppService via the existing channel (sandbox-safe, 13+), hand-rolled `LoginItem` (XDG autostart / HKCU Run via `reg`; launch_at_startup conflicts with wakelock_plus over win32) — plus window_manager prevent-close→hide, `--hidden` login launches, "Quit Knot" tile while enabled. Suite ended at 436 green locally (the 2 macOS-host sync_settings fails got fixed on main by PR #135's tall-viewport change mid-session). Remaining open non-blocked issues are device/native-heavy (5.1 Linux tray, 6.24 widgets, 6.25 share-sheet, 6.52 lock-screen widget, 6.50 geofencing, 4.12 screenshots).
 - **Session 2026-07-10 (settings sections, 5.5):** third a11y/UX PR. The flat Settings `ListView` is now grouped under four semantic section headings — Appearance / Reminders / Sync & sharing / Data & backup — via a `_SettingsSection` widget (`Semantics(header:true)` + a styled label). Makes the long list scannable and screen-reader heading-navigable. New widget test asserts all four headings + their header flag; adjusted `settings_screen_test`/`widget_test` to scroll for now-lower tiles (the list legitimately grew). Full suite green bar the 2 known macOS-host sync_settings fails; DST green. Device screen-reader/contrast verification still pending on #27. Also fixed the long-standing macOS-host `sync_settings_test` fold failures (2 cases) by giving those tests a tall viewport so the macOS-only iCloud/scan tiles don't push the device list below the fold — full suite now 426 green locally, zero failures.
 - **Session 2026-07-10 (accessibility pass 2, 5.5):** second a11y PR extending beyond the list. (1) Eisenhower quadrant titles wrapped in `Semantics(header:true)` for heading navigation; (2) editor priority `SegmentedButton` grouped under a `Semantics(label:'Priority')` (screen-reader-only, no layout change); (3) editor alarm chips grouped under `Semantics(label:'Reminders')`; (4) drawer shared-list leading badge gets an explicit `Semantics(label:'Shared list')` (non-colour cue). New `test/features/accessibility_screens_test.dart` (editor group labels + Eisenhower heading). Editor labels are semantic-only to keep the form height unchanged so existing editor widget tests stay green. Full suite green bar the 2 known macOS-host sync_settings fails; DST green. Device/screen-reader verification still pending on #27.
@@ -298,7 +300,7 @@ driver/dispatcher scenario and Apple-first direction.
 - [x] 6.10 (R1.4) Unattended viewer doc + audit: sync auto-resumes after
   restart (SyncBootstrap does), document Doze/iOS background-fetch limits
   honestly in docs/sync.md; verify no interaction needed post-reboot
-- [ ] 6.11 (R14.6/R14.2, optional tail) Habit streaks; per-task focus timer
+- [x] 6.11 (R14.6/R14.2, optional tail) Habit streaks; per-task focus timer
   with end notification (desktop behind alarms opt-in)
 - [x] 6.12 Licensing follow-up (deferred 2026-07-06): the MIT → Knot Source
   Available 1.0 relicense (commits c8cb74a/ef55a29) landed without an ADR —
@@ -489,7 +491,7 @@ you a peer of someone else's storage without sharing credentials.
 
 **Alarms-phase additions (execute with Phase 2, per execution order)**
 
-- [ ] 6.43 (R6.2) Snooze presets on the notification (10 min / 1 h / this
+- [x] 6.43 (R6.2) Snooze presets on the notification (10 min / 1 h / this
   evening / tomorrow) — extends 2.8's fixed 10 min
 - [x] 6.44 (R6.3) Nag/escalating reminders: per-task "repeat every N minutes
   until done", local scheduling only
@@ -504,17 +506,16 @@ you a peer of someone else's storage without sharing credentials.
   — design landed as `docs/decisions/0002-attachments.md`; implementation
   (schema + BlobStore + mailbox/LAN blob transport + UI) is the follow-up
   tail, gated on sign-off
-- [ ] 6.48 (R4.4) Configurable swipe actions (complete/snooze/delete)
+- [x] 6.48 (R4.4) Configurable swipe actions (complete/snooze/delete)
 - [x] 6.49 (R5.5/R5.6) Kanban board (sections as columns) + Eisenhower view
-  — Eisenhower matrix view done; Kanban (sections-as-columns with drag)
-  deferred to a follow-up in the list-UI work
+  — both done: sections-as-columns board with tap-to-move, alongside the
+  Eisenhower matrix
 - [ ] 6.50 (R6.4/R6.5) Location reminders (on-device geofencing only) +
   Android sticky today-notification
-- [ ] 6.51 (R7.2/R7.3) Assignee chip on shared-list tasks + "changed by
+- [x] 6.51 (R7.2/R7.3) Assignee chip on shared-list tasks + "changed by
   <device>" attribution from HLC metadata (feeds 6.2 notification text)
-  — attribution building block done: `TodoRepository.lastChangedBy(id)` reads
-  the winning field-clock's HLC node id and resolves it to a device name;
-  assignee chip + notification-text wiring still pending (need Phase 8 groups)
+  — assignee chip (tap to reassign a group member) + notification-body
+  attribution wired on top of the earlier `lastChangedBy` building block
 - [ ] 6.52 (R8.2/R8.3/R8.4) iOS lock-screen widget; Siri Shortcuts / Android
   App Actions; desktop tray quick-add + today count (ties into 5.1/5.2)
 - [x] 6.53 (R9.3) Theming: accent color + per-list colors/icons
@@ -523,13 +524,13 @@ you a peer of someone else's storage without sharing credentials.
   work to avoid colliding with the active Phase 8 migrations)
 - [ ] 6.54 (R13.8) Celebration feedback: check-off animation/haptics,
   Today-cleared moment, easy off switch
-- [ ] 6.55 (R14.4) Realistic-day meter: sum of Today's estimates vs. hours
+- [x] 6.55 (R14.4) Realistic-day meter: sum of Today's estimates vs. hours
   left, gentle over-commitment hint — depends 6.35
 - [x] 6.56 (R15.2/R15.3) Frequency-based chores (due N days after last
   completion, injected clock) + chore rotation among paired people
   — completion-anchored recurrence done; chore rotation among paired people
   deferred (needs the sharing-groups/assignee work in Phase 8 / 6.51)
-- [ ] 6.57 (R17.1/R17.2) Simple mode preset (extra-large, high contrast,
+- [x] 6.57 (R17.1/R17.2) Simple mode preset (extra-large, high contrast,
   list+check only) + caregiver setup guide (per-list share + nag reminders);
   "not a medical device" wording in store listings
 

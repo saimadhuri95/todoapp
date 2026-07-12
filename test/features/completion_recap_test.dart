@@ -18,6 +18,7 @@ Todo todo(String id, {int? completedAtMs}) => Todo(
   alarmOffsetsJson: '[]',
   completedAtMs: completedAtMs,
   pinned: false,
+  currentStreak: 0,
   deleted: false,
 );
 

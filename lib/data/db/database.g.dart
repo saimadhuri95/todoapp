@@ -797,1527 +797,6 @@ class TodoListsCompanion extends UpdateCompanion<TodoList> {
   }
 }
 
-class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $TodosTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _listIdMeta = const VerificationMeta('listId');
-  @override
-  late final GeneratedColumn<String> listId = GeneratedColumn<String>(
-    'list_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES todo_lists (id)',
-    ),
-  );
-  static const VerificationMeta _parentIdMeta = const VerificationMeta(
-    'parentId',
-  );
-  @override
-  late final GeneratedColumn<String> parentId = GeneratedColumn<String>(
-    'parent_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES todos (id)',
-    ),
-  );
-  static const VerificationMeta _titleMeta = const VerificationMeta('title');
-  @override
-  late final GeneratedColumn<String> title = GeneratedColumn<String>(
-    'title',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
-  @override
-  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
-    'notes',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _dueAtMsMeta = const VerificationMeta(
-    'dueAtMs',
-  );
-  @override
-  late final GeneratedColumn<int> dueAtMs = GeneratedColumn<int>(
-    'due_at_ms',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _recurrenceRuleMeta = const VerificationMeta(
-    'recurrenceRule',
-  );
-  @override
-  late final GeneratedColumn<String> recurrenceRule = GeneratedColumn<String>(
-    'recurrence_rule',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _completedAtMsMeta = const VerificationMeta(
-    'completedAtMs',
-  );
-  @override
-  late final GeneratedColumn<int> completedAtMs = GeneratedColumn<int>(
-    'completed_at_ms',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _priorityMeta = const VerificationMeta(
-    'priority',
-  );
-  @override
-  late final GeneratedColumn<int> priority = GeneratedColumn<int>(
-    'priority',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  static const VerificationMeta _tagsJsonMeta = const VerificationMeta(
-    'tagsJson',
-  );
-  @override
-  late final GeneratedColumn<String> tagsJson = GeneratedColumn<String>(
-    'tags_json',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('[]'),
-  );
-  static const VerificationMeta _sectionMeta = const VerificationMeta(
-    'section',
-  );
-  @override
-  late final GeneratedColumn<String> section = GeneratedColumn<String>(
-    'section',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _sortKeyMeta = const VerificationMeta(
-    'sortKey',
-  );
-  @override
-  late final GeneratedColumn<String> sortKey = GeneratedColumn<String>(
-    'sort_key',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _alarmOffsetsJsonMeta = const VerificationMeta(
-    'alarmOffsetsJson',
-  );
-  @override
-  late final GeneratedColumn<String> alarmOffsetsJson = GeneratedColumn<String>(
-    'alarm_offsets_json',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('[]'),
-  );
-  static const VerificationMeta _lastDismissedMsMeta = const VerificationMeta(
-    'lastDismissedMs',
-  );
-  @override
-  late final GeneratedColumn<int> lastDismissedMs = GeneratedColumn<int>(
-    'last_dismissed_ms',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _snoozeUntilMsMeta = const VerificationMeta(
-    'snoozeUntilMs',
-  );
-  @override
-  late final GeneratedColumn<int> snoozeUntilMs = GeneratedColumn<int>(
-    'snooze_until_ms',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _pinnedMeta = const VerificationMeta('pinned');
-  @override
-  late final GeneratedColumn<bool> pinned = GeneratedColumn<bool>(
-    'pinned',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("pinned" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _estimateMinutesMeta = const VerificationMeta(
-    'estimateMinutes',
-  );
-  @override
-  late final GeneratedColumn<int> estimateMinutes = GeneratedColumn<int>(
-    'estimate_minutes',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _energyMeta = const VerificationMeta('energy');
-  @override
-  late final GeneratedColumn<int> energy = GeneratedColumn<int>(
-    'energy',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _nagIntervalMinutesMeta =
-      const VerificationMeta('nagIntervalMinutes');
-  @override
-  late final GeneratedColumn<int> nagIntervalMinutes = GeneratedColumn<int>(
-    'nag_interval_minutes',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _deletedMeta = const VerificationMeta(
-    'deleted',
-  );
-  @override
-  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
-    'deleted',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("deleted" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    listId,
-    parentId,
-    title,
-    notes,
-    dueAtMs,
-    recurrenceRule,
-    completedAtMs,
-    priority,
-    tagsJson,
-    section,
-    sortKey,
-    alarmOffsetsJson,
-    lastDismissedMs,
-    snoozeUntilMs,
-    pinned,
-    estimateMinutes,
-    energy,
-    nagIntervalMinutes,
-    deleted,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'todos';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<Todo> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('list_id')) {
-      context.handle(
-        _listIdMeta,
-        listId.isAcceptableOrUnknown(data['list_id']!, _listIdMeta),
-      );
-    }
-    if (data.containsKey('parent_id')) {
-      context.handle(
-        _parentIdMeta,
-        parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta),
-      );
-    }
-    if (data.containsKey('title')) {
-      context.handle(
-        _titleMeta,
-        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_titleMeta);
-    }
-    if (data.containsKey('notes')) {
-      context.handle(
-        _notesMeta,
-        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
-      );
-    }
-    if (data.containsKey('due_at_ms')) {
-      context.handle(
-        _dueAtMsMeta,
-        dueAtMs.isAcceptableOrUnknown(data['due_at_ms']!, _dueAtMsMeta),
-      );
-    }
-    if (data.containsKey('recurrence_rule')) {
-      context.handle(
-        _recurrenceRuleMeta,
-        recurrenceRule.isAcceptableOrUnknown(
-          data['recurrence_rule']!,
-          _recurrenceRuleMeta,
-        ),
-      );
-    }
-    if (data.containsKey('completed_at_ms')) {
-      context.handle(
-        _completedAtMsMeta,
-        completedAtMs.isAcceptableOrUnknown(
-          data['completed_at_ms']!,
-          _completedAtMsMeta,
-        ),
-      );
-    }
-    if (data.containsKey('priority')) {
-      context.handle(
-        _priorityMeta,
-        priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta),
-      );
-    }
-    if (data.containsKey('tags_json')) {
-      context.handle(
-        _tagsJsonMeta,
-        tagsJson.isAcceptableOrUnknown(data['tags_json']!, _tagsJsonMeta),
-      );
-    }
-    if (data.containsKey('section')) {
-      context.handle(
-        _sectionMeta,
-        section.isAcceptableOrUnknown(data['section']!, _sectionMeta),
-      );
-    }
-    if (data.containsKey('sort_key')) {
-      context.handle(
-        _sortKeyMeta,
-        sortKey.isAcceptableOrUnknown(data['sort_key']!, _sortKeyMeta),
-      );
-    }
-    if (data.containsKey('alarm_offsets_json')) {
-      context.handle(
-        _alarmOffsetsJsonMeta,
-        alarmOffsetsJson.isAcceptableOrUnknown(
-          data['alarm_offsets_json']!,
-          _alarmOffsetsJsonMeta,
-        ),
-      );
-    }
-    if (data.containsKey('last_dismissed_ms')) {
-      context.handle(
-        _lastDismissedMsMeta,
-        lastDismissedMs.isAcceptableOrUnknown(
-          data['last_dismissed_ms']!,
-          _lastDismissedMsMeta,
-        ),
-      );
-    }
-    if (data.containsKey('snooze_until_ms')) {
-      context.handle(
-        _snoozeUntilMsMeta,
-        snoozeUntilMs.isAcceptableOrUnknown(
-          data['snooze_until_ms']!,
-          _snoozeUntilMsMeta,
-        ),
-      );
-    }
-    if (data.containsKey('pinned')) {
-      context.handle(
-        _pinnedMeta,
-        pinned.isAcceptableOrUnknown(data['pinned']!, _pinnedMeta),
-      );
-    }
-    if (data.containsKey('estimate_minutes')) {
-      context.handle(
-        _estimateMinutesMeta,
-        estimateMinutes.isAcceptableOrUnknown(
-          data['estimate_minutes']!,
-          _estimateMinutesMeta,
-        ),
-      );
-    }
-    if (data.containsKey('energy')) {
-      context.handle(
-        _energyMeta,
-        energy.isAcceptableOrUnknown(data['energy']!, _energyMeta),
-      );
-    }
-    if (data.containsKey('nag_interval_minutes')) {
-      context.handle(
-        _nagIntervalMinutesMeta,
-        nagIntervalMinutes.isAcceptableOrUnknown(
-          data['nag_interval_minutes']!,
-          _nagIntervalMinutesMeta,
-        ),
-      );
-    }
-    if (data.containsKey('deleted')) {
-      context.handle(
-        _deletedMeta,
-        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  Todo map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Todo(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      listId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}list_id'],
-      ),
-      parentId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}parent_id'],
-      ),
-      title: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}title'],
-      )!,
-      notes: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}notes'],
-      )!,
-      dueAtMs: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}due_at_ms'],
-      ),
-      recurrenceRule: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}recurrence_rule'],
-      ),
-      completedAtMs: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}completed_at_ms'],
-      ),
-      priority: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}priority'],
-      )!,
-      tagsJson: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}tags_json'],
-      )!,
-      section: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}section'],
-      ),
-      sortKey: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}sort_key'],
-      )!,
-      alarmOffsetsJson: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}alarm_offsets_json'],
-      )!,
-      lastDismissedMs: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}last_dismissed_ms'],
-      ),
-      snoozeUntilMs: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}snooze_until_ms'],
-      ),
-      pinned: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}pinned'],
-      )!,
-      estimateMinutes: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}estimate_minutes'],
-      ),
-      energy: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}energy'],
-      ),
-      nagIntervalMinutes: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}nag_interval_minutes'],
-      ),
-      deleted: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}deleted'],
-      )!,
-    );
-  }
-
-  @override
-  $TodosTable createAlias(String alias) {
-    return $TodosTable(attachedDatabase, alias);
-  }
-}
-
-class Todo extends DataClass implements Insertable<Todo> {
-  final String id;
-  final String? listId;
-
-  /// Subtasks/checklist items are ordinary synced todo rows (schema v5).
-  /// A null parent is a top-level task; child rows keep their own LWW clocks.
-  final String? parentId;
-  final String title;
-  final String notes;
-  final int? dueAtMs;
-  final String? recurrenceRule;
-  final int? completedAtMs;
-  final int priority;
-  final String tagsJson;
-
-  /// User-defined section within a list, null for date-driven grouping.
-  final String? section;
-
-  /// Fractional, lexicographically sortable order key for manual ordering.
-  final String sortKey;
-
-  /// Alarms (schema v3): JSON array of minute-offsets before [dueAtMs]
-  /// (0 = at due time). LWW fields on the todo so they sync like
-  /// everything else — the todo_alarms table is unused (see docs/alarms.md).
-  final String alarmOffsetsJson;
-
-  /// Last dismissed occurrence (epoch ms). Dismissal *is* a synced field
-  /// write: every device suppresses alarms for occurrences ≤ this.
-  final int? lastDismissedMs;
-
-  /// Snoozed-until moment (epoch ms); one extra fire at this time.
-  final int? snoozeUntilMs;
-
-  /// "Top 3" must-dos (schema v4, TASKS.md 6.34): pinned todos surface in a
-  /// section above Today. A synced LWW field like the rest; the 3-item cap is
-  /// a UI guardrail, not a storage constraint.
-  final bool pinned;
-
-  /// Rough time estimate in minutes (schema v7, TASKS.md 6.35): drives the
-  /// "I have 10 minutes" quick-win filter. Null = unestimated.
-  final int? estimateMinutes;
-
-  /// Energy required (schema v7, TASKS.md 6.35): 0 low / 1 medium / 2 high.
-  /// Null = unset. Metadata only for now; feeds future energy-aware views.
-  final int? energy;
-
-  /// Nag interval in minutes (schema v8, TASKS.md 6.44): once an occurrence
-  /// is due, keep re-firing every N minutes until it is completed or
-  /// dismissed. Null = no nagging. Scheduling itself stays local; the
-  /// setting syncs like any other LWW field.
-  final int? nagIntervalMinutes;
-  final bool deleted;
-  const Todo({
-    required this.id,
-    this.listId,
-    this.parentId,
-    required this.title,
-    required this.notes,
-    this.dueAtMs,
-    this.recurrenceRule,
-    this.completedAtMs,
-    required this.priority,
-    required this.tagsJson,
-    this.section,
-    required this.sortKey,
-    required this.alarmOffsetsJson,
-    this.lastDismissedMs,
-    this.snoozeUntilMs,
-    required this.pinned,
-    this.estimateMinutes,
-    this.energy,
-    this.nagIntervalMinutes,
-    required this.deleted,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    if (!nullToAbsent || listId != null) {
-      map['list_id'] = Variable<String>(listId);
-    }
-    if (!nullToAbsent || parentId != null) {
-      map['parent_id'] = Variable<String>(parentId);
-    }
-    map['title'] = Variable<String>(title);
-    map['notes'] = Variable<String>(notes);
-    if (!nullToAbsent || dueAtMs != null) {
-      map['due_at_ms'] = Variable<int>(dueAtMs);
-    }
-    if (!nullToAbsent || recurrenceRule != null) {
-      map['recurrence_rule'] = Variable<String>(recurrenceRule);
-    }
-    if (!nullToAbsent || completedAtMs != null) {
-      map['completed_at_ms'] = Variable<int>(completedAtMs);
-    }
-    map['priority'] = Variable<int>(priority);
-    map['tags_json'] = Variable<String>(tagsJson);
-    if (!nullToAbsent || section != null) {
-      map['section'] = Variable<String>(section);
-    }
-    map['sort_key'] = Variable<String>(sortKey);
-    map['alarm_offsets_json'] = Variable<String>(alarmOffsetsJson);
-    if (!nullToAbsent || lastDismissedMs != null) {
-      map['last_dismissed_ms'] = Variable<int>(lastDismissedMs);
-    }
-    if (!nullToAbsent || snoozeUntilMs != null) {
-      map['snooze_until_ms'] = Variable<int>(snoozeUntilMs);
-    }
-    map['pinned'] = Variable<bool>(pinned);
-    if (!nullToAbsent || estimateMinutes != null) {
-      map['estimate_minutes'] = Variable<int>(estimateMinutes);
-    }
-    if (!nullToAbsent || energy != null) {
-      map['energy'] = Variable<int>(energy);
-    }
-    if (!nullToAbsent || nagIntervalMinutes != null) {
-      map['nag_interval_minutes'] = Variable<int>(nagIntervalMinutes);
-    }
-    map['deleted'] = Variable<bool>(deleted);
-    return map;
-  }
-
-  TodosCompanion toCompanion(bool nullToAbsent) {
-    return TodosCompanion(
-      id: Value(id),
-      listId: listId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(listId),
-      parentId: parentId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(parentId),
-      title: Value(title),
-      notes: Value(notes),
-      dueAtMs: dueAtMs == null && nullToAbsent
-          ? const Value.absent()
-          : Value(dueAtMs),
-      recurrenceRule: recurrenceRule == null && nullToAbsent
-          ? const Value.absent()
-          : Value(recurrenceRule),
-      completedAtMs: completedAtMs == null && nullToAbsent
-          ? const Value.absent()
-          : Value(completedAtMs),
-      priority: Value(priority),
-      tagsJson: Value(tagsJson),
-      section: section == null && nullToAbsent
-          ? const Value.absent()
-          : Value(section),
-      sortKey: Value(sortKey),
-      alarmOffsetsJson: Value(alarmOffsetsJson),
-      lastDismissedMs: lastDismissedMs == null && nullToAbsent
-          ? const Value.absent()
-          : Value(lastDismissedMs),
-      snoozeUntilMs: snoozeUntilMs == null && nullToAbsent
-          ? const Value.absent()
-          : Value(snoozeUntilMs),
-      pinned: Value(pinned),
-      estimateMinutes: estimateMinutes == null && nullToAbsent
-          ? const Value.absent()
-          : Value(estimateMinutes),
-      energy: energy == null && nullToAbsent
-          ? const Value.absent()
-          : Value(energy),
-      nagIntervalMinutes: nagIntervalMinutes == null && nullToAbsent
-          ? const Value.absent()
-          : Value(nagIntervalMinutes),
-      deleted: Value(deleted),
-    );
-  }
-
-  factory Todo.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Todo(
-      id: serializer.fromJson<String>(json['id']),
-      listId: serializer.fromJson<String?>(json['listId']),
-      parentId: serializer.fromJson<String?>(json['parentId']),
-      title: serializer.fromJson<String>(json['title']),
-      notes: serializer.fromJson<String>(json['notes']),
-      dueAtMs: serializer.fromJson<int?>(json['dueAtMs']),
-      recurrenceRule: serializer.fromJson<String?>(json['recurrenceRule']),
-      completedAtMs: serializer.fromJson<int?>(json['completedAtMs']),
-      priority: serializer.fromJson<int>(json['priority']),
-      tagsJson: serializer.fromJson<String>(json['tagsJson']),
-      section: serializer.fromJson<String?>(json['section']),
-      sortKey: serializer.fromJson<String>(json['sortKey']),
-      alarmOffsetsJson: serializer.fromJson<String>(json['alarmOffsetsJson']),
-      lastDismissedMs: serializer.fromJson<int?>(json['lastDismissedMs']),
-      snoozeUntilMs: serializer.fromJson<int?>(json['snoozeUntilMs']),
-      pinned: serializer.fromJson<bool>(json['pinned']),
-      estimateMinutes: serializer.fromJson<int?>(json['estimateMinutes']),
-      energy: serializer.fromJson<int?>(json['energy']),
-      nagIntervalMinutes: serializer.fromJson<int?>(json['nagIntervalMinutes']),
-      deleted: serializer.fromJson<bool>(json['deleted']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'listId': serializer.toJson<String?>(listId),
-      'parentId': serializer.toJson<String?>(parentId),
-      'title': serializer.toJson<String>(title),
-      'notes': serializer.toJson<String>(notes),
-      'dueAtMs': serializer.toJson<int?>(dueAtMs),
-      'recurrenceRule': serializer.toJson<String?>(recurrenceRule),
-      'completedAtMs': serializer.toJson<int?>(completedAtMs),
-      'priority': serializer.toJson<int>(priority),
-      'tagsJson': serializer.toJson<String>(tagsJson),
-      'section': serializer.toJson<String?>(section),
-      'sortKey': serializer.toJson<String>(sortKey),
-      'alarmOffsetsJson': serializer.toJson<String>(alarmOffsetsJson),
-      'lastDismissedMs': serializer.toJson<int?>(lastDismissedMs),
-      'snoozeUntilMs': serializer.toJson<int?>(snoozeUntilMs),
-      'pinned': serializer.toJson<bool>(pinned),
-      'estimateMinutes': serializer.toJson<int?>(estimateMinutes),
-      'energy': serializer.toJson<int?>(energy),
-      'nagIntervalMinutes': serializer.toJson<int?>(nagIntervalMinutes),
-      'deleted': serializer.toJson<bool>(deleted),
-    };
-  }
-
-  Todo copyWith({
-    String? id,
-    Value<String?> listId = const Value.absent(),
-    Value<String?> parentId = const Value.absent(),
-    String? title,
-    String? notes,
-    Value<int?> dueAtMs = const Value.absent(),
-    Value<String?> recurrenceRule = const Value.absent(),
-    Value<int?> completedAtMs = const Value.absent(),
-    int? priority,
-    String? tagsJson,
-    Value<String?> section = const Value.absent(),
-    String? sortKey,
-    String? alarmOffsetsJson,
-    Value<int?> lastDismissedMs = const Value.absent(),
-    Value<int?> snoozeUntilMs = const Value.absent(),
-    bool? pinned,
-    Value<int?> estimateMinutes = const Value.absent(),
-    Value<int?> energy = const Value.absent(),
-    Value<int?> nagIntervalMinutes = const Value.absent(),
-    bool? deleted,
-  }) => Todo(
-    id: id ?? this.id,
-    listId: listId.present ? listId.value : this.listId,
-    parentId: parentId.present ? parentId.value : this.parentId,
-    title: title ?? this.title,
-    notes: notes ?? this.notes,
-    dueAtMs: dueAtMs.present ? dueAtMs.value : this.dueAtMs,
-    recurrenceRule: recurrenceRule.present
-        ? recurrenceRule.value
-        : this.recurrenceRule,
-    completedAtMs: completedAtMs.present
-        ? completedAtMs.value
-        : this.completedAtMs,
-    priority: priority ?? this.priority,
-    tagsJson: tagsJson ?? this.tagsJson,
-    section: section.present ? section.value : this.section,
-    sortKey: sortKey ?? this.sortKey,
-    alarmOffsetsJson: alarmOffsetsJson ?? this.alarmOffsetsJson,
-    lastDismissedMs: lastDismissedMs.present
-        ? lastDismissedMs.value
-        : this.lastDismissedMs,
-    snoozeUntilMs: snoozeUntilMs.present
-        ? snoozeUntilMs.value
-        : this.snoozeUntilMs,
-    pinned: pinned ?? this.pinned,
-    estimateMinutes: estimateMinutes.present
-        ? estimateMinutes.value
-        : this.estimateMinutes,
-    energy: energy.present ? energy.value : this.energy,
-    nagIntervalMinutes: nagIntervalMinutes.present
-        ? nagIntervalMinutes.value
-        : this.nagIntervalMinutes,
-    deleted: deleted ?? this.deleted,
-  );
-  Todo copyWithCompanion(TodosCompanion data) {
-    return Todo(
-      id: data.id.present ? data.id.value : this.id,
-      listId: data.listId.present ? data.listId.value : this.listId,
-      parentId: data.parentId.present ? data.parentId.value : this.parentId,
-      title: data.title.present ? data.title.value : this.title,
-      notes: data.notes.present ? data.notes.value : this.notes,
-      dueAtMs: data.dueAtMs.present ? data.dueAtMs.value : this.dueAtMs,
-      recurrenceRule: data.recurrenceRule.present
-          ? data.recurrenceRule.value
-          : this.recurrenceRule,
-      completedAtMs: data.completedAtMs.present
-          ? data.completedAtMs.value
-          : this.completedAtMs,
-      priority: data.priority.present ? data.priority.value : this.priority,
-      tagsJson: data.tagsJson.present ? data.tagsJson.value : this.tagsJson,
-      section: data.section.present ? data.section.value : this.section,
-      sortKey: data.sortKey.present ? data.sortKey.value : this.sortKey,
-      alarmOffsetsJson: data.alarmOffsetsJson.present
-          ? data.alarmOffsetsJson.value
-          : this.alarmOffsetsJson,
-      lastDismissedMs: data.lastDismissedMs.present
-          ? data.lastDismissedMs.value
-          : this.lastDismissedMs,
-      snoozeUntilMs: data.snoozeUntilMs.present
-          ? data.snoozeUntilMs.value
-          : this.snoozeUntilMs,
-      pinned: data.pinned.present ? data.pinned.value : this.pinned,
-      estimateMinutes: data.estimateMinutes.present
-          ? data.estimateMinutes.value
-          : this.estimateMinutes,
-      energy: data.energy.present ? data.energy.value : this.energy,
-      nagIntervalMinutes: data.nagIntervalMinutes.present
-          ? data.nagIntervalMinutes.value
-          : this.nagIntervalMinutes,
-      deleted: data.deleted.present ? data.deleted.value : this.deleted,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('Todo(')
-          ..write('id: $id, ')
-          ..write('listId: $listId, ')
-          ..write('parentId: $parentId, ')
-          ..write('title: $title, ')
-          ..write('notes: $notes, ')
-          ..write('dueAtMs: $dueAtMs, ')
-          ..write('recurrenceRule: $recurrenceRule, ')
-          ..write('completedAtMs: $completedAtMs, ')
-          ..write('priority: $priority, ')
-          ..write('tagsJson: $tagsJson, ')
-          ..write('section: $section, ')
-          ..write('sortKey: $sortKey, ')
-          ..write('alarmOffsetsJson: $alarmOffsetsJson, ')
-          ..write('lastDismissedMs: $lastDismissedMs, ')
-          ..write('snoozeUntilMs: $snoozeUntilMs, ')
-          ..write('pinned: $pinned, ')
-          ..write('estimateMinutes: $estimateMinutes, ')
-          ..write('energy: $energy, ')
-          ..write('nagIntervalMinutes: $nagIntervalMinutes, ')
-          ..write('deleted: $deleted')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    listId,
-    parentId,
-    title,
-    notes,
-    dueAtMs,
-    recurrenceRule,
-    completedAtMs,
-    priority,
-    tagsJson,
-    section,
-    sortKey,
-    alarmOffsetsJson,
-    lastDismissedMs,
-    snoozeUntilMs,
-    pinned,
-    estimateMinutes,
-    energy,
-    nagIntervalMinutes,
-    deleted,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is Todo &&
-          other.id == this.id &&
-          other.listId == this.listId &&
-          other.parentId == this.parentId &&
-          other.title == this.title &&
-          other.notes == this.notes &&
-          other.dueAtMs == this.dueAtMs &&
-          other.recurrenceRule == this.recurrenceRule &&
-          other.completedAtMs == this.completedAtMs &&
-          other.priority == this.priority &&
-          other.tagsJson == this.tagsJson &&
-          other.section == this.section &&
-          other.sortKey == this.sortKey &&
-          other.alarmOffsetsJson == this.alarmOffsetsJson &&
-          other.lastDismissedMs == this.lastDismissedMs &&
-          other.snoozeUntilMs == this.snoozeUntilMs &&
-          other.pinned == this.pinned &&
-          other.estimateMinutes == this.estimateMinutes &&
-          other.energy == this.energy &&
-          other.nagIntervalMinutes == this.nagIntervalMinutes &&
-          other.deleted == this.deleted);
-}
-
-class TodosCompanion extends UpdateCompanion<Todo> {
-  final Value<String> id;
-  final Value<String?> listId;
-  final Value<String?> parentId;
-  final Value<String> title;
-  final Value<String> notes;
-  final Value<int?> dueAtMs;
-  final Value<String?> recurrenceRule;
-  final Value<int?> completedAtMs;
-  final Value<int> priority;
-  final Value<String> tagsJson;
-  final Value<String?> section;
-  final Value<String> sortKey;
-  final Value<String> alarmOffsetsJson;
-  final Value<int?> lastDismissedMs;
-  final Value<int?> snoozeUntilMs;
-  final Value<bool> pinned;
-  final Value<int?> estimateMinutes;
-  final Value<int?> energy;
-  final Value<int?> nagIntervalMinutes;
-  final Value<bool> deleted;
-  final Value<int> rowid;
-  const TodosCompanion({
-    this.id = const Value.absent(),
-    this.listId = const Value.absent(),
-    this.parentId = const Value.absent(),
-    this.title = const Value.absent(),
-    this.notes = const Value.absent(),
-    this.dueAtMs = const Value.absent(),
-    this.recurrenceRule = const Value.absent(),
-    this.completedAtMs = const Value.absent(),
-    this.priority = const Value.absent(),
-    this.tagsJson = const Value.absent(),
-    this.section = const Value.absent(),
-    this.sortKey = const Value.absent(),
-    this.alarmOffsetsJson = const Value.absent(),
-    this.lastDismissedMs = const Value.absent(),
-    this.snoozeUntilMs = const Value.absent(),
-    this.pinned = const Value.absent(),
-    this.estimateMinutes = const Value.absent(),
-    this.energy = const Value.absent(),
-    this.nagIntervalMinutes = const Value.absent(),
-    this.deleted = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  TodosCompanion.insert({
-    required String id,
-    this.listId = const Value.absent(),
-    this.parentId = const Value.absent(),
-    required String title,
-    this.notes = const Value.absent(),
-    this.dueAtMs = const Value.absent(),
-    this.recurrenceRule = const Value.absent(),
-    this.completedAtMs = const Value.absent(),
-    this.priority = const Value.absent(),
-    this.tagsJson = const Value.absent(),
-    this.section = const Value.absent(),
-    this.sortKey = const Value.absent(),
-    this.alarmOffsetsJson = const Value.absent(),
-    this.lastDismissedMs = const Value.absent(),
-    this.snoozeUntilMs = const Value.absent(),
-    this.pinned = const Value.absent(),
-    this.estimateMinutes = const Value.absent(),
-    this.energy = const Value.absent(),
-    this.nagIntervalMinutes = const Value.absent(),
-    this.deleted = const Value.absent(),
-    this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       title = Value(title);
-  static Insertable<Todo> custom({
-    Expression<String>? id,
-    Expression<String>? listId,
-    Expression<String>? parentId,
-    Expression<String>? title,
-    Expression<String>? notes,
-    Expression<int>? dueAtMs,
-    Expression<String>? recurrenceRule,
-    Expression<int>? completedAtMs,
-    Expression<int>? priority,
-    Expression<String>? tagsJson,
-    Expression<String>? section,
-    Expression<String>? sortKey,
-    Expression<String>? alarmOffsetsJson,
-    Expression<int>? lastDismissedMs,
-    Expression<int>? snoozeUntilMs,
-    Expression<bool>? pinned,
-    Expression<int>? estimateMinutes,
-    Expression<int>? energy,
-    Expression<int>? nagIntervalMinutes,
-    Expression<bool>? deleted,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (listId != null) 'list_id': listId,
-      if (parentId != null) 'parent_id': parentId,
-      if (title != null) 'title': title,
-      if (notes != null) 'notes': notes,
-      if (dueAtMs != null) 'due_at_ms': dueAtMs,
-      if (recurrenceRule != null) 'recurrence_rule': recurrenceRule,
-      if (completedAtMs != null) 'completed_at_ms': completedAtMs,
-      if (priority != null) 'priority': priority,
-      if (tagsJson != null) 'tags_json': tagsJson,
-      if (section != null) 'section': section,
-      if (sortKey != null) 'sort_key': sortKey,
-      if (alarmOffsetsJson != null) 'alarm_offsets_json': alarmOffsetsJson,
-      if (lastDismissedMs != null) 'last_dismissed_ms': lastDismissedMs,
-      if (snoozeUntilMs != null) 'snooze_until_ms': snoozeUntilMs,
-      if (pinned != null) 'pinned': pinned,
-      if (estimateMinutes != null) 'estimate_minutes': estimateMinutes,
-      if (energy != null) 'energy': energy,
-      if (nagIntervalMinutes != null)
-        'nag_interval_minutes': nagIntervalMinutes,
-      if (deleted != null) 'deleted': deleted,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  TodosCompanion copyWith({
-    Value<String>? id,
-    Value<String?>? listId,
-    Value<String?>? parentId,
-    Value<String>? title,
-    Value<String>? notes,
-    Value<int?>? dueAtMs,
-    Value<String?>? recurrenceRule,
-    Value<int?>? completedAtMs,
-    Value<int>? priority,
-    Value<String>? tagsJson,
-    Value<String?>? section,
-    Value<String>? sortKey,
-    Value<String>? alarmOffsetsJson,
-    Value<int?>? lastDismissedMs,
-    Value<int?>? snoozeUntilMs,
-    Value<bool>? pinned,
-    Value<int?>? estimateMinutes,
-    Value<int?>? energy,
-    Value<int?>? nagIntervalMinutes,
-    Value<bool>? deleted,
-    Value<int>? rowid,
-  }) {
-    return TodosCompanion(
-      id: id ?? this.id,
-      listId: listId ?? this.listId,
-      parentId: parentId ?? this.parentId,
-      title: title ?? this.title,
-      notes: notes ?? this.notes,
-      dueAtMs: dueAtMs ?? this.dueAtMs,
-      recurrenceRule: recurrenceRule ?? this.recurrenceRule,
-      completedAtMs: completedAtMs ?? this.completedAtMs,
-      priority: priority ?? this.priority,
-      tagsJson: tagsJson ?? this.tagsJson,
-      section: section ?? this.section,
-      sortKey: sortKey ?? this.sortKey,
-      alarmOffsetsJson: alarmOffsetsJson ?? this.alarmOffsetsJson,
-      lastDismissedMs: lastDismissedMs ?? this.lastDismissedMs,
-      snoozeUntilMs: snoozeUntilMs ?? this.snoozeUntilMs,
-      pinned: pinned ?? this.pinned,
-      estimateMinutes: estimateMinutes ?? this.estimateMinutes,
-      energy: energy ?? this.energy,
-      nagIntervalMinutes: nagIntervalMinutes ?? this.nagIntervalMinutes,
-      deleted: deleted ?? this.deleted,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (listId.present) {
-      map['list_id'] = Variable<String>(listId.value);
-    }
-    if (parentId.present) {
-      map['parent_id'] = Variable<String>(parentId.value);
-    }
-    if (title.present) {
-      map['title'] = Variable<String>(title.value);
-    }
-    if (notes.present) {
-      map['notes'] = Variable<String>(notes.value);
-    }
-    if (dueAtMs.present) {
-      map['due_at_ms'] = Variable<int>(dueAtMs.value);
-    }
-    if (recurrenceRule.present) {
-      map['recurrence_rule'] = Variable<String>(recurrenceRule.value);
-    }
-    if (completedAtMs.present) {
-      map['completed_at_ms'] = Variable<int>(completedAtMs.value);
-    }
-    if (priority.present) {
-      map['priority'] = Variable<int>(priority.value);
-    }
-    if (tagsJson.present) {
-      map['tags_json'] = Variable<String>(tagsJson.value);
-    }
-    if (section.present) {
-      map['section'] = Variable<String>(section.value);
-    }
-    if (sortKey.present) {
-      map['sort_key'] = Variable<String>(sortKey.value);
-    }
-    if (alarmOffsetsJson.present) {
-      map['alarm_offsets_json'] = Variable<String>(alarmOffsetsJson.value);
-    }
-    if (lastDismissedMs.present) {
-      map['last_dismissed_ms'] = Variable<int>(lastDismissedMs.value);
-    }
-    if (snoozeUntilMs.present) {
-      map['snooze_until_ms'] = Variable<int>(snoozeUntilMs.value);
-    }
-    if (pinned.present) {
-      map['pinned'] = Variable<bool>(pinned.value);
-    }
-    if (estimateMinutes.present) {
-      map['estimate_minutes'] = Variable<int>(estimateMinutes.value);
-    }
-    if (energy.present) {
-      map['energy'] = Variable<int>(energy.value);
-    }
-    if (nagIntervalMinutes.present) {
-      map['nag_interval_minutes'] = Variable<int>(nagIntervalMinutes.value);
-    }
-    if (deleted.present) {
-      map['deleted'] = Variable<bool>(deleted.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('TodosCompanion(')
-          ..write('id: $id, ')
-          ..write('listId: $listId, ')
-          ..write('parentId: $parentId, ')
-          ..write('title: $title, ')
-          ..write('notes: $notes, ')
-          ..write('dueAtMs: $dueAtMs, ')
-          ..write('recurrenceRule: $recurrenceRule, ')
-          ..write('completedAtMs: $completedAtMs, ')
-          ..write('priority: $priority, ')
-          ..write('tagsJson: $tagsJson, ')
-          ..write('section: $section, ')
-          ..write('sortKey: $sortKey, ')
-          ..write('alarmOffsetsJson: $alarmOffsetsJson, ')
-          ..write('lastDismissedMs: $lastDismissedMs, ')
-          ..write('snoozeUntilMs: $snoozeUntilMs, ')
-          ..write('pinned: $pinned, ')
-          ..write('estimateMinutes: $estimateMinutes, ')
-          ..write('energy: $energy, ')
-          ..write('nagIntervalMinutes: $nagIntervalMinutes, ')
-          ..write('deleted: $deleted, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $TodoAlarmsTable extends TodoAlarms
-    with TableInfo<$TodoAlarmsTable, TodoAlarm> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $TodoAlarmsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _todoIdMeta = const VerificationMeta('todoId');
-  @override
-  late final GeneratedColumn<String> todoId = GeneratedColumn<String>(
-    'todo_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES todos (id)',
-    ),
-  );
-  static const VerificationMeta _atLocalMeta = const VerificationMeta(
-    'atLocal',
-  );
-  @override
-  late final GeneratedColumn<String> atLocal = GeneratedColumn<String>(
-    'at_local',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _tzMeta = const VerificationMeta('tz');
-  @override
-  late final GeneratedColumn<String> tz = GeneratedColumn<String>(
-    'tz',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _deletedMeta = const VerificationMeta(
-    'deleted',
-  );
-  @override
-  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
-    'deleted',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("deleted" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  @override
-  List<GeneratedColumn> get $columns => [id, todoId, atLocal, tz, deleted];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'todo_alarms';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<TodoAlarm> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('todo_id')) {
-      context.handle(
-        _todoIdMeta,
-        todoId.isAcceptableOrUnknown(data['todo_id']!, _todoIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_todoIdMeta);
-    }
-    if (data.containsKey('at_local')) {
-      context.handle(
-        _atLocalMeta,
-        atLocal.isAcceptableOrUnknown(data['at_local']!, _atLocalMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_atLocalMeta);
-    }
-    if (data.containsKey('tz')) {
-      context.handle(_tzMeta, tz.isAcceptableOrUnknown(data['tz']!, _tzMeta));
-    } else if (isInserting) {
-      context.missing(_tzMeta);
-    }
-    if (data.containsKey('deleted')) {
-      context.handle(
-        _deletedMeta,
-        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  TodoAlarm map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return TodoAlarm(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      todoId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}todo_id'],
-      )!,
-      atLocal: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}at_local'],
-      )!,
-      tz: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}tz'],
-      )!,
-      deleted: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}deleted'],
-      )!,
-    );
-  }
-
-  @override
-  $TodoAlarmsTable createAlias(String alias) {
-    return $TodoAlarmsTable(attachedDatabase, alias);
-  }
-}
-
-class TodoAlarm extends DataClass implements Insertable<TodoAlarm> {
-  final String id;
-  final String todoId;
-
-  /// Local wall time, ISO-8601 without offset (e.g. `2026-07-05T09:00`).
-  final String atLocal;
-
-  /// IANA zone id the wall time is anchored to (e.g. `Asia/Kolkata`).
-  final String tz;
-  final bool deleted;
-  const TodoAlarm({
-    required this.id,
-    required this.todoId,
-    required this.atLocal,
-    required this.tz,
-    required this.deleted,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['todo_id'] = Variable<String>(todoId);
-    map['at_local'] = Variable<String>(atLocal);
-    map['tz'] = Variable<String>(tz);
-    map['deleted'] = Variable<bool>(deleted);
-    return map;
-  }
-
-  TodoAlarmsCompanion toCompanion(bool nullToAbsent) {
-    return TodoAlarmsCompanion(
-      id: Value(id),
-      todoId: Value(todoId),
-      atLocal: Value(atLocal),
-      tz: Value(tz),
-      deleted: Value(deleted),
-    );
-  }
-
-  factory TodoAlarm.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return TodoAlarm(
-      id: serializer.fromJson<String>(json['id']),
-      todoId: serializer.fromJson<String>(json['todoId']),
-      atLocal: serializer.fromJson<String>(json['atLocal']),
-      tz: serializer.fromJson<String>(json['tz']),
-      deleted: serializer.fromJson<bool>(json['deleted']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'todoId': serializer.toJson<String>(todoId),
-      'atLocal': serializer.toJson<String>(atLocal),
-      'tz': serializer.toJson<String>(tz),
-      'deleted': serializer.toJson<bool>(deleted),
-    };
-  }
-
-  TodoAlarm copyWith({
-    String? id,
-    String? todoId,
-    String? atLocal,
-    String? tz,
-    bool? deleted,
-  }) => TodoAlarm(
-    id: id ?? this.id,
-    todoId: todoId ?? this.todoId,
-    atLocal: atLocal ?? this.atLocal,
-    tz: tz ?? this.tz,
-    deleted: deleted ?? this.deleted,
-  );
-  TodoAlarm copyWithCompanion(TodoAlarmsCompanion data) {
-    return TodoAlarm(
-      id: data.id.present ? data.id.value : this.id,
-      todoId: data.todoId.present ? data.todoId.value : this.todoId,
-      atLocal: data.atLocal.present ? data.atLocal.value : this.atLocal,
-      tz: data.tz.present ? data.tz.value : this.tz,
-      deleted: data.deleted.present ? data.deleted.value : this.deleted,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('TodoAlarm(')
-          ..write('id: $id, ')
-          ..write('todoId: $todoId, ')
-          ..write('atLocal: $atLocal, ')
-          ..write('tz: $tz, ')
-          ..write('deleted: $deleted')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, todoId, atLocal, tz, deleted);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is TodoAlarm &&
-          other.id == this.id &&
-          other.todoId == this.todoId &&
-          other.atLocal == this.atLocal &&
-          other.tz == this.tz &&
-          other.deleted == this.deleted);
-}
-
-class TodoAlarmsCompanion extends UpdateCompanion<TodoAlarm> {
-  final Value<String> id;
-  final Value<String> todoId;
-  final Value<String> atLocal;
-  final Value<String> tz;
-  final Value<bool> deleted;
-  final Value<int> rowid;
-  const TodoAlarmsCompanion({
-    this.id = const Value.absent(),
-    this.todoId = const Value.absent(),
-    this.atLocal = const Value.absent(),
-    this.tz = const Value.absent(),
-    this.deleted = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  TodoAlarmsCompanion.insert({
-    required String id,
-    required String todoId,
-    required String atLocal,
-    required String tz,
-    this.deleted = const Value.absent(),
-    this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       todoId = Value(todoId),
-       atLocal = Value(atLocal),
-       tz = Value(tz);
-  static Insertable<TodoAlarm> custom({
-    Expression<String>? id,
-    Expression<String>? todoId,
-    Expression<String>? atLocal,
-    Expression<String>? tz,
-    Expression<bool>? deleted,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (todoId != null) 'todo_id': todoId,
-      if (atLocal != null) 'at_local': atLocal,
-      if (tz != null) 'tz': tz,
-      if (deleted != null) 'deleted': deleted,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  TodoAlarmsCompanion copyWith({
-    Value<String>? id,
-    Value<String>? todoId,
-    Value<String>? atLocal,
-    Value<String>? tz,
-    Value<bool>? deleted,
-    Value<int>? rowid,
-  }) {
-    return TodoAlarmsCompanion(
-      id: id ?? this.id,
-      todoId: todoId ?? this.todoId,
-      atLocal: atLocal ?? this.atLocal,
-      tz: tz ?? this.tz,
-      deleted: deleted ?? this.deleted,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (todoId.present) {
-      map['todo_id'] = Variable<String>(todoId.value);
-    }
-    if (atLocal.present) {
-      map['at_local'] = Variable<String>(atLocal.value);
-    }
-    if (tz.present) {
-      map['tz'] = Variable<String>(tz.value);
-    }
-    if (deleted.present) {
-      map['deleted'] = Variable<bool>(deleted.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('TodoAlarmsCompanion(')
-          ..write('id: $id, ')
-          ..write('todoId: $todoId, ')
-          ..write('atLocal: $atLocal, ')
-          ..write('tz: $tz, ')
-          ..write('deleted: $deleted, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $DevicesTable extends Devices with TableInfo<$DevicesTable, Device> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -2728,6 +1207,1647 @@ class DevicesCompanion extends UpdateCompanion<Device> {
           ..write('platform: $platform, ')
           ..write('publicKey: $publicKey, ')
           ..write('lastSeenAtMs: $lastSeenAtMs, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TodosTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _listIdMeta = const VerificationMeta('listId');
+  @override
+  late final GeneratedColumn<String> listId = GeneratedColumn<String>(
+    'list_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES todo_lists (id)',
+    ),
+  );
+  static const VerificationMeta _parentIdMeta = const VerificationMeta(
+    'parentId',
+  );
+  @override
+  late final GeneratedColumn<String> parentId = GeneratedColumn<String>(
+    'parent_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES todos (id)',
+    ),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _dueAtMsMeta = const VerificationMeta(
+    'dueAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> dueAtMs = GeneratedColumn<int>(
+    'due_at_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _recurrenceRuleMeta = const VerificationMeta(
+    'recurrenceRule',
+  );
+  @override
+  late final GeneratedColumn<String> recurrenceRule = GeneratedColumn<String>(
+    'recurrence_rule',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _completedAtMsMeta = const VerificationMeta(
+    'completedAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> completedAtMs = GeneratedColumn<int>(
+    'completed_at_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _priorityMeta = const VerificationMeta(
+    'priority',
+  );
+  @override
+  late final GeneratedColumn<int> priority = GeneratedColumn<int>(
+    'priority',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _tagsJsonMeta = const VerificationMeta(
+    'tagsJson',
+  );
+  @override
+  late final GeneratedColumn<String> tagsJson = GeneratedColumn<String>(
+    'tags_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _sectionMeta = const VerificationMeta(
+    'section',
+  );
+  @override
+  late final GeneratedColumn<String> section = GeneratedColumn<String>(
+    'section',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sortKeyMeta = const VerificationMeta(
+    'sortKey',
+  );
+  @override
+  late final GeneratedColumn<String> sortKey = GeneratedColumn<String>(
+    'sort_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _alarmOffsetsJsonMeta = const VerificationMeta(
+    'alarmOffsetsJson',
+  );
+  @override
+  late final GeneratedColumn<String> alarmOffsetsJson = GeneratedColumn<String>(
+    'alarm_offsets_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _lastDismissedMsMeta = const VerificationMeta(
+    'lastDismissedMs',
+  );
+  @override
+  late final GeneratedColumn<int> lastDismissedMs = GeneratedColumn<int>(
+    'last_dismissed_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _snoozeUntilMsMeta = const VerificationMeta(
+    'snoozeUntilMs',
+  );
+  @override
+  late final GeneratedColumn<int> snoozeUntilMs = GeneratedColumn<int>(
+    'snooze_until_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pinnedMeta = const VerificationMeta('pinned');
+  @override
+  late final GeneratedColumn<bool> pinned = GeneratedColumn<bool>(
+    'pinned',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("pinned" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _estimateMinutesMeta = const VerificationMeta(
+    'estimateMinutes',
+  );
+  @override
+  late final GeneratedColumn<int> estimateMinutes = GeneratedColumn<int>(
+    'estimate_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _energyMeta = const VerificationMeta('energy');
+  @override
+  late final GeneratedColumn<int> energy = GeneratedColumn<int>(
+    'energy',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nagIntervalMinutesMeta =
+      const VerificationMeta('nagIntervalMinutes');
+  @override
+  late final GeneratedColumn<int> nagIntervalMinutes = GeneratedColumn<int>(
+    'nag_interval_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _assigneeDeviceIdMeta = const VerificationMeta(
+    'assigneeDeviceId',
+  );
+  @override
+  late final GeneratedColumn<String> assigneeDeviceId = GeneratedColumn<String>(
+    'assignee_device_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES devices (id)',
+    ),
+  );
+  static const VerificationMeta _currentStreakMeta = const VerificationMeta(
+    'currentStreak',
+  );
+  @override
+  late final GeneratedColumn<int> currentStreak = GeneratedColumn<int>(
+    'current_streak',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    listId,
+    parentId,
+    title,
+    notes,
+    dueAtMs,
+    recurrenceRule,
+    completedAtMs,
+    priority,
+    tagsJson,
+    section,
+    sortKey,
+    alarmOffsetsJson,
+    lastDismissedMs,
+    snoozeUntilMs,
+    pinned,
+    estimateMinutes,
+    energy,
+    nagIntervalMinutes,
+    assigneeDeviceId,
+    currentStreak,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'todos';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Todo> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('list_id')) {
+      context.handle(
+        _listIdMeta,
+        listId.isAcceptableOrUnknown(data['list_id']!, _listIdMeta),
+      );
+    }
+    if (data.containsKey('parent_id')) {
+      context.handle(
+        _parentIdMeta,
+        parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta),
+      );
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('due_at_ms')) {
+      context.handle(
+        _dueAtMsMeta,
+        dueAtMs.isAcceptableOrUnknown(data['due_at_ms']!, _dueAtMsMeta),
+      );
+    }
+    if (data.containsKey('recurrence_rule')) {
+      context.handle(
+        _recurrenceRuleMeta,
+        recurrenceRule.isAcceptableOrUnknown(
+          data['recurrence_rule']!,
+          _recurrenceRuleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('completed_at_ms')) {
+      context.handle(
+        _completedAtMsMeta,
+        completedAtMs.isAcceptableOrUnknown(
+          data['completed_at_ms']!,
+          _completedAtMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('priority')) {
+      context.handle(
+        _priorityMeta,
+        priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta),
+      );
+    }
+    if (data.containsKey('tags_json')) {
+      context.handle(
+        _tagsJsonMeta,
+        tagsJson.isAcceptableOrUnknown(data['tags_json']!, _tagsJsonMeta),
+      );
+    }
+    if (data.containsKey('section')) {
+      context.handle(
+        _sectionMeta,
+        section.isAcceptableOrUnknown(data['section']!, _sectionMeta),
+      );
+    }
+    if (data.containsKey('sort_key')) {
+      context.handle(
+        _sortKeyMeta,
+        sortKey.isAcceptableOrUnknown(data['sort_key']!, _sortKeyMeta),
+      );
+    }
+    if (data.containsKey('alarm_offsets_json')) {
+      context.handle(
+        _alarmOffsetsJsonMeta,
+        alarmOffsetsJson.isAcceptableOrUnknown(
+          data['alarm_offsets_json']!,
+          _alarmOffsetsJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_dismissed_ms')) {
+      context.handle(
+        _lastDismissedMsMeta,
+        lastDismissedMs.isAcceptableOrUnknown(
+          data['last_dismissed_ms']!,
+          _lastDismissedMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snooze_until_ms')) {
+      context.handle(
+        _snoozeUntilMsMeta,
+        snoozeUntilMs.isAcceptableOrUnknown(
+          data['snooze_until_ms']!,
+          _snoozeUntilMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('pinned')) {
+      context.handle(
+        _pinnedMeta,
+        pinned.isAcceptableOrUnknown(data['pinned']!, _pinnedMeta),
+      );
+    }
+    if (data.containsKey('estimate_minutes')) {
+      context.handle(
+        _estimateMinutesMeta,
+        estimateMinutes.isAcceptableOrUnknown(
+          data['estimate_minutes']!,
+          _estimateMinutesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('energy')) {
+      context.handle(
+        _energyMeta,
+        energy.isAcceptableOrUnknown(data['energy']!, _energyMeta),
+      );
+    }
+    if (data.containsKey('nag_interval_minutes')) {
+      context.handle(
+        _nagIntervalMinutesMeta,
+        nagIntervalMinutes.isAcceptableOrUnknown(
+          data['nag_interval_minutes']!,
+          _nagIntervalMinutesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('assignee_device_id')) {
+      context.handle(
+        _assigneeDeviceIdMeta,
+        assigneeDeviceId.isAcceptableOrUnknown(
+          data['assignee_device_id']!,
+          _assigneeDeviceIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('current_streak')) {
+      context.handle(
+        _currentStreakMeta,
+        currentStreak.isAcceptableOrUnknown(
+          data['current_streak']!,
+          _currentStreakMeta,
+        ),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Todo map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Todo(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      listId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}list_id'],
+      ),
+      parentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parent_id'],
+      ),
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      )!,
+      dueAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}due_at_ms'],
+      ),
+      recurrenceRule: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recurrence_rule'],
+      ),
+      completedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}completed_at_ms'],
+      ),
+      priority: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}priority'],
+      )!,
+      tagsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tags_json'],
+      )!,
+      section: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}section'],
+      ),
+      sortKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sort_key'],
+      )!,
+      alarmOffsetsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}alarm_offsets_json'],
+      )!,
+      lastDismissedMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_dismissed_ms'],
+      ),
+      snoozeUntilMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}snooze_until_ms'],
+      ),
+      pinned: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}pinned'],
+      )!,
+      estimateMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}estimate_minutes'],
+      ),
+      energy: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}energy'],
+      ),
+      nagIntervalMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}nag_interval_minutes'],
+      ),
+      assigneeDeviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}assignee_device_id'],
+      ),
+      currentStreak: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}current_streak'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $TodosTable createAlias(String alias) {
+    return $TodosTable(attachedDatabase, alias);
+  }
+}
+
+class Todo extends DataClass implements Insertable<Todo> {
+  final String id;
+  final String? listId;
+
+  /// Subtasks/checklist items are ordinary synced todo rows (schema v5).
+  /// A null parent is a top-level task; child rows keep their own LWW clocks.
+  final String? parentId;
+  final String title;
+  final String notes;
+  final int? dueAtMs;
+  final String? recurrenceRule;
+  final int? completedAtMs;
+  final int priority;
+  final String tagsJson;
+
+  /// User-defined section within a list, null for date-driven grouping.
+  final String? section;
+
+  /// Fractional, lexicographically sortable order key for manual ordering.
+  final String sortKey;
+
+  /// Alarms (schema v3): JSON array of minute-offsets before [dueAtMs]
+  /// (0 = at due time). LWW fields on the todo so they sync like
+  /// everything else — the todo_alarms table is unused (see docs/alarms.md).
+  final String alarmOffsetsJson;
+
+  /// Last dismissed occurrence (epoch ms). Dismissal *is* a synced field
+  /// write: every device suppresses alarms for occurrences ≤ this.
+  final int? lastDismissedMs;
+
+  /// Snoozed-until moment (epoch ms); one extra fire at this time.
+  final int? snoozeUntilMs;
+
+  /// "Top 3" must-dos (schema v4, TASKS.md 6.34): pinned todos surface in a
+  /// section above Today. A synced LWW field like the rest; the 3-item cap is
+  /// a UI guardrail, not a storage constraint.
+  final bool pinned;
+
+  /// Rough time estimate in minutes (schema v7, TASKS.md 6.35): drives the
+  /// "I have 10 minutes" quick-win filter. Null = unestimated.
+  final int? estimateMinutes;
+
+  /// Energy required (schema v7, TASKS.md 6.35): 0 low / 1 medium / 2 high.
+  /// Null = unset. Metadata only for now; feeds future energy-aware views.
+  final int? energy;
+
+  /// Nag interval in minutes (schema v8, TASKS.md 6.44): once an occurrence
+  /// is due, keep re-firing every N minutes until it is completed or
+  /// dismissed. Null = no nagging. Scheduling itself stays local; the
+  /// setting syncs like any other LWW field.
+  final int? nagIntervalMinutes;
+
+  /// Assignee for a shared-list task (schema v9, TASKS.md 6.51). Null =
+  /// unassigned. A synced LWW field like the rest; the referenced device
+  /// need not be a group member of this list's group by the time the write
+  /// lands (FK springs like `listId`/`groupId`).
+  final String? assigneeDeviceId;
+
+  /// Consecutive on-time completions of a recurring todo (schema v9,
+  /// TASKS.md 6.11). Incremented in [TodoRepository.complete] when the prior
+  /// occurrence was completed before its *next* due moment, reset to 1
+  /// otherwise. 0 for non-recurring or never-completed todos.
+  final int currentStreak;
+  final bool deleted;
+  const Todo({
+    required this.id,
+    this.listId,
+    this.parentId,
+    required this.title,
+    required this.notes,
+    this.dueAtMs,
+    this.recurrenceRule,
+    this.completedAtMs,
+    required this.priority,
+    required this.tagsJson,
+    this.section,
+    required this.sortKey,
+    required this.alarmOffsetsJson,
+    this.lastDismissedMs,
+    this.snoozeUntilMs,
+    required this.pinned,
+    this.estimateMinutes,
+    this.energy,
+    this.nagIntervalMinutes,
+    this.assigneeDeviceId,
+    required this.currentStreak,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || listId != null) {
+      map['list_id'] = Variable<String>(listId);
+    }
+    if (!nullToAbsent || parentId != null) {
+      map['parent_id'] = Variable<String>(parentId);
+    }
+    map['title'] = Variable<String>(title);
+    map['notes'] = Variable<String>(notes);
+    if (!nullToAbsent || dueAtMs != null) {
+      map['due_at_ms'] = Variable<int>(dueAtMs);
+    }
+    if (!nullToAbsent || recurrenceRule != null) {
+      map['recurrence_rule'] = Variable<String>(recurrenceRule);
+    }
+    if (!nullToAbsent || completedAtMs != null) {
+      map['completed_at_ms'] = Variable<int>(completedAtMs);
+    }
+    map['priority'] = Variable<int>(priority);
+    map['tags_json'] = Variable<String>(tagsJson);
+    if (!nullToAbsent || section != null) {
+      map['section'] = Variable<String>(section);
+    }
+    map['sort_key'] = Variable<String>(sortKey);
+    map['alarm_offsets_json'] = Variable<String>(alarmOffsetsJson);
+    if (!nullToAbsent || lastDismissedMs != null) {
+      map['last_dismissed_ms'] = Variable<int>(lastDismissedMs);
+    }
+    if (!nullToAbsent || snoozeUntilMs != null) {
+      map['snooze_until_ms'] = Variable<int>(snoozeUntilMs);
+    }
+    map['pinned'] = Variable<bool>(pinned);
+    if (!nullToAbsent || estimateMinutes != null) {
+      map['estimate_minutes'] = Variable<int>(estimateMinutes);
+    }
+    if (!nullToAbsent || energy != null) {
+      map['energy'] = Variable<int>(energy);
+    }
+    if (!nullToAbsent || nagIntervalMinutes != null) {
+      map['nag_interval_minutes'] = Variable<int>(nagIntervalMinutes);
+    }
+    if (!nullToAbsent || assigneeDeviceId != null) {
+      map['assignee_device_id'] = Variable<String>(assigneeDeviceId);
+    }
+    map['current_streak'] = Variable<int>(currentStreak);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  TodosCompanion toCompanion(bool nullToAbsent) {
+    return TodosCompanion(
+      id: Value(id),
+      listId: listId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(listId),
+      parentId: parentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentId),
+      title: Value(title),
+      notes: Value(notes),
+      dueAtMs: dueAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dueAtMs),
+      recurrenceRule: recurrenceRule == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurrenceRule),
+      completedAtMs: completedAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAtMs),
+      priority: Value(priority),
+      tagsJson: Value(tagsJson),
+      section: section == null && nullToAbsent
+          ? const Value.absent()
+          : Value(section),
+      sortKey: Value(sortKey),
+      alarmOffsetsJson: Value(alarmOffsetsJson),
+      lastDismissedMs: lastDismissedMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastDismissedMs),
+      snoozeUntilMs: snoozeUntilMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snoozeUntilMs),
+      pinned: Value(pinned),
+      estimateMinutes: estimateMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(estimateMinutes),
+      energy: energy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(energy),
+      nagIntervalMinutes: nagIntervalMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nagIntervalMinutes),
+      assigneeDeviceId: assigneeDeviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(assigneeDeviceId),
+      currentStreak: Value(currentStreak),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory Todo.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Todo(
+      id: serializer.fromJson<String>(json['id']),
+      listId: serializer.fromJson<String?>(json['listId']),
+      parentId: serializer.fromJson<String?>(json['parentId']),
+      title: serializer.fromJson<String>(json['title']),
+      notes: serializer.fromJson<String>(json['notes']),
+      dueAtMs: serializer.fromJson<int?>(json['dueAtMs']),
+      recurrenceRule: serializer.fromJson<String?>(json['recurrenceRule']),
+      completedAtMs: serializer.fromJson<int?>(json['completedAtMs']),
+      priority: serializer.fromJson<int>(json['priority']),
+      tagsJson: serializer.fromJson<String>(json['tagsJson']),
+      section: serializer.fromJson<String?>(json['section']),
+      sortKey: serializer.fromJson<String>(json['sortKey']),
+      alarmOffsetsJson: serializer.fromJson<String>(json['alarmOffsetsJson']),
+      lastDismissedMs: serializer.fromJson<int?>(json['lastDismissedMs']),
+      snoozeUntilMs: serializer.fromJson<int?>(json['snoozeUntilMs']),
+      pinned: serializer.fromJson<bool>(json['pinned']),
+      estimateMinutes: serializer.fromJson<int?>(json['estimateMinutes']),
+      energy: serializer.fromJson<int?>(json['energy']),
+      nagIntervalMinutes: serializer.fromJson<int?>(json['nagIntervalMinutes']),
+      assigneeDeviceId: serializer.fromJson<String?>(json['assigneeDeviceId']),
+      currentStreak: serializer.fromJson<int>(json['currentStreak']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'listId': serializer.toJson<String?>(listId),
+      'parentId': serializer.toJson<String?>(parentId),
+      'title': serializer.toJson<String>(title),
+      'notes': serializer.toJson<String>(notes),
+      'dueAtMs': serializer.toJson<int?>(dueAtMs),
+      'recurrenceRule': serializer.toJson<String?>(recurrenceRule),
+      'completedAtMs': serializer.toJson<int?>(completedAtMs),
+      'priority': serializer.toJson<int>(priority),
+      'tagsJson': serializer.toJson<String>(tagsJson),
+      'section': serializer.toJson<String?>(section),
+      'sortKey': serializer.toJson<String>(sortKey),
+      'alarmOffsetsJson': serializer.toJson<String>(alarmOffsetsJson),
+      'lastDismissedMs': serializer.toJson<int?>(lastDismissedMs),
+      'snoozeUntilMs': serializer.toJson<int?>(snoozeUntilMs),
+      'pinned': serializer.toJson<bool>(pinned),
+      'estimateMinutes': serializer.toJson<int?>(estimateMinutes),
+      'energy': serializer.toJson<int?>(energy),
+      'nagIntervalMinutes': serializer.toJson<int?>(nagIntervalMinutes),
+      'assigneeDeviceId': serializer.toJson<String?>(assigneeDeviceId),
+      'currentStreak': serializer.toJson<int>(currentStreak),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  Todo copyWith({
+    String? id,
+    Value<String?> listId = const Value.absent(),
+    Value<String?> parentId = const Value.absent(),
+    String? title,
+    String? notes,
+    Value<int?> dueAtMs = const Value.absent(),
+    Value<String?> recurrenceRule = const Value.absent(),
+    Value<int?> completedAtMs = const Value.absent(),
+    int? priority,
+    String? tagsJson,
+    Value<String?> section = const Value.absent(),
+    String? sortKey,
+    String? alarmOffsetsJson,
+    Value<int?> lastDismissedMs = const Value.absent(),
+    Value<int?> snoozeUntilMs = const Value.absent(),
+    bool? pinned,
+    Value<int?> estimateMinutes = const Value.absent(),
+    Value<int?> energy = const Value.absent(),
+    Value<int?> nagIntervalMinutes = const Value.absent(),
+    Value<String?> assigneeDeviceId = const Value.absent(),
+    int? currentStreak,
+    bool? deleted,
+  }) => Todo(
+    id: id ?? this.id,
+    listId: listId.present ? listId.value : this.listId,
+    parentId: parentId.present ? parentId.value : this.parentId,
+    title: title ?? this.title,
+    notes: notes ?? this.notes,
+    dueAtMs: dueAtMs.present ? dueAtMs.value : this.dueAtMs,
+    recurrenceRule: recurrenceRule.present
+        ? recurrenceRule.value
+        : this.recurrenceRule,
+    completedAtMs: completedAtMs.present
+        ? completedAtMs.value
+        : this.completedAtMs,
+    priority: priority ?? this.priority,
+    tagsJson: tagsJson ?? this.tagsJson,
+    section: section.present ? section.value : this.section,
+    sortKey: sortKey ?? this.sortKey,
+    alarmOffsetsJson: alarmOffsetsJson ?? this.alarmOffsetsJson,
+    lastDismissedMs: lastDismissedMs.present
+        ? lastDismissedMs.value
+        : this.lastDismissedMs,
+    snoozeUntilMs: snoozeUntilMs.present
+        ? snoozeUntilMs.value
+        : this.snoozeUntilMs,
+    pinned: pinned ?? this.pinned,
+    estimateMinutes: estimateMinutes.present
+        ? estimateMinutes.value
+        : this.estimateMinutes,
+    energy: energy.present ? energy.value : this.energy,
+    nagIntervalMinutes: nagIntervalMinutes.present
+        ? nagIntervalMinutes.value
+        : this.nagIntervalMinutes,
+    assigneeDeviceId: assigneeDeviceId.present
+        ? assigneeDeviceId.value
+        : this.assigneeDeviceId,
+    currentStreak: currentStreak ?? this.currentStreak,
+    deleted: deleted ?? this.deleted,
+  );
+  Todo copyWithCompanion(TodosCompanion data) {
+    return Todo(
+      id: data.id.present ? data.id.value : this.id,
+      listId: data.listId.present ? data.listId.value : this.listId,
+      parentId: data.parentId.present ? data.parentId.value : this.parentId,
+      title: data.title.present ? data.title.value : this.title,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      dueAtMs: data.dueAtMs.present ? data.dueAtMs.value : this.dueAtMs,
+      recurrenceRule: data.recurrenceRule.present
+          ? data.recurrenceRule.value
+          : this.recurrenceRule,
+      completedAtMs: data.completedAtMs.present
+          ? data.completedAtMs.value
+          : this.completedAtMs,
+      priority: data.priority.present ? data.priority.value : this.priority,
+      tagsJson: data.tagsJson.present ? data.tagsJson.value : this.tagsJson,
+      section: data.section.present ? data.section.value : this.section,
+      sortKey: data.sortKey.present ? data.sortKey.value : this.sortKey,
+      alarmOffsetsJson: data.alarmOffsetsJson.present
+          ? data.alarmOffsetsJson.value
+          : this.alarmOffsetsJson,
+      lastDismissedMs: data.lastDismissedMs.present
+          ? data.lastDismissedMs.value
+          : this.lastDismissedMs,
+      snoozeUntilMs: data.snoozeUntilMs.present
+          ? data.snoozeUntilMs.value
+          : this.snoozeUntilMs,
+      pinned: data.pinned.present ? data.pinned.value : this.pinned,
+      estimateMinutes: data.estimateMinutes.present
+          ? data.estimateMinutes.value
+          : this.estimateMinutes,
+      energy: data.energy.present ? data.energy.value : this.energy,
+      nagIntervalMinutes: data.nagIntervalMinutes.present
+          ? data.nagIntervalMinutes.value
+          : this.nagIntervalMinutes,
+      assigneeDeviceId: data.assigneeDeviceId.present
+          ? data.assigneeDeviceId.value
+          : this.assigneeDeviceId,
+      currentStreak: data.currentStreak.present
+          ? data.currentStreak.value
+          : this.currentStreak,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Todo(')
+          ..write('id: $id, ')
+          ..write('listId: $listId, ')
+          ..write('parentId: $parentId, ')
+          ..write('title: $title, ')
+          ..write('notes: $notes, ')
+          ..write('dueAtMs: $dueAtMs, ')
+          ..write('recurrenceRule: $recurrenceRule, ')
+          ..write('completedAtMs: $completedAtMs, ')
+          ..write('priority: $priority, ')
+          ..write('tagsJson: $tagsJson, ')
+          ..write('section: $section, ')
+          ..write('sortKey: $sortKey, ')
+          ..write('alarmOffsetsJson: $alarmOffsetsJson, ')
+          ..write('lastDismissedMs: $lastDismissedMs, ')
+          ..write('snoozeUntilMs: $snoozeUntilMs, ')
+          ..write('pinned: $pinned, ')
+          ..write('estimateMinutes: $estimateMinutes, ')
+          ..write('energy: $energy, ')
+          ..write('nagIntervalMinutes: $nagIntervalMinutes, ')
+          ..write('assigneeDeviceId: $assigneeDeviceId, ')
+          ..write('currentStreak: $currentStreak, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    listId,
+    parentId,
+    title,
+    notes,
+    dueAtMs,
+    recurrenceRule,
+    completedAtMs,
+    priority,
+    tagsJson,
+    section,
+    sortKey,
+    alarmOffsetsJson,
+    lastDismissedMs,
+    snoozeUntilMs,
+    pinned,
+    estimateMinutes,
+    energy,
+    nagIntervalMinutes,
+    assigneeDeviceId,
+    currentStreak,
+    deleted,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Todo &&
+          other.id == this.id &&
+          other.listId == this.listId &&
+          other.parentId == this.parentId &&
+          other.title == this.title &&
+          other.notes == this.notes &&
+          other.dueAtMs == this.dueAtMs &&
+          other.recurrenceRule == this.recurrenceRule &&
+          other.completedAtMs == this.completedAtMs &&
+          other.priority == this.priority &&
+          other.tagsJson == this.tagsJson &&
+          other.section == this.section &&
+          other.sortKey == this.sortKey &&
+          other.alarmOffsetsJson == this.alarmOffsetsJson &&
+          other.lastDismissedMs == this.lastDismissedMs &&
+          other.snoozeUntilMs == this.snoozeUntilMs &&
+          other.pinned == this.pinned &&
+          other.estimateMinutes == this.estimateMinutes &&
+          other.energy == this.energy &&
+          other.nagIntervalMinutes == this.nagIntervalMinutes &&
+          other.assigneeDeviceId == this.assigneeDeviceId &&
+          other.currentStreak == this.currentStreak &&
+          other.deleted == this.deleted);
+}
+
+class TodosCompanion extends UpdateCompanion<Todo> {
+  final Value<String> id;
+  final Value<String?> listId;
+  final Value<String?> parentId;
+  final Value<String> title;
+  final Value<String> notes;
+  final Value<int?> dueAtMs;
+  final Value<String?> recurrenceRule;
+  final Value<int?> completedAtMs;
+  final Value<int> priority;
+  final Value<String> tagsJson;
+  final Value<String?> section;
+  final Value<String> sortKey;
+  final Value<String> alarmOffsetsJson;
+  final Value<int?> lastDismissedMs;
+  final Value<int?> snoozeUntilMs;
+  final Value<bool> pinned;
+  final Value<int?> estimateMinutes;
+  final Value<int?> energy;
+  final Value<int?> nagIntervalMinutes;
+  final Value<String?> assigneeDeviceId;
+  final Value<int> currentStreak;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const TodosCompanion({
+    this.id = const Value.absent(),
+    this.listId = const Value.absent(),
+    this.parentId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.dueAtMs = const Value.absent(),
+    this.recurrenceRule = const Value.absent(),
+    this.completedAtMs = const Value.absent(),
+    this.priority = const Value.absent(),
+    this.tagsJson = const Value.absent(),
+    this.section = const Value.absent(),
+    this.sortKey = const Value.absent(),
+    this.alarmOffsetsJson = const Value.absent(),
+    this.lastDismissedMs = const Value.absent(),
+    this.snoozeUntilMs = const Value.absent(),
+    this.pinned = const Value.absent(),
+    this.estimateMinutes = const Value.absent(),
+    this.energy = const Value.absent(),
+    this.nagIntervalMinutes = const Value.absent(),
+    this.assigneeDeviceId = const Value.absent(),
+    this.currentStreak = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TodosCompanion.insert({
+    required String id,
+    this.listId = const Value.absent(),
+    this.parentId = const Value.absent(),
+    required String title,
+    this.notes = const Value.absent(),
+    this.dueAtMs = const Value.absent(),
+    this.recurrenceRule = const Value.absent(),
+    this.completedAtMs = const Value.absent(),
+    this.priority = const Value.absent(),
+    this.tagsJson = const Value.absent(),
+    this.section = const Value.absent(),
+    this.sortKey = const Value.absent(),
+    this.alarmOffsetsJson = const Value.absent(),
+    this.lastDismissedMs = const Value.absent(),
+    this.snoozeUntilMs = const Value.absent(),
+    this.pinned = const Value.absent(),
+    this.estimateMinutes = const Value.absent(),
+    this.energy = const Value.absent(),
+    this.nagIntervalMinutes = const Value.absent(),
+    this.assigneeDeviceId = const Value.absent(),
+    this.currentStreak = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title);
+  static Insertable<Todo> custom({
+    Expression<String>? id,
+    Expression<String>? listId,
+    Expression<String>? parentId,
+    Expression<String>? title,
+    Expression<String>? notes,
+    Expression<int>? dueAtMs,
+    Expression<String>? recurrenceRule,
+    Expression<int>? completedAtMs,
+    Expression<int>? priority,
+    Expression<String>? tagsJson,
+    Expression<String>? section,
+    Expression<String>? sortKey,
+    Expression<String>? alarmOffsetsJson,
+    Expression<int>? lastDismissedMs,
+    Expression<int>? snoozeUntilMs,
+    Expression<bool>? pinned,
+    Expression<int>? estimateMinutes,
+    Expression<int>? energy,
+    Expression<int>? nagIntervalMinutes,
+    Expression<String>? assigneeDeviceId,
+    Expression<int>? currentStreak,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (listId != null) 'list_id': listId,
+      if (parentId != null) 'parent_id': parentId,
+      if (title != null) 'title': title,
+      if (notes != null) 'notes': notes,
+      if (dueAtMs != null) 'due_at_ms': dueAtMs,
+      if (recurrenceRule != null) 'recurrence_rule': recurrenceRule,
+      if (completedAtMs != null) 'completed_at_ms': completedAtMs,
+      if (priority != null) 'priority': priority,
+      if (tagsJson != null) 'tags_json': tagsJson,
+      if (section != null) 'section': section,
+      if (sortKey != null) 'sort_key': sortKey,
+      if (alarmOffsetsJson != null) 'alarm_offsets_json': alarmOffsetsJson,
+      if (lastDismissedMs != null) 'last_dismissed_ms': lastDismissedMs,
+      if (snoozeUntilMs != null) 'snooze_until_ms': snoozeUntilMs,
+      if (pinned != null) 'pinned': pinned,
+      if (estimateMinutes != null) 'estimate_minutes': estimateMinutes,
+      if (energy != null) 'energy': energy,
+      if (nagIntervalMinutes != null)
+        'nag_interval_minutes': nagIntervalMinutes,
+      if (assigneeDeviceId != null) 'assignee_device_id': assigneeDeviceId,
+      if (currentStreak != null) 'current_streak': currentStreak,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TodosCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? listId,
+    Value<String?>? parentId,
+    Value<String>? title,
+    Value<String>? notes,
+    Value<int?>? dueAtMs,
+    Value<String?>? recurrenceRule,
+    Value<int?>? completedAtMs,
+    Value<int>? priority,
+    Value<String>? tagsJson,
+    Value<String?>? section,
+    Value<String>? sortKey,
+    Value<String>? alarmOffsetsJson,
+    Value<int?>? lastDismissedMs,
+    Value<int?>? snoozeUntilMs,
+    Value<bool>? pinned,
+    Value<int?>? estimateMinutes,
+    Value<int?>? energy,
+    Value<int?>? nagIntervalMinutes,
+    Value<String?>? assigneeDeviceId,
+    Value<int>? currentStreak,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return TodosCompanion(
+      id: id ?? this.id,
+      listId: listId ?? this.listId,
+      parentId: parentId ?? this.parentId,
+      title: title ?? this.title,
+      notes: notes ?? this.notes,
+      dueAtMs: dueAtMs ?? this.dueAtMs,
+      recurrenceRule: recurrenceRule ?? this.recurrenceRule,
+      completedAtMs: completedAtMs ?? this.completedAtMs,
+      priority: priority ?? this.priority,
+      tagsJson: tagsJson ?? this.tagsJson,
+      section: section ?? this.section,
+      sortKey: sortKey ?? this.sortKey,
+      alarmOffsetsJson: alarmOffsetsJson ?? this.alarmOffsetsJson,
+      lastDismissedMs: lastDismissedMs ?? this.lastDismissedMs,
+      snoozeUntilMs: snoozeUntilMs ?? this.snoozeUntilMs,
+      pinned: pinned ?? this.pinned,
+      estimateMinutes: estimateMinutes ?? this.estimateMinutes,
+      energy: energy ?? this.energy,
+      nagIntervalMinutes: nagIntervalMinutes ?? this.nagIntervalMinutes,
+      assigneeDeviceId: assigneeDeviceId ?? this.assigneeDeviceId,
+      currentStreak: currentStreak ?? this.currentStreak,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (listId.present) {
+      map['list_id'] = Variable<String>(listId.value);
+    }
+    if (parentId.present) {
+      map['parent_id'] = Variable<String>(parentId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (dueAtMs.present) {
+      map['due_at_ms'] = Variable<int>(dueAtMs.value);
+    }
+    if (recurrenceRule.present) {
+      map['recurrence_rule'] = Variable<String>(recurrenceRule.value);
+    }
+    if (completedAtMs.present) {
+      map['completed_at_ms'] = Variable<int>(completedAtMs.value);
+    }
+    if (priority.present) {
+      map['priority'] = Variable<int>(priority.value);
+    }
+    if (tagsJson.present) {
+      map['tags_json'] = Variable<String>(tagsJson.value);
+    }
+    if (section.present) {
+      map['section'] = Variable<String>(section.value);
+    }
+    if (sortKey.present) {
+      map['sort_key'] = Variable<String>(sortKey.value);
+    }
+    if (alarmOffsetsJson.present) {
+      map['alarm_offsets_json'] = Variable<String>(alarmOffsetsJson.value);
+    }
+    if (lastDismissedMs.present) {
+      map['last_dismissed_ms'] = Variable<int>(lastDismissedMs.value);
+    }
+    if (snoozeUntilMs.present) {
+      map['snooze_until_ms'] = Variable<int>(snoozeUntilMs.value);
+    }
+    if (pinned.present) {
+      map['pinned'] = Variable<bool>(pinned.value);
+    }
+    if (estimateMinutes.present) {
+      map['estimate_minutes'] = Variable<int>(estimateMinutes.value);
+    }
+    if (energy.present) {
+      map['energy'] = Variable<int>(energy.value);
+    }
+    if (nagIntervalMinutes.present) {
+      map['nag_interval_minutes'] = Variable<int>(nagIntervalMinutes.value);
+    }
+    if (assigneeDeviceId.present) {
+      map['assignee_device_id'] = Variable<String>(assigneeDeviceId.value);
+    }
+    if (currentStreak.present) {
+      map['current_streak'] = Variable<int>(currentStreak.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TodosCompanion(')
+          ..write('id: $id, ')
+          ..write('listId: $listId, ')
+          ..write('parentId: $parentId, ')
+          ..write('title: $title, ')
+          ..write('notes: $notes, ')
+          ..write('dueAtMs: $dueAtMs, ')
+          ..write('recurrenceRule: $recurrenceRule, ')
+          ..write('completedAtMs: $completedAtMs, ')
+          ..write('priority: $priority, ')
+          ..write('tagsJson: $tagsJson, ')
+          ..write('section: $section, ')
+          ..write('sortKey: $sortKey, ')
+          ..write('alarmOffsetsJson: $alarmOffsetsJson, ')
+          ..write('lastDismissedMs: $lastDismissedMs, ')
+          ..write('snoozeUntilMs: $snoozeUntilMs, ')
+          ..write('pinned: $pinned, ')
+          ..write('estimateMinutes: $estimateMinutes, ')
+          ..write('energy: $energy, ')
+          ..write('nagIntervalMinutes: $nagIntervalMinutes, ')
+          ..write('assigneeDeviceId: $assigneeDeviceId, ')
+          ..write('currentStreak: $currentStreak, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TodoAlarmsTable extends TodoAlarms
+    with TableInfo<$TodoAlarmsTable, TodoAlarm> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TodoAlarmsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _todoIdMeta = const VerificationMeta('todoId');
+  @override
+  late final GeneratedColumn<String> todoId = GeneratedColumn<String>(
+    'todo_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES todos (id)',
+    ),
+  );
+  static const VerificationMeta _atLocalMeta = const VerificationMeta(
+    'atLocal',
+  );
+  @override
+  late final GeneratedColumn<String> atLocal = GeneratedColumn<String>(
+    'at_local',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tzMeta = const VerificationMeta('tz');
+  @override
+  late final GeneratedColumn<String> tz = GeneratedColumn<String>(
+    'tz',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, todoId, atLocal, tz, deleted];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'todo_alarms';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TodoAlarm> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('todo_id')) {
+      context.handle(
+        _todoIdMeta,
+        todoId.isAcceptableOrUnknown(data['todo_id']!, _todoIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_todoIdMeta);
+    }
+    if (data.containsKey('at_local')) {
+      context.handle(
+        _atLocalMeta,
+        atLocal.isAcceptableOrUnknown(data['at_local']!, _atLocalMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_atLocalMeta);
+    }
+    if (data.containsKey('tz')) {
+      context.handle(_tzMeta, tz.isAcceptableOrUnknown(data['tz']!, _tzMeta));
+    } else if (isInserting) {
+      context.missing(_tzMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TodoAlarm map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TodoAlarm(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      todoId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}todo_id'],
+      )!,
+      atLocal: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}at_local'],
+      )!,
+      tz: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tz'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $TodoAlarmsTable createAlias(String alias) {
+    return $TodoAlarmsTable(attachedDatabase, alias);
+  }
+}
+
+class TodoAlarm extends DataClass implements Insertable<TodoAlarm> {
+  final String id;
+  final String todoId;
+
+  /// Local wall time, ISO-8601 without offset (e.g. `2026-07-05T09:00`).
+  final String atLocal;
+
+  /// IANA zone id the wall time is anchored to (e.g. `Asia/Kolkata`).
+  final String tz;
+  final bool deleted;
+  const TodoAlarm({
+    required this.id,
+    required this.todoId,
+    required this.atLocal,
+    required this.tz,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['todo_id'] = Variable<String>(todoId);
+    map['at_local'] = Variable<String>(atLocal);
+    map['tz'] = Variable<String>(tz);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  TodoAlarmsCompanion toCompanion(bool nullToAbsent) {
+    return TodoAlarmsCompanion(
+      id: Value(id),
+      todoId: Value(todoId),
+      atLocal: Value(atLocal),
+      tz: Value(tz),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory TodoAlarm.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TodoAlarm(
+      id: serializer.fromJson<String>(json['id']),
+      todoId: serializer.fromJson<String>(json['todoId']),
+      atLocal: serializer.fromJson<String>(json['atLocal']),
+      tz: serializer.fromJson<String>(json['tz']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'todoId': serializer.toJson<String>(todoId),
+      'atLocal': serializer.toJson<String>(atLocal),
+      'tz': serializer.toJson<String>(tz),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  TodoAlarm copyWith({
+    String? id,
+    String? todoId,
+    String? atLocal,
+    String? tz,
+    bool? deleted,
+  }) => TodoAlarm(
+    id: id ?? this.id,
+    todoId: todoId ?? this.todoId,
+    atLocal: atLocal ?? this.atLocal,
+    tz: tz ?? this.tz,
+    deleted: deleted ?? this.deleted,
+  );
+  TodoAlarm copyWithCompanion(TodoAlarmsCompanion data) {
+    return TodoAlarm(
+      id: data.id.present ? data.id.value : this.id,
+      todoId: data.todoId.present ? data.todoId.value : this.todoId,
+      atLocal: data.atLocal.present ? data.atLocal.value : this.atLocal,
+      tz: data.tz.present ? data.tz.value : this.tz,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TodoAlarm(')
+          ..write('id: $id, ')
+          ..write('todoId: $todoId, ')
+          ..write('atLocal: $atLocal, ')
+          ..write('tz: $tz, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, todoId, atLocal, tz, deleted);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TodoAlarm &&
+          other.id == this.id &&
+          other.todoId == this.todoId &&
+          other.atLocal == this.atLocal &&
+          other.tz == this.tz &&
+          other.deleted == this.deleted);
+}
+
+class TodoAlarmsCompanion extends UpdateCompanion<TodoAlarm> {
+  final Value<String> id;
+  final Value<String> todoId;
+  final Value<String> atLocal;
+  final Value<String> tz;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const TodoAlarmsCompanion({
+    this.id = const Value.absent(),
+    this.todoId = const Value.absent(),
+    this.atLocal = const Value.absent(),
+    this.tz = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TodoAlarmsCompanion.insert({
+    required String id,
+    required String todoId,
+    required String atLocal,
+    required String tz,
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       todoId = Value(todoId),
+       atLocal = Value(atLocal),
+       tz = Value(tz);
+  static Insertable<TodoAlarm> custom({
+    Expression<String>? id,
+    Expression<String>? todoId,
+    Expression<String>? atLocal,
+    Expression<String>? tz,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (todoId != null) 'todo_id': todoId,
+      if (atLocal != null) 'at_local': atLocal,
+      if (tz != null) 'tz': tz,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TodoAlarmsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? todoId,
+    Value<String>? atLocal,
+    Value<String>? tz,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return TodoAlarmsCompanion(
+      id: id ?? this.id,
+      todoId: todoId ?? this.todoId,
+      atLocal: atLocal ?? this.atLocal,
+      tz: tz ?? this.tz,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (todoId.present) {
+      map['todo_id'] = Variable<String>(todoId.value);
+    }
+    if (atLocal.present) {
+      map['at_local'] = Variable<String>(atLocal.value);
+    }
+    if (tz.present) {
+      map['tz'] = Variable<String>(tz.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TodoAlarmsCompanion(')
+          ..write('id: $id, ')
+          ..write('todoId: $todoId, ')
+          ..write('atLocal: $atLocal, ')
+          ..write('tz: $tz, ')
           ..write('deleted: $deleted, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -4096,9 +4216,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $SyncGroupsTable syncGroups = $SyncGroupsTable(this);
   late final $TodoListsTable todoLists = $TodoListsTable(this);
+  late final $DevicesTable devices = $DevicesTable(this);
   late final $TodosTable todos = $TodosTable(this);
   late final $TodoAlarmsTable todoAlarms = $TodoAlarmsTable(this);
-  late final $DevicesTable devices = $DevicesTable(this);
   late final $SyncLogTable syncLog = $SyncLogTable(this);
   late final $AlarmDismissalsTable alarmDismissals = $AlarmDismissalsTable(
     this,
@@ -4112,9 +4232,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     syncGroups,
     todoLists,
+    devices,
     todos,
     todoAlarms,
-    devices,
     syncLog,
     alarmDismissals,
     fieldClocks,
@@ -4939,6 +5059,415 @@ typedef $$TodoListsTableProcessedTableManager =
       TodoList,
       PrefetchHooks Function({bool groupId, bool todosRefs})
     >;
+typedef $$DevicesTableCreateCompanionBuilder =
+    DevicesCompanion Function({
+      required String id,
+      required String name,
+      required String platform,
+      required String publicKey,
+      Value<int?> lastSeenAtMs,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+typedef $$DevicesTableUpdateCompanionBuilder =
+    DevicesCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> platform,
+      Value<String> publicKey,
+      Value<int?> lastSeenAtMs,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+
+final class $$DevicesTableReferences
+    extends BaseReferences<_$AppDatabase, $DevicesTable, Device> {
+  $$DevicesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$TodosTable, List<Todo>> _todosRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.todos,
+    aliasName: 'devices__id__todos__assignee_device_id',
+  );
+
+  $$TodosTableProcessedTableManager get todosRefs {
+    final manager = $$TodosTableTableManager($_db, $_db.todos).filter(
+      (f) => f.assigneeDeviceId.id.sqlEquals($_itemColumn<String>('id')!),
+    );
+
+    final cache = $_typedResult.readTableOrNull(_todosRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$GroupMembersTable, List<GroupMember>>
+  _groupMembersRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.groupMembers,
+    aliasName: 'devices__id__group_members__device_id',
+  );
+
+  $$GroupMembersTableProcessedTableManager get groupMembersRefs {
+    final manager = $$GroupMembersTableTableManager(
+      $_db,
+      $_db.groupMembers,
+    ).filter((f) => f.deviceId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_groupMembersRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$DevicesTableFilterComposer
+    extends Composer<_$AppDatabase, $DevicesTable> {
+  $$DevicesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get publicKey => $composableBuilder(
+    column: $table.publicKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastSeenAtMs => $composableBuilder(
+    column: $table.lastSeenAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> todosRefs(
+    Expression<bool> Function($$TodosTableFilterComposer f) f,
+  ) {
+    final $$TodosTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.todos,
+      getReferencedColumn: (t) => t.assigneeDeviceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TodosTableFilterComposer(
+            $db: $db,
+            $table: $db.todos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> groupMembersRefs(
+    Expression<bool> Function($$GroupMembersTableFilterComposer f) f,
+  ) {
+    final $$GroupMembersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.groupMembers,
+      getReferencedColumn: (t) => t.deviceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GroupMembersTableFilterComposer(
+            $db: $db,
+            $table: $db.groupMembers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$DevicesTableOrderingComposer
+    extends Composer<_$AppDatabase, $DevicesTable> {
+  $$DevicesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get publicKey => $composableBuilder(
+    column: $table.publicKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastSeenAtMs => $composableBuilder(
+    column: $table.lastSeenAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DevicesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DevicesTable> {
+  $$DevicesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get platform =>
+      $composableBuilder(column: $table.platform, builder: (column) => column);
+
+  GeneratedColumn<String> get publicKey =>
+      $composableBuilder(column: $table.publicKey, builder: (column) => column);
+
+  GeneratedColumn<int> get lastSeenAtMs => $composableBuilder(
+    column: $table.lastSeenAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  Expression<T> todosRefs<T extends Object>(
+    Expression<T> Function($$TodosTableAnnotationComposer a) f,
+  ) {
+    final $$TodosTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.todos,
+      getReferencedColumn: (t) => t.assigneeDeviceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TodosTableAnnotationComposer(
+            $db: $db,
+            $table: $db.todos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> groupMembersRefs<T extends Object>(
+    Expression<T> Function($$GroupMembersTableAnnotationComposer a) f,
+  ) {
+    final $$GroupMembersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.groupMembers,
+      getReferencedColumn: (t) => t.deviceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GroupMembersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.groupMembers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$DevicesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DevicesTable,
+          Device,
+          $$DevicesTableFilterComposer,
+          $$DevicesTableOrderingComposer,
+          $$DevicesTableAnnotationComposer,
+          $$DevicesTableCreateCompanionBuilder,
+          $$DevicesTableUpdateCompanionBuilder,
+          (Device, $$DevicesTableReferences),
+          Device,
+          PrefetchHooks Function({bool todosRefs, bool groupMembersRefs})
+        > {
+  $$DevicesTableTableManager(_$AppDatabase db, $DevicesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DevicesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DevicesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DevicesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> platform = const Value.absent(),
+                Value<String> publicKey = const Value.absent(),
+                Value<int?> lastSeenAtMs = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DevicesCompanion(
+                id: id,
+                name: name,
+                platform: platform,
+                publicKey: publicKey,
+                lastSeenAtMs: lastSeenAtMs,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required String platform,
+                required String publicKey,
+                Value<int?> lastSeenAtMs = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DevicesCompanion.insert(
+                id: id,
+                name: name,
+                platform: platform,
+                publicKey: publicKey,
+                lastSeenAtMs: lastSeenAtMs,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$DevicesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({todosRefs = false, groupMembersRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (todosRefs) db.todos,
+                    if (groupMembersRefs) db.groupMembers,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (todosRefs)
+                        await $_getPrefetchedData<Device, $DevicesTable, Todo>(
+                          currentTable: table,
+                          referencedTable: $$DevicesTableReferences
+                              ._todosRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DevicesTableReferences(db, table, p0).todosRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.assigneeDeviceId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (groupMembersRefs)
+                        await $_getPrefetchedData<
+                          Device,
+                          $DevicesTable,
+                          GroupMember
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DevicesTableReferences
+                              ._groupMembersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DevicesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).groupMembersRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.deviceId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$DevicesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DevicesTable,
+      Device,
+      $$DevicesTableFilterComposer,
+      $$DevicesTableOrderingComposer,
+      $$DevicesTableAnnotationComposer,
+      $$DevicesTableCreateCompanionBuilder,
+      $$DevicesTableUpdateCompanionBuilder,
+      (Device, $$DevicesTableReferences),
+      Device,
+      PrefetchHooks Function({bool todosRefs, bool groupMembersRefs})
+    >;
 typedef $$TodosTableCreateCompanionBuilder =
     TodosCompanion Function({
       required String id,
@@ -4960,6 +5489,8 @@ typedef $$TodosTableCreateCompanionBuilder =
       Value<int?> estimateMinutes,
       Value<int?> energy,
       Value<int?> nagIntervalMinutes,
+      Value<String?> assigneeDeviceId,
+      Value<int> currentStreak,
       Value<bool> deleted,
       Value<int> rowid,
     });
@@ -4984,6 +5515,8 @@ typedef $$TodosTableUpdateCompanionBuilder =
       Value<int?> estimateMinutes,
       Value<int?> energy,
       Value<int?> nagIntervalMinutes,
+      Value<String?> assigneeDeviceId,
+      Value<int> currentStreak,
       Value<bool> deleted,
       Value<int> rowid,
     });
@@ -5020,6 +5553,23 @@ final class $$TodosTableReferences
       $_db.todos,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_parentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $DevicesTable _assigneeDeviceIdTable(_$AppDatabase db) =>
+      db.devices.createAlias('todos__assignee_device_id__devices__id');
+
+  $$DevicesTableProcessedTableManager? get assigneeDeviceId {
+    final $_column = $_itemColumn<String>('assignee_device_id');
+    if ($_column == null) return null;
+    final manager = $$DevicesTableTableManager(
+      $_db,
+      $_db.devices,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_assigneeDeviceIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -5138,6 +5688,11 @@ class $$TodosTableFilterComposer extends Composer<_$AppDatabase, $TodosTable> {
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get currentStreak => $composableBuilder(
+    column: $table.currentStreak,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<bool> get deleted => $composableBuilder(
     column: $table.deleted,
     builder: (column) => ColumnFilters(column),
@@ -5180,6 +5735,29 @@ class $$TodosTableFilterComposer extends Composer<_$AppDatabase, $TodosTable> {
           }) => $$TodosTableFilterComposer(
             $db: $db,
             $table: $db.todos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DevicesTableFilterComposer get assigneeDeviceId {
+    final $$DevicesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assigneeDeviceId,
+      referencedTable: $db.devices,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DevicesTableFilterComposer(
+            $db: $db,
+            $table: $db.devices,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5309,6 +5887,11 @@ class $$TodosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get currentStreak => $composableBuilder(
+    column: $table.currentStreak,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get deleted => $composableBuilder(
     column: $table.deleted,
     builder: (column) => ColumnOrderings(column),
@@ -5351,6 +5934,29 @@ class $$TodosTableOrderingComposer
           }) => $$TodosTableOrderingComposer(
             $db: $db,
             $table: $db.todos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DevicesTableOrderingComposer get assigneeDeviceId {
+    final $$DevicesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assigneeDeviceId,
+      referencedTable: $db.devices,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DevicesTableOrderingComposer(
+            $db: $db,
+            $table: $db.devices,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5435,6 +6041,11 @@ class $$TodosTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get currentStreak => $composableBuilder(
+    column: $table.currentStreak,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get deleted =>
       $composableBuilder(column: $table.deleted, builder: (column) => column);
 
@@ -5475,6 +6086,29 @@ class $$TodosTableAnnotationComposer
           }) => $$TodosTableAnnotationComposer(
             $db: $db,
             $table: $db.todos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$DevicesTableAnnotationComposer get assigneeDeviceId {
+    final $$DevicesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assigneeDeviceId,
+      referencedTable: $db.devices,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DevicesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.devices,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5526,6 +6160,7 @@ class $$TodosTableTableManager
           PrefetchHooks Function({
             bool listId,
             bool parentId,
+            bool assigneeDeviceId,
             bool todoAlarmsRefs,
           })
         > {
@@ -5561,6 +6196,8 @@ class $$TodosTableTableManager
                 Value<int?> estimateMinutes = const Value.absent(),
                 Value<int?> energy = const Value.absent(),
                 Value<int?> nagIntervalMinutes = const Value.absent(),
+                Value<String?> assigneeDeviceId = const Value.absent(),
+                Value<int> currentStreak = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TodosCompanion(
@@ -5583,6 +6220,8 @@ class $$TodosTableTableManager
                 estimateMinutes: estimateMinutes,
                 energy: energy,
                 nagIntervalMinutes: nagIntervalMinutes,
+                assigneeDeviceId: assigneeDeviceId,
+                currentStreak: currentStreak,
                 deleted: deleted,
                 rowid: rowid,
               ),
@@ -5607,6 +6246,8 @@ class $$TodosTableTableManager
                 Value<int?> estimateMinutes = const Value.absent(),
                 Value<int?> energy = const Value.absent(),
                 Value<int?> nagIntervalMinutes = const Value.absent(),
+                Value<String?> assigneeDeviceId = const Value.absent(),
+                Value<int> currentStreak = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TodosCompanion.insert(
@@ -5629,6 +6270,8 @@ class $$TodosTableTableManager
                 estimateMinutes: estimateMinutes,
                 energy: energy,
                 nagIntervalMinutes: nagIntervalMinutes,
+                assigneeDeviceId: assigneeDeviceId,
+                currentStreak: currentStreak,
                 deleted: deleted,
                 rowid: rowid,
               ),
@@ -5639,7 +6282,12 @@ class $$TodosTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({listId = false, parentId = false, todoAlarmsRefs = false}) {
+              ({
+                listId = false,
+                parentId = false,
+                assigneeDeviceId = false,
+                todoAlarmsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [if (todoAlarmsRefs) db.todoAlarms],
@@ -5681,6 +6329,19 @@ class $$TodosTableTableManager
                                         ._parentIdTable(db),
                                     referencedColumn: $$TodosTableReferences
                                         ._parentIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (assigneeDeviceId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.assigneeDeviceId,
+                                    referencedTable: $$TodosTableReferences
+                                        ._assigneeDeviceIdTable(db),
+                                    referencedColumn: $$TodosTableReferences
+                                        ._assigneeDeviceIdTable(db)
                                         .id,
                                   )
                                   as T;
@@ -5727,7 +6388,12 @@ typedef $$TodosTableProcessedTableManager =
       $$TodosTableUpdateCompanionBuilder,
       (Todo, $$TodosTableReferences),
       Todo,
-      PrefetchHooks Function({bool listId, bool parentId, bool todoAlarmsRefs})
+      PrefetchHooks Function({
+        bool listId,
+        bool parentId,
+        bool assigneeDeviceId,
+        bool todoAlarmsRefs,
+      })
     >;
 typedef $$TodoAlarmsTableCreateCompanionBuilder =
     TodoAlarmsCompanion Function({
@@ -6141,327 +6807,6 @@ typedef $$TodoAlarmsTableProcessedTableManager =
       (TodoAlarm, $$TodoAlarmsTableReferences),
       TodoAlarm,
       PrefetchHooks Function({bool todoId, bool alarmDismissalsRefs})
-    >;
-typedef $$DevicesTableCreateCompanionBuilder =
-    DevicesCompanion Function({
-      required String id,
-      required String name,
-      required String platform,
-      required String publicKey,
-      Value<int?> lastSeenAtMs,
-      Value<bool> deleted,
-      Value<int> rowid,
-    });
-typedef $$DevicesTableUpdateCompanionBuilder =
-    DevicesCompanion Function({
-      Value<String> id,
-      Value<String> name,
-      Value<String> platform,
-      Value<String> publicKey,
-      Value<int?> lastSeenAtMs,
-      Value<bool> deleted,
-      Value<int> rowid,
-    });
-
-final class $$DevicesTableReferences
-    extends BaseReferences<_$AppDatabase, $DevicesTable, Device> {
-  $$DevicesTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static MultiTypedResultKey<$GroupMembersTable, List<GroupMember>>
-  _groupMembersRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.groupMembers,
-    aliasName: 'devices__id__group_members__device_id',
-  );
-
-  $$GroupMembersTableProcessedTableManager get groupMembersRefs {
-    final manager = $$GroupMembersTableTableManager(
-      $_db,
-      $_db.groupMembers,
-    ).filter((f) => f.deviceId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_groupMembersRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
-class $$DevicesTableFilterComposer
-    extends Composer<_$AppDatabase, $DevicesTable> {
-  $$DevicesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get platform => $composableBuilder(
-    column: $table.platform,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get publicKey => $composableBuilder(
-    column: $table.publicKey,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get lastSeenAtMs => $composableBuilder(
-    column: $table.lastSeenAtMs,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get deleted => $composableBuilder(
-    column: $table.deleted,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  Expression<bool> groupMembersRefs(
-    Expression<bool> Function($$GroupMembersTableFilterComposer f) f,
-  ) {
-    final $$GroupMembersTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.groupMembers,
-      getReferencedColumn: (t) => t.deviceId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GroupMembersTableFilterComposer(
-            $db: $db,
-            $table: $db.groupMembers,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$DevicesTableOrderingComposer
-    extends Composer<_$AppDatabase, $DevicesTable> {
-  $$DevicesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get platform => $composableBuilder(
-    column: $table.platform,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get publicKey => $composableBuilder(
-    column: $table.publicKey,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get lastSeenAtMs => $composableBuilder(
-    column: $table.lastSeenAtMs,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get deleted => $composableBuilder(
-    column: $table.deleted,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$DevicesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $DevicesTable> {
-  $$DevicesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get platform =>
-      $composableBuilder(column: $table.platform, builder: (column) => column);
-
-  GeneratedColumn<String> get publicKey =>
-      $composableBuilder(column: $table.publicKey, builder: (column) => column);
-
-  GeneratedColumn<int> get lastSeenAtMs => $composableBuilder(
-    column: $table.lastSeenAtMs,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get deleted =>
-      $composableBuilder(column: $table.deleted, builder: (column) => column);
-
-  Expression<T> groupMembersRefs<T extends Object>(
-    Expression<T> Function($$GroupMembersTableAnnotationComposer a) f,
-  ) {
-    final $$GroupMembersTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.groupMembers,
-      getReferencedColumn: (t) => t.deviceId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GroupMembersTableAnnotationComposer(
-            $db: $db,
-            $table: $db.groupMembers,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$DevicesTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $DevicesTable,
-          Device,
-          $$DevicesTableFilterComposer,
-          $$DevicesTableOrderingComposer,
-          $$DevicesTableAnnotationComposer,
-          $$DevicesTableCreateCompanionBuilder,
-          $$DevicesTableUpdateCompanionBuilder,
-          (Device, $$DevicesTableReferences),
-          Device,
-          PrefetchHooks Function({bool groupMembersRefs})
-        > {
-  $$DevicesTableTableManager(_$AppDatabase db, $DevicesTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$DevicesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$DevicesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$DevicesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<String> platform = const Value.absent(),
-                Value<String> publicKey = const Value.absent(),
-                Value<int?> lastSeenAtMs = const Value.absent(),
-                Value<bool> deleted = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => DevicesCompanion(
-                id: id,
-                name: name,
-                platform: platform,
-                publicKey: publicKey,
-                lastSeenAtMs: lastSeenAtMs,
-                deleted: deleted,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String name,
-                required String platform,
-                required String publicKey,
-                Value<int?> lastSeenAtMs = const Value.absent(),
-                Value<bool> deleted = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => DevicesCompanion.insert(
-                id: id,
-                name: name,
-                platform: platform,
-                publicKey: publicKey,
-                lastSeenAtMs: lastSeenAtMs,
-                deleted: deleted,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$DevicesTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: ({groupMembersRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (groupMembersRefs) db.groupMembers],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (groupMembersRefs)
-                    await $_getPrefetchedData<
-                      Device,
-                      $DevicesTable,
-                      GroupMember
-                    >(
-                      currentTable: table,
-                      referencedTable: $$DevicesTableReferences
-                          ._groupMembersRefsTable(db),
-                      managerFromTypedResult: (p0) => $$DevicesTableReferences(
-                        db,
-                        table,
-                        p0,
-                      ).groupMembersRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.deviceId == item.id),
-                      typedResults: items,
-                    ),
-                ];
-              },
-            );
-          },
-        ),
-      );
-}
-
-typedef $$DevicesTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $DevicesTable,
-      Device,
-      $$DevicesTableFilterComposer,
-      $$DevicesTableOrderingComposer,
-      $$DevicesTableAnnotationComposer,
-      $$DevicesTableCreateCompanionBuilder,
-      $$DevicesTableUpdateCompanionBuilder,
-      (Device, $$DevicesTableReferences),
-      Device,
-      PrefetchHooks Function({bool groupMembersRefs})
     >;
 typedef $$SyncLogTableCreateCompanionBuilder =
     SyncLogCompanion Function({
@@ -7550,12 +7895,12 @@ class $AppDatabaseManager {
       $$SyncGroupsTableTableManager(_db, _db.syncGroups);
   $$TodoListsTableTableManager get todoLists =>
       $$TodoListsTableTableManager(_db, _db.todoLists);
+  $$DevicesTableTableManager get devices =>
+      $$DevicesTableTableManager(_db, _db.devices);
   $$TodosTableTableManager get todos =>
       $$TodosTableTableManager(_db, _db.todos);
   $$TodoAlarmsTableTableManager get todoAlarms =>
       $$TodoAlarmsTableTableManager(_db, _db.todoAlarms);
-  $$DevicesTableTableManager get devices =>
-      $$DevicesTableTableManager(_db, _db.devices);
   $$SyncLogTableTableManager get syncLog =>
       $$SyncLogTableTableManager(_db, _db.syncLog);
   $$AlarmDismissalsTableTableManager get alarmDismissals =>

@@ -117,6 +117,19 @@ class Todos extends Table {
   /// setting syncs like any other LWW field.
   IntColumn get nagIntervalMinutes => integer().nullable()();
 
+  /// Assignee for a shared-list task (schema v9, TASKS.md 6.51). Null =
+  /// unassigned. A synced LWW field like the rest; the referenced device
+  /// need not be a group member of this list's group by the time the write
+  /// lands (FK springs like `listId`/`groupId`).
+  TextColumn get assigneeDeviceId =>
+      text().nullable().references(Devices, #id)();
+
+  /// Consecutive on-time completions of a recurring todo (schema v9,
+  /// TASKS.md 6.11). Incremented in [TodoRepository.complete] when the prior
+  /// occurrence was completed before its *next* due moment, reset to 1
+  /// otherwise. 0 for non-recurring or never-completed todos.
+  IntColumn get currentStreak => integer().withDefault(const Constant(0))();
+
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
   @override

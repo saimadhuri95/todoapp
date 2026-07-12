@@ -4,15 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/focus_timer.dart';
 import '../../app/providers.dart';
 import '../../app/quick_capture.dart';
 import '../../app/voice_input.dart';
 import '../../core/natural_date.dart';
+import '../../core/snooze_presets.dart';
 import '../../data/db/database.dart';
 import '../../data/repositories/todo_repository.dart';
 import '../settings/settings_screen.dart';
 import '../settings/sync_settings_screen.dart';
 import 'eisenhower_screen.dart';
+import 'kanban_screen.dart';
 import 'linkified_text.dart';
 import 'planning_views.dart';
 import 'todo_editor.dart';
@@ -87,6 +90,13 @@ class TodoListScreen extends ConsumerWidget {
                   MaterialPageRoute<void>(
                     builder: (_) => const EisenhowerScreen(),
                   ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Kanban board',
+                icon: const Icon(Icons.view_column_outlined),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const KanbanScreen()),
                 ),
               ),
               IconButton(
@@ -211,6 +221,60 @@ Future<void> _deleteTodoWithUndo(
   );
 }
 
+/// Performs a configured swipe action (TASKS.md 6.48). Snooze uses the
+/// same 10-minute preset as the old fixed notification snooze — quick,
+/// consistent, no picker needed for a gesture-driven action.
+Future<void> _performSwipeAction(
+  BuildContext context,
+  WidgetRef ref,
+  Todo todo,
+  SwipeAction action,
+) async {
+  switch (action) {
+    case SwipeAction.complete:
+      await _completeTodoWithUndo(context, ref, todo);
+    case SwipeAction.snooze:
+      final until = resolveSnoozeUntil(
+        SnoozePreset.tenMinutes,
+        ref.read(clockProvider).now(),
+      ).millisecondsSinceEpoch;
+      await ref.read(todoRepositoryProvider).snoozeAlarm(todo.id, until);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Snoozed 10 min')));
+    case SwipeAction.delete:
+      await _deleteTodoWithUndo(context, ref, todo);
+  }
+}
+
+/// The colored panel revealed behind a swipe (TASKS.md 6.48) — icon only
+/// when a direction has no action configured, so an empty swipe still
+/// shows *something* moved rather than a jarring blank space.
+class _SwipeBackground extends StatelessWidget {
+  const _SwipeBackground({required this.action, required this.alignment});
+
+  final SwipeAction? action;
+  final Alignment alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final (color, icon) = switch (action) {
+      SwipeAction.complete => (scheme.primaryContainer, Icons.check),
+      SwipeAction.snooze => (scheme.tertiaryContainer, Icons.snooze),
+      SwipeAction.delete => (scheme.errorContainer, Icons.delete),
+      null => (scheme.surfaceContainerHighest, null),
+    };
+    return Container(
+      color: color,
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: icon == null ? null : Icon(icon),
+    );
+  }
+}
+
 Future<void> _createTodoFromText(
   TodoRepository repo,
   String text,
@@ -270,6 +334,7 @@ class _TodoListPane extends ConsumerWidget {
             ),
           ),
         ),
+        const _FocusTimerBanner(),
         if (dateFilter != null || smartFilter != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
@@ -355,7 +420,7 @@ class _TodoListPane extends ConsumerWidget {
         for (final section in sections) ...section.items
       else
         for (final section in sections) ...[
-          _SectionHeaderRow(section.title, section.userSection),
+          _SectionHeaderRow(section.title, section.userSection, section.items),
           ...section.items,
         ],
       if (!somedayView && !recap.isEmpty) _completedMarker,
@@ -371,6 +436,7 @@ class _TodoListPane extends ConsumerWidget {
         final _SectionHeaderRow row => _SectionHeader(
           key: ValueKey('section-${row.title}-${row.userSection ?? ''}-$i'),
           title: row.title,
+          items: row.items,
         ),
         final Todo todo => _TodoTile(
           key: ValueKey(todo.id),
@@ -386,10 +452,11 @@ class _TodoListPane extends ConsumerWidget {
 }
 
 class _SectionHeaderRow {
-  const _SectionHeaderRow(this.title, this.userSection);
+  const _SectionHeaderRow(this.title, this.userSection, this.items);
 
   final String title;
   final String? userSection;
+  final List<Todo> items;
 }
 
 Future<void> _reorderRows(
@@ -452,26 +519,59 @@ class _ActiveFilterBar extends ConsumerWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, super.key});
+class _SectionHeader extends ConsumerWidget {
+  const _SectionHeader({required this.title, required this.items, super.key});
 
   final String title;
+  final List<Todo> items;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-    // Mark as a heading so screen readers can jump between sections
-    // (Today / Upcoming / …) by heading navigation (TASKS.md 5.5).
-    child: Semantics(
-      header: true,
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Realistic-day meter (TASKS.md 6.55): only the Today section carries a
+    // "what's actually plannable" reading — Upcoming/Someday aren't today's
+    // hours to spend.
+    final meter = title == 'Today'
+        ? realisticDayMeter(items, ref.watch(dailyAvailableMinutesProvider))
+        : null;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      // Mark as a heading so screen readers can jump between sections
+      // (Today / Upcoming / …) by heading navigation (TASKS.md 5.5).
+      child: Semantics(
+        header: true,
+        child: Row(
+          children: [
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            if (meter != null && meter.plannedMinutes > 0) ...[
+              const SizedBox(width: 8),
+              Text(
+                '${_formatHours(meter.plannedMinutes)} of '
+                '${_formatHours(meter.availableMinutes)} planned',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: meter.isOverCommitted
+                      ? Theme.of(context).colorScheme.error
+                      : Theme.of(context).colorScheme.outline,
+                ),
+              ),
+            ],
+          ],
         ),
       ),
-    ),
-  );
+    );
+  }
+
+  static String _formatHours(int minutes) {
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    if (h == 0) return '${m}m';
+    if (m == 0) return '${h}h';
+    return '${h}h ${m}m';
+  }
 }
 
 class _DetailPane extends ConsumerWidget {
@@ -503,22 +603,49 @@ class _TodoTile extends ConsumerWidget {
         ? null
         : overdueLabel(todo.dueAtMs!, ref.watch(clockProvider).now());
     final large = ref.watch(displayDensityProvider) == DisplayDensity.large;
+    // Simple mode (TASKS.md 6.57): even larger than glanceable, and the
+    // tile drops everything but the checkbox and title — no subtitle,
+    // pin/move/actions/reorder — for caregiving or low-vision setups.
+    final simple = ref.watch(simpleModeProvider);
+    // Configurable swipe actions (TASKS.md 6.48): each direction independently
+    // does nothing/complete/snooze/delete. confirmDismiss always returns
+    // false — the mutation itself (not Dismissible's own removal) is what
+    // takes the todo out of view, so complete/snooze don't visually yank an
+    // item that a stream update hasn't actually removed yet.
+    final startToEnd = ref.watch(swipeStartToEndActionProvider);
+    final endToStart = ref.watch(swipeEndToStartActionProvider);
+    final direction = switch ((startToEnd != null, endToStart != null)) {
+      (true, true) => DismissDirection.horizontal,
+      (true, false) => DismissDirection.startToEnd,
+      (false, true) => DismissDirection.endToStart,
+      (false, false) => DismissDirection.none,
+    };
     return Dismissible(
       key: ValueKey(todo.id),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        color: Theme.of(context).colorScheme.errorContainer,
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 16),
-        child: const Icon(Icons.delete),
+      direction: direction,
+      background: _SwipeBackground(
+        action: startToEnd,
+        alignment: Alignment.centerLeft,
       ),
-      onDismissed: (_) => _deleteTodoWithUndo(context, ref, todo),
+      secondaryBackground: _SwipeBackground(
+        action: endToStart,
+        alignment: Alignment.centerRight,
+      ),
+      confirmDismiss: (swipeDirection) async {
+        final action = swipeDirection == DismissDirection.startToEnd
+            ? startToEnd
+            : endToStart;
+        if (action != null) {
+          await _performSwipeAction(context, ref, todo, action);
+        }
+        return false;
+      },
       child: ListTile(
         // Glanceable mode (TASKS.md 6.5): scale grows the checkbox's hit
         // target too, so across-the-room one-tap completes stay easy.
-        minVerticalPadding: large ? 14 : null,
+        minVerticalPadding: simple ? 20 : (large ? 14 : null),
         leading: Transform.scale(
-          scale: large ? 1.4 : 1,
+          scale: simple ? 1.8 : (large ? 1.4 : 1),
           child: Semantics(
             label: 'Mark "${todo.title}" complete',
             child: Checkbox(
@@ -529,28 +656,33 @@ class _TodoTile extends ConsumerWidget {
         ),
         title: LinkifiedText(
           todo.title,
-          style: large ? Theme.of(context).textTheme.titleLarge : null,
+          style: simple
+              ? Theme.of(context).textTheme.headlineSmall
+              : (large ? Theme.of(context).textTheme.titleLarge : null),
         ),
-        subtitle: _TodoSubtitle(todo: todo, overdue: overdue),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _PinButton(todo: todo),
-            if (todo.listId == null) _MoveToListButton(todo: todo),
-            _TodoActionsButton(todo: todo),
-            ReorderableDragStartListener(
-              index: dragIndex,
-              child: Semantics(
-                label: 'Reorder "${todo.title}"',
-                button: true,
-                child: const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Icon(Icons.drag_handle),
-                ),
+        subtitle: simple ? null : _TodoSubtitle(todo: todo, overdue: overdue),
+        trailing: simple
+            ? null
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _AssigneeChip(todo: todo),
+                  _PinButton(todo: todo),
+                  if (todo.listId == null) _MoveToListButton(todo: todo),
+                  _TodoActionsButton(todo: todo),
+                  ReorderableDragStartListener(
+                    index: dragIndex,
+                    child: Semantics(
+                      label: 'Reorder "${todo.title}"',
+                      button: true,
+                      child: const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Icon(Icons.drag_handle),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
         onTap: () {
           if (wide) {
             ref.read(selectedTodoIdProvider.notifier).state = todo.id;
@@ -621,7 +753,12 @@ class _TodoSubtitle extends ConsumerWidget {
     final dueLabel = overdue == null && todo.dueAtMs != null
         ? _TodoTile._formatDue(todo.dueAtMs!)
         : null;
-    final lines = <String>[?sectionLabel, ?overdue, ?dueLabel];
+    // Habit streaks (TASKS.md 6.11): only meaningful once it's actually a
+    // streak (2+), so a first-ever on-time completion doesn't get a badge.
+    final streakLabel = todo.recurrenceRule != null && todo.currentStreak >= 2
+        ? '🔥 ${todo.currentStreak}-streak'
+        : null;
+    final lines = <String>[?sectionLabel, ?overdue, ?dueLabel, ?streakLabel];
     final subtasks =
         ref.watch(subtasksProvider(todo.id)).value ?? const <Todo>[];
     if (subtasks.isNotEmpty) {
@@ -659,6 +796,20 @@ class _TodoActionsButton extends ConsumerWidget {
           if (lines == null || lines.isEmpty) return;
           await ref.read(todoRepositoryProvider).createSubtasks(todo.id, lines);
           break;
+        case 'focus':
+          final duration = await showDialog<Duration>(
+            context: context,
+            builder: (context) => const _FocusDurationDialog(),
+          );
+          if (duration == null) return;
+          ref
+              .read(focusTimerProvider.notifier)
+              .start(
+                todoId: todo.id,
+                todoTitle: todo.title,
+                duration: duration,
+              );
+          break;
         case 'delete':
           await _deleteTodoWithUndo(context, ref, todo);
           break;
@@ -675,6 +826,13 @@ class _TodoActionsButton extends ConsumerWidget {
         ),
       ),
       PopupMenuItem(
+        value: 'focus',
+        child: ListTile(
+          leading: Icon(Icons.timer_outlined),
+          title: Text('Focus timer'),
+        ),
+      ),
+      PopupMenuItem(
         value: 'delete',
         child: ListTile(
           leading: Icon(Icons.delete_outline),
@@ -683,6 +841,53 @@ class _TodoActionsButton extends ConsumerWidget {
       ),
     ],
   );
+}
+
+/// Duration picker for starting a focus session (TASKS.md 6.11).
+class _FocusDurationDialog extends StatelessWidget {
+  const _FocusDurationDialog();
+
+  @override
+  Widget build(BuildContext context) => SimpleDialog(
+    title: const Text('Focus for how long?'),
+    children: [
+      for (final duration in kFocusDurationChoices)
+        SimpleDialogOption(
+          onPressed: () => Navigator.of(context).pop(duration),
+          child: Text('${duration.inMinutes} min'),
+        ),
+    ],
+  );
+}
+
+/// Banner for the one running focus session (TASKS.md 6.11): shows what's
+/// being focused on and when it ends, with a way to stop early.
+class _FocusTimerBanner extends ConsumerWidget {
+  const _FocusTimerBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(focusTimerProvider);
+    if (session == null) return const SizedBox.shrink();
+    String two(int n) => n.toString().padLeft(2, '0');
+    final end = session.endAt;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Card(
+        color: Theme.of(context).colorScheme.secondaryContainer,
+        margin: EdgeInsets.zero,
+        child: ListTile(
+          leading: const Icon(Icons.timer_outlined),
+          title: Text('Focusing on "${session.todoTitle}"'),
+          subtitle: Text('Ends at ${two(end.hour)}:${two(end.minute)}'),
+          trailing: TextButton(
+            onPressed: () => ref.read(focusTimerProvider.notifier).cancel(),
+            child: const Text('Stop'),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// One-tap Inbox triage (TASKS.md 6.15): file an unfiled todo into a list
@@ -706,6 +911,68 @@ class _MoveToListButton extends ConsumerWidget {
           PopupMenuItem(value: list.id, child: Text(list.name)),
       ],
     );
+  }
+}
+
+/// Assignee chip on shared-list tasks (TASKS.md 6.51): tapping opens a
+/// picker over the list's group members. Hidden for local-only lists (no
+/// group to assign within) and for unassigned todos with no members yet.
+class _AssigneeChip extends ConsumerWidget {
+  const _AssigneeChip({required this.todo});
+
+  final Todo todo;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lists = ref.watch(listsProvider).value ?? const <TodoList>[];
+    TodoList? list;
+    for (final candidate in lists) {
+      if (candidate.id == todo.listId) {
+        list = candidate;
+        break;
+      }
+    }
+    final groupId = list?.groupId;
+    if (groupId == null) return const SizedBox.shrink();
+    final members = ref.watch(groupMembersProvider(groupId)).value ?? const [];
+    if (members.isEmpty) return const SizedBox.shrink();
+
+    Device? assignee;
+    for (final member in members) {
+      if (member.id == todo.assigneeDeviceId) {
+        assignee = member;
+        break;
+      }
+    }
+
+    return PopupMenuButton<String?>(
+      tooltip: assignee == null ? 'Assign' : 'Assigned to ${assignee.name}',
+      onSelected: (deviceId) =>
+          ref.read(todoRepositoryProvider).setAssignee(todo.id, deviceId),
+      itemBuilder: (_) => [
+        const PopupMenuItem(value: null, child: Text('Unassigned')),
+        for (final member in members)
+          PopupMenuItem(value: member.id, child: Text(member.name)),
+      ],
+      child: Semantics(
+        label: assignee == null ? 'Unassigned' : 'Assigned to ${assignee.name}',
+        child: CircleAvatar(
+          radius: 12,
+          child: Text(
+            _initials(assignee?.name),
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _initials(String? name) {
+    if (name == null || name.trim().isEmpty) return '?';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    final first = parts.first.substring(0, 1);
+    final last = parts.length > 1 ? parts.last.substring(0, 1) : '';
+    return (first + last).toUpperCase();
   }
 }
 

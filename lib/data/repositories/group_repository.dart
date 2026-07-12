@@ -169,4 +169,23 @@ class GroupRepository {
                 if (row.deviceId != null) row.deviceId!,
             ],
           );
+
+  /// Active member devices of one group, joined for display (TASKS.md 6.51
+  /// assignee picker: name + platform per member).
+  Stream<List<Device>> watchMembers(String groupId) {
+    final query =
+        _db.select(_db.devices).join([
+          innerJoin(
+            _db.groupMembers,
+            _db.groupMembers.deviceId.equalsExp(_db.devices.id),
+          ),
+        ])..where(
+          _db.groupMembers.groupId.equals(groupId) &
+              _db.groupMembers.deleted.equals(false) &
+              _db.devices.deleted.equals(false),
+        );
+    return query.watch().map(
+      (rows) => [for (final row in rows) row.readTable(_db.devices)],
+    );
+  }
 }

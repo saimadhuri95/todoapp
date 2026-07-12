@@ -291,4 +291,98 @@ void main() {
     // Filtered to the empty Work list.
     expect(find.text('Unfiled todo'), findsNothing);
   });
+
+  testApp('simple mode strips the tile to just checkbox and title (6.57)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          deviceIdProvider.overrideWithValue('test-device'),
+          clockProvider.overrideWithValue(FixedClock(DateTime.utc(2026, 7, 5))),
+          simpleModeProvider.overrideWith((_) => true),
+        ],
+        child: const TodoApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await addTodo(tester, 'Take pills');
+
+    expect(find.text('Take pills'), findsOneWidget);
+    expect(find.byType(Checkbox), findsOneWidget);
+    // No pin/move/actions/reorder trailing controls in simple mode.
+    expect(find.byIcon(Icons.more_vert), findsNothing);
+    expect(find.byIcon(Icons.push_pin_outlined), findsNothing);
+  });
+
+  testApp(
+    'configurable swipe: right-swipe can complete instead of delete (6.48)',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            deviceIdProvider.overrideWithValue('test-device'),
+            clockProvider.overrideWithValue(
+              FixedClock(DateTime.utc(2026, 7, 5)),
+            ),
+            swipeStartToEndActionProvider.overrideWith(
+              (_) => SwipeAction.complete,
+            ),
+          ],
+          child: const TodoApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await addTodo(tester, 'Swipe right to finish');
+
+      await tester.drag(
+        find.text('Swipe right to finish'),
+        const Offset(600, 0),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Todo completed'), findsOneWidget);
+      expect(find.text('Swipe right to finish'), findsNothing);
+      final row = await db.todos.all().getSingle();
+      expect(row.completedAtMs != null, isTrue);
+      expect(row.deleted, isFalse);
+    },
+  );
+
+  testApp(
+    'configurable swipe: left-swipe can snooze instead of delete (6.48)',
+    (tester) async {
+      final now = DateTime.utc(2026, 7, 5, 9);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            deviceIdProvider.overrideWithValue('test-device'),
+            clockProvider.overrideWithValue(FixedClock(now)),
+            swipeEndToStartActionProvider.overrideWith(
+              (_) => SwipeAction.snooze,
+            ),
+          ],
+          child: const TodoApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await addTodo(tester, 'Snooze me');
+
+      await tester.drag(find.text('Snooze me'), const Offset(-600, 0));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Snoozed 10 min'), findsOneWidget);
+      // Snoozing doesn't remove or delete the todo — still on screen.
+      expect(find.text('Snooze me'), findsOneWidget);
+      final row = await db.todos.all().getSingle();
+      expect(row.deleted, isFalse);
+      expect(
+        row.snoozeUntilMs,
+        now.add(const Duration(minutes: 10)).millisecondsSinceEpoch,
+      );
+    },
+  );
 }

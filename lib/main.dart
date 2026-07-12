@@ -14,6 +14,7 @@ import 'app/quick_capture.dart';
 import 'app/sync_service.dart';
 import 'core/clock.dart';
 import 'core/platform_info.dart';
+import 'core/snooze_presets.dart';
 import 'data/cloud/cloud_account_service.dart';
 import 'data/cloud/cloud_http.dart';
 import 'data/db/database.dart';
@@ -65,17 +66,32 @@ Future<void> main([List<String> args = const []]) async {
     0,
     accentColorChoices.length - 1,
   );
+  final dailyAvailableMinutes =
+      prefs.getInt('dailyAvailableMinutes') ?? kDefaultDailyAvailableMinutes;
+  final simpleMode = prefs.getBool('simpleMode') ?? false;
+  SwipeAction? swipeAction(String key, SwipeAction? fallback) {
+    final stored = prefs.getString(key);
+    if (stored == null) return fallback;
+    if (stored == 'none') return null;
+    return SwipeAction.values.asNameMap()[stored] ?? fallback;
+  }
+
+  final swipeStartToEndAction = swipeAction('swipeStartToEndAction', null);
+  final swipeEndToStartAction = swipeAction(
+    'swipeEndToStartAction',
+    SwipeAction.delete,
+  );
 
   late final ProviderContainer container;
   final scheduler = LocalNotificationsScheduler(
     onAction: (todoId, occurrenceMs, action) {
       final repo = container.read(todoRepositoryProvider);
-      if (action == 'snooze') {
-        final until = container
-            .read(clockProvider)
-            .now()
-            .add(const Duration(minutes: 10))
-            .millisecondsSinceEpoch;
+      final preset = SnoozePreset.fromActionId(action);
+      if (preset != null) {
+        final until = resolveSnoozeUntil(
+          preset,
+          container.read(clockProvider).now(),
+        ).millisecondsSinceEpoch;
         repo.snoozeAlarm(todoId, until);
       } else {
         repo.dismissAlarm(todoId, occurrenceMs);
@@ -102,6 +118,10 @@ Future<void> main([List<String> args = const []]) async {
       themeModeProvider.overrideWith((_) => themeMode),
       accentColorProvider.overrideWith((_) => accentColorChoices[accentIndex]),
       displayDensityProvider.overrideWith((_) => density),
+      dailyAvailableMinutesProvider.overrideWith((_) => dailyAvailableMinutes),
+      simpleModeProvider.overrideWith((_) => simpleMode),
+      swipeStartToEndActionProvider.overrideWith((_) => swipeStartToEndAction),
+      swipeEndToStartActionProvider.overrideWith((_) => swipeEndToStartAction),
       kioskBootLaunchProvider.overrideWith(
         (_) => prefs.getBool('kioskBootLaunch') ?? false,
       ),

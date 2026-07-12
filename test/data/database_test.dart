@@ -129,4 +129,19 @@ void main() {
     final migrated = await db.todos.all().getSingle();
     expect(migrated.nagIntervalMinutes, isNull);
   });
+
+  test('schema migration v8 to v9 adds assignee and streak columns', () async {
+    await db.customStatement('PRAGMA foreign_keys = OFF');
+    await db.customStatement(
+      'ALTER TABLE todos DROP COLUMN assignee_device_id',
+    );
+    await db.customStatement('ALTER TABLE todos DROP COLUMN current_streak');
+    await db.todos.insertOne(TodosCompanion.insert(id: 't1', title: 'Pre-v9'));
+
+    await db.migration.onUpgrade(db.createMigrator(), 8, 9);
+
+    final migrated = await db.todos.all().getSingle();
+    expect(migrated.assigneeDeviceId, isNull);
+    expect(migrated.currentStreak, 0);
+  });
 }

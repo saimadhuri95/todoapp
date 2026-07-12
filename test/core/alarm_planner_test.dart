@@ -27,6 +27,7 @@ Todo todo(
   snoozeUntilMs: snooze,
   pinned: false,
   nagIntervalMinutes: nag,
+  currentStreak: 0,
   deleted: deleted,
 );
 

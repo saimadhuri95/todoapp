@@ -149,18 +149,58 @@ void main() {
 
     await tester.pumpWidget(screen());
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Enable alarms on this device'),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
     final alarmsTile = find.ancestor(
       of: find.text('Enable alarms on this device'),
       matching: find.byType(SwitchListTile),
     );
-    await tester.tap(
-      find.descendant(of: alarmsTile, matching: find.byType(Switch)),
+    final alarmsSwitch = find.descendant(
+      of: alarmsTile,
+      matching: find.byType(Switch),
     );
+    await tester.ensureVisible(alarmsSwitch);
+    await tester.pumpAndSettle();
+    await tester.tap(alarmsSwitch);
     await tester.pumpAndSettle();
 
     expect(container.read(alarmsEnabledProvider), isFalse);
     expect(scheduler.latest, isEmpty);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getBool('alarmsEnabled'), isFalse);
+  });
+
+  testApp('enabling simple mode persists the pref (TASKS.md 6.57)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(screen());
+    await tester.pumpAndSettle();
+
+    final simpleModeTile = find.ancestor(
+      of: find.text('Simple mode'),
+      matching: find.byType(SwitchListTile),
+    );
+    await tester.tap(
+      find.descendant(of: simpleModeTile, matching: find.byType(Switch)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(container.read(simpleModeProvider), isTrue);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('simpleMode'), isTrue);
+  });
+
+  testApp('caregiver guide opens a dialog with the disclaimer', (tester) async {
+    await tester.pumpWidget(screen());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Caregiver setup guide'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Setting Knot up for someone else'), findsOneWidget);
+    expect(find.textContaining('not a medical device'), findsOneWidget);
   });
 }

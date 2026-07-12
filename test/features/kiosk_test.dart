@@ -71,6 +71,7 @@ void main() {
       sortKey: '',
       alarmOffsetsJson: '[]',
       pinned: pinned,
+      currentStreak: 0,
       deleted: false,
     );
 
