@@ -13,6 +13,7 @@ import 'app/notification_scheduler.dart';
 import 'app/providers.dart';
 import 'app/quick_capture.dart';
 import 'app/sync_service.dart';
+import 'app/tray_service.dart';
 import 'core/clock.dart';
 import 'core/platform_info.dart';
 import 'core/snooze_presets.dart';
@@ -166,6 +167,7 @@ class _SyncBootstrapState extends ConsumerState<SyncBootstrap> {
     ref.read(alarmServiceProvider).start();
     ref.read(quickCaptureServiceProvider).start();
     ref.read(geofenceServiceProvider).start();
+    ref.read(trayServiceProvider).start();
   }
 
   @override
@@ -174,6 +176,7 @@ class _SyncBootstrapState extends ConsumerState<SyncBootstrap> {
     ref.read(alarmServiceProvider).stop();
     ref.read(quickCaptureServiceProvider).stop();
     ref.read(geofenceServiceProvider).stop();
+    ref.read(trayServiceProvider).stop();
     super.dispose();
   }
 
