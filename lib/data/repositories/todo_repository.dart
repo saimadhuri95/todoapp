@@ -357,6 +357,24 @@ class TodoRepository {
         snoozeUntilMs: requested.contains('snoozeUntilMs')
             ? Value(snapshot.snoozeUntilMs)
             : const Value.absent(),
+        pinned: requested.contains('pinned')
+            ? Value(snapshot.pinned)
+            : const Value.absent(),
+        estimateMinutes: requested.contains('estimateMinutes')
+            ? Value(snapshot.estimateMinutes)
+            : const Value.absent(),
+        energy: requested.contains('energy')
+            ? Value(snapshot.energy)
+            : const Value.absent(),
+        nagIntervalMinutes: requested.contains('nagIntervalMinutes')
+            ? Value(snapshot.nagIntervalMinutes)
+            : const Value.absent(),
+        assigneeDeviceId: requested.contains('assigneeDeviceId')
+            ? Value(snapshot.assigneeDeviceId)
+            : const Value.absent(),
+        currentStreak: requested.contains('currentStreak')
+            ? Value(snapshot.currentStreak)
+            : const Value.absent(),
         deleted: requested.contains('deleted')
             ? Value(snapshot.deleted)
             : const Value.absent(),
@@ -372,8 +390,11 @@ class TodoRepository {
   /// "changed by ..." attribution (TASKS.md 6.51). The winning field
   /// clock's HLC carries the writer's node id; this resolves it to that
   /// device's display name, falling back to the raw node id for a peer whose
-  /// identity row hasn't synced yet. Null when the row has no clocks.
-  Future<String?> lastChangedBy(String id) async {
+  /// identity row hasn't synced yet. Null when the row has no clocks — or
+  /// when the writer is [excludeNodeId]: attribution is about *someone
+  /// else's* edit, so callers pass their own device id to silence
+  /// self-attribution.
+  Future<String?> lastChangedBy(String id, {String? excludeNodeId}) async {
     final clocks =
         await (_db.fieldClocks.select()
               ..where((c) => c.entity.equals('todos') & c.rowId.equals(id)))
@@ -382,6 +403,7 @@ class TodoRepository {
     final latest = clocks
         .map((c) => Hlc.parse(c.hlc))
         .reduce((a, b) => a.compareTo(b) >= 0 ? a : b);
+    if (latest.nodeId == excludeNodeId) return null;
     final device =
         await (_db.devices.select()..where((d) => d.id.equals(latest.nodeId)))
             .getSingleOrNull();

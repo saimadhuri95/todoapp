@@ -65,5 +65,11 @@ void main() {
       expect(SnoozePreset.fromActionId('dismiss'), isNull);
       expect(SnoozePreset.fromActionId('bogus'), isNull);
     });
+
+    test('legacy pre-6.43 "snooze" id maps to the 10-minute preset', () {
+      // Notifications scheduled by the previous app version can outlive
+      // the update; their snooze button must keep snoozing, not dismiss.
+      expect(SnoozePreset.fromActionId('snooze'), SnoozePreset.tenMinutes);
+    });
   });
 }

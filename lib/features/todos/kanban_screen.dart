@@ -142,7 +142,7 @@ class _MoveColumnButton extends ConsumerWidget {
   final List<String> otherSections;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => PopupMenuButton<String?>(
+  Widget build(BuildContext context, WidgetRef ref) => PopupMenuButton<String>(
     tooltip: 'Move to column',
     icon: const Icon(Icons.arrow_forward, size: 18),
     onSelected: (target) async {
@@ -157,13 +157,21 @@ class _MoveColumnButton extends ConsumerWidget {
             .edit(todo.id, section: Value(name.trim()));
         return;
       }
+      // A null menu value reads as "cancelled" to PopupMenuButton, so the
+      // unsectioned column travels as a sentinel instead.
       await ref
           .read(todoRepositoryProvider)
-          .edit(todo.id, section: Value(target));
+          .edit(
+            todo.id,
+            section: Value(target == _noSectionSentinel ? null : target),
+          );
     },
     itemBuilder: (_) => [
       if (currentSection != null)
-        const PopupMenuItem(value: null, child: Text('No section')),
+        const PopupMenuItem(
+          value: _noSectionSentinel,
+          child: Text('No section'),
+        ),
       for (final section in otherSections)
         if (section != currentSection)
           PopupMenuItem(value: section, child: Text(section)),
@@ -176,6 +184,7 @@ class _MoveColumnButton extends ConsumerWidget {
 }
 
 const _newColumnSentinel = '__new_column__';
+const _noSectionSentinel = '__no_section__';
 
 class _NewColumnDialog extends StatefulWidget {
   const _NewColumnDialog();

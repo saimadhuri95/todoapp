@@ -54,17 +54,23 @@ class AlarmService {
             ))
             .get();
     // Attribution (TASKS.md 6.51) only for todos on a shared list — most
-    // todos are local-only and this is one query per candidate.
+    // todos are local-only and this is one query per candidate. Excluding
+    // this device keeps "changed by" for *other people's* edits: your own
+    // last write shouldn't ring as "changed by <your device>".
     final lists = await db.todoLists.select().get();
     final sharedListIds = {
       for (final list in lists)
         if (list.groupId != null) list.id,
     };
     final repo = _ref.read(todoRepositoryProvider);
+    final ownDeviceId = _ref.read(deviceIdProvider);
     final changedByTodoId = <String, String>{};
     for (final todo in todos) {
       if (!sharedListIds.contains(todo.listId)) continue;
-      final changedBy = await repo.lastChangedBy(todo.id);
+      final changedBy = await repo.lastChangedBy(
+        todo.id,
+        excludeNodeId: ownDeviceId,
+      );
       if (changedBy != null) changedByTodoId[todo.id] = changedBy;
     }
     await scheduler.replaceAll(

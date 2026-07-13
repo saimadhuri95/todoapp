@@ -419,6 +419,65 @@ void main() {
     });
   });
 
+  group('restoreSnapshot (undo)', () {
+    test('restores newer-schema fields, not just the original set', () async {
+      final todo = await todos.create(title: 't');
+      await todos.edit(
+        todo.id,
+        estimateMinutes: const Value(15),
+        energy: const Value(2),
+        nagIntervalMinutes: const Value(30),
+        section: const Value('Doing'),
+      );
+      final before = (await todos.getById(todo.id))!;
+
+      // Mutate every one of them, then undo via a snapshot restore.
+      await todos.edit(
+        todo.id,
+        estimateMinutes: const Value(99),
+        energy: const Value(0),
+        nagIntervalMinutes: const Value(5),
+        section: const Value('Done'),
+      );
+      await todos.restoreSnapshot(
+        before,
+        fields: const [
+          'estimateMinutes',
+          'energy',
+          'nagIntervalMinutes',
+          'section',
+        ],
+      );
+
+      final restored = (await todos.getById(todo.id))!;
+      expect(restored.estimateMinutes, 15);
+      expect(restored.energy, 2);
+      expect(restored.nagIntervalMinutes, 30);
+      expect(restored.section, 'Doing');
+    });
+
+    test('restores currentStreak (undo of a recurring completion)', () async {
+      final todo = await todos.create(
+        title: 'meds',
+        dueAtMs: DateTime.utc(2026, 7, 5, 13).millisecondsSinceEpoch,
+        recurrenceRule: 'FREQ=DAILY',
+      );
+      final before = (await todos.getById(todo.id))!; // streak 0, original due
+
+      await todos.complete(todo.id); // advances due, bumps streak to 1
+      expect((await todos.getById(todo.id))!.currentStreak, 1);
+
+      await todos.restoreSnapshot(
+        before,
+        fields: const ['dueAtMs', 'snoozeUntilMs', 'currentStreak'],
+      );
+
+      final restored = (await todos.getById(todo.id))!;
+      expect(restored.currentStreak, 0);
+      expect(restored.dueAtMs, before.dueAtMs);
+    });
+  });
+
   test(
     'mutations across repositories share one monotonic HLC stream',
     () async {

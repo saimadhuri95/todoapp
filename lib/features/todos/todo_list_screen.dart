@@ -945,12 +945,21 @@ class _AssigneeChip extends ConsumerWidget {
       }
     }
 
-    return PopupMenuButton<String?>(
+    // A null menu value means "cancelled" to PopupMenuButton (onSelected is
+    // never called with it), so unassignment goes through a sentinel.
+    return PopupMenuButton<String>(
       tooltip: assignee == null ? 'Assign' : 'Assigned to ${assignee.name}',
-      onSelected: (deviceId) =>
-          ref.read(todoRepositoryProvider).setAssignee(todo.id, deviceId),
+      onSelected: (deviceId) => ref
+          .read(todoRepositoryProvider)
+          .setAssignee(
+            todo.id,
+            deviceId == _unassignedSentinel ? null : deviceId,
+          ),
       itemBuilder: (_) => [
-        const PopupMenuItem(value: null, child: Text('Unassigned')),
+        const PopupMenuItem(
+          value: _unassignedSentinel,
+          child: Text('Unassigned'),
+        ),
         for (final member in members)
           PopupMenuItem(value: member.id, child: Text(member.name)),
       ],
@@ -966,6 +975,8 @@ class _AssigneeChip extends ConsumerWidget {
       ),
     );
   }
+
+  static const _unassignedSentinel = '__unassigned__';
 
   static String _initials(String? name) {
     if (name == null || name.trim().isEmpty) return '?';

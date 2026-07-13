@@ -22,6 +22,9 @@ enum SnoozePreset {
   };
 
   static SnoozePreset? fromActionId(String actionId) {
+    // Notifications scheduled before 6.43 shipped carry 2.8's fixed action
+    // id; they can outlive the app update, so keep honoring it.
+    if (actionId == 'snooze') return SnoozePreset.tenMinutes;
     for (final preset in SnoozePreset.values) {
       if (preset.actionId == actionId) return preset;
     }

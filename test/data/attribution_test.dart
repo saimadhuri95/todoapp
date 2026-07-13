@@ -62,4 +62,31 @@ void main() {
         );
     expect(await todos.lastChangedBy(todo.id), 'bb');
   });
+
+  test(
+    'excludeNodeId silences self-attribution but not remote writers',
+    () async {
+      final todo = await todos.create(title: 'x');
+      // Latest writer is this device ('aa') → excluded callers get null, so
+      // a notification never reads "changed by <your own device>".
+      expect(await todos.lastChangedBy(todo.id, excludeNodeId: 'aa'), isNull);
+
+      // Once a remote write is newest, exclusion of 'aa' no longer applies.
+      await db
+          .into(db.fieldClocks)
+          .insertOnConflictUpdate(
+            FieldClocksCompanion.insert(
+              entity: 'todos',
+              rowId: todo.id,
+              fieldName: 'title',
+              hlc: Hlc(
+                DateTime.utc(2026, 7, 7, 12).millisecondsSinceEpoch,
+                0,
+                'bb',
+              ).encode(),
+            ),
+          );
+      expect(await todos.lastChangedBy(todo.id, excludeNodeId: 'aa'), 'bb');
+    },
+  );
 }

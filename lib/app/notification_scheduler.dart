@@ -190,12 +190,17 @@ class LocalNotificationsScheduler implements AlarmScheduler {
       importance: Importance.max,
       priority: Priority.high,
       category: AndroidNotificationCategory.alarm,
-      // Snooze presets (TASKS.md 6.43): Android renders the first few as
-      // buttons; the rest still fire correctly if the OS exposes them via
-      // an overflow affordance.
+      // Snooze presets (TASKS.md 6.43): Android caps a notification at
+      // three action buttons with no overflow, so offer Dismiss plus the
+      // two quick offsets deterministically; the wall-clock presets
+      // ("This evening"/"Tomorrow") are Darwin-only, where the expanded
+      // card lists every category action.
       actions: [
         const AndroidNotificationAction(_dismissAction, 'Dismiss'),
-        for (final preset in SnoozePreset.values)
+        for (final preset in const [
+          SnoozePreset.tenMinutes,
+          SnoozePreset.oneHour,
+        ])
           AndroidNotificationAction(preset.actionId, preset.label),
       ],
     ),
