@@ -390,11 +390,10 @@ class TodoRepository {
   /// "changed by ..." attribution (TASKS.md 6.51). The winning field
   /// clock's HLC carries the writer's node id; this resolves it to that
   /// device's display name, falling back to the raw node id for a peer whose
-  /// identity row hasn't synced yet. Null when the row has no clocks.
-  /// Name of the device whose write carries the todo's newest HLC, or null
-  /// when there are no clocks — or when that writer is [excludeNodeId]:
-  /// "changed by" attribution (TASKS.md 6.51) is about *someone else's*
-  /// edit, so callers pass their own device id to silence self-attribution.
+  /// identity row hasn't synced yet. Null when the row has no clocks — or
+  /// when the writer is [excludeNodeId]: attribution is about *someone
+  /// else's* edit, so callers pass their own device id to silence
+  /// self-attribution.
   Future<String?> lastChangedBy(String id, {String? excludeNodeId}) async {
     final clocks =
         await (_db.fieldClocks.select()
