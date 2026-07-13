@@ -53,5 +53,9 @@ Set<String> _changedFields(Todo before, Todo after) => {
     'nagIntervalMinutes',
   if (before.assigneeDeviceId != after.assigneeDeviceId) 'assigneeDeviceId',
   if (before.currentStreak != after.currentStreak) 'currentStreak',
+  if (before.geofenceLat != after.geofenceLat) 'geofenceLat',
+  if (before.geofenceLng != after.geofenceLng) 'geofenceLng',
+  if (before.geofenceRadiusM != after.geofenceRadiusM) 'geofenceRadiusM',
+  if (before.geofenceLabel != after.geofenceLabel) 'geofenceLabel',
   if (before.deleted != after.deleted) 'deleted',
 };

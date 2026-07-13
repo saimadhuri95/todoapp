@@ -25,7 +25,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.open() => AppDatabase(openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -71,6 +71,13 @@ class AppDatabase extends _$AppDatabase {
         // unassigned with a zero streak.
         await m.addColumn(todos, todos.assigneeDeviceId);
         await m.addColumn(todos, todos.currentStreak);
+      }
+      if (from < 10 && to >= 10) {
+        // Location reminders (6.50): existing todos have no geofence.
+        await m.addColumn(todos, todos.geofenceLat);
+        await m.addColumn(todos, todos.geofenceLng);
+        await m.addColumn(todos, todos.geofenceRadiusM);
+        await m.addColumn(todos, todos.geofenceLabel);
       }
     },
     beforeOpen: (details) async {

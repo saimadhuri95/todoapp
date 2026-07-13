@@ -1456,6 +1456,50 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _geofenceLatMeta = const VerificationMeta(
+    'geofenceLat',
+  );
+  @override
+  late final GeneratedColumn<double> geofenceLat = GeneratedColumn<double>(
+    'geofence_lat',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _geofenceLngMeta = const VerificationMeta(
+    'geofenceLng',
+  );
+  @override
+  late final GeneratedColumn<double> geofenceLng = GeneratedColumn<double>(
+    'geofence_lng',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _geofenceRadiusMMeta = const VerificationMeta(
+    'geofenceRadiusM',
+  );
+  @override
+  late final GeneratedColumn<int> geofenceRadiusM = GeneratedColumn<int>(
+    'geofence_radius_m',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _geofenceLabelMeta = const VerificationMeta(
+    'geofenceLabel',
+  );
+  @override
+  late final GeneratedColumn<String> geofenceLabel = GeneratedColumn<String>(
+    'geofence_label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _deletedMeta = const VerificationMeta(
     'deleted',
   );
@@ -1494,6 +1538,10 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
     nagIntervalMinutes,
     assigneeDeviceId,
     currentStreak,
+    geofenceLat,
+    geofenceLng,
+    geofenceRadiusM,
+    geofenceLabel,
     deleted,
   ];
   @override
@@ -1662,6 +1710,42 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
         ),
       );
     }
+    if (data.containsKey('geofence_lat')) {
+      context.handle(
+        _geofenceLatMeta,
+        geofenceLat.isAcceptableOrUnknown(
+          data['geofence_lat']!,
+          _geofenceLatMeta,
+        ),
+      );
+    }
+    if (data.containsKey('geofence_lng')) {
+      context.handle(
+        _geofenceLngMeta,
+        geofenceLng.isAcceptableOrUnknown(
+          data['geofence_lng']!,
+          _geofenceLngMeta,
+        ),
+      );
+    }
+    if (data.containsKey('geofence_radius_m')) {
+      context.handle(
+        _geofenceRadiusMMeta,
+        geofenceRadiusM.isAcceptableOrUnknown(
+          data['geofence_radius_m']!,
+          _geofenceRadiusMMeta,
+        ),
+      );
+    }
+    if (data.containsKey('geofence_label')) {
+      context.handle(
+        _geofenceLabelMeta,
+        geofenceLabel.isAcceptableOrUnknown(
+          data['geofence_label']!,
+          _geofenceLabelMeta,
+        ),
+      );
+    }
     if (data.containsKey('deleted')) {
       context.handle(
         _deletedMeta,
@@ -1761,6 +1845,22 @@ class $TodosTable extends Todos with TableInfo<$TodosTable, Todo> {
         DriftSqlType.int,
         data['${effectivePrefix}current_streak'],
       )!,
+      geofenceLat: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}geofence_lat'],
+      ),
+      geofenceLng: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}geofence_lng'],
+      ),
+      geofenceRadiusM: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}geofence_radius_m'],
+      ),
+      geofenceLabel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}geofence_label'],
+      ),
       deleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}deleted'],
@@ -1837,6 +1937,18 @@ class Todo extends DataClass implements Insertable<Todo> {
   /// occurrence was completed before its *next* due moment, reset to 1
   /// otherwise. 0 for non-recurring or never-completed todos.
   final int currentStreak;
+
+  /// Location reminder (schema v10, TASKS.md 6.50): an on-device geofence.
+  /// When [geofenceLat]/[geofenceLng] are set, the todo fires a notification
+  /// on arrival within [geofenceRadiusM] metres of the point. All three are
+  /// synced LWW fields; the GPS monitoring that consumes them is device-local
+  /// and never leaves the phone (no location ever syncs beyond these opt-in
+  /// coordinates the user themselves attached). [geofenceLabel] is a
+  /// human-readable name for the place ("Home", "Office").
+  final double? geofenceLat;
+  final double? geofenceLng;
+  final int? geofenceRadiusM;
+  final String? geofenceLabel;
   final bool deleted;
   const Todo({
     required this.id,
@@ -1860,6 +1972,10 @@ class Todo extends DataClass implements Insertable<Todo> {
     this.nagIntervalMinutes,
     this.assigneeDeviceId,
     required this.currentStreak,
+    this.geofenceLat,
+    this.geofenceLng,
+    this.geofenceRadiusM,
+    this.geofenceLabel,
     required this.deleted,
   });
   @override
@@ -1910,6 +2026,18 @@ class Todo extends DataClass implements Insertable<Todo> {
       map['assignee_device_id'] = Variable<String>(assigneeDeviceId);
     }
     map['current_streak'] = Variable<int>(currentStreak);
+    if (!nullToAbsent || geofenceLat != null) {
+      map['geofence_lat'] = Variable<double>(geofenceLat);
+    }
+    if (!nullToAbsent || geofenceLng != null) {
+      map['geofence_lng'] = Variable<double>(geofenceLng);
+    }
+    if (!nullToAbsent || geofenceRadiusM != null) {
+      map['geofence_radius_m'] = Variable<int>(geofenceRadiusM);
+    }
+    if (!nullToAbsent || geofenceLabel != null) {
+      map['geofence_label'] = Variable<String>(geofenceLabel);
+    }
     map['deleted'] = Variable<bool>(deleted);
     return map;
   }
@@ -1961,6 +2089,18 @@ class Todo extends DataClass implements Insertable<Todo> {
           ? const Value.absent()
           : Value(assigneeDeviceId),
       currentStreak: Value(currentStreak),
+      geofenceLat: geofenceLat == null && nullToAbsent
+          ? const Value.absent()
+          : Value(geofenceLat),
+      geofenceLng: geofenceLng == null && nullToAbsent
+          ? const Value.absent()
+          : Value(geofenceLng),
+      geofenceRadiusM: geofenceRadiusM == null && nullToAbsent
+          ? const Value.absent()
+          : Value(geofenceRadiusM),
+      geofenceLabel: geofenceLabel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(geofenceLabel),
       deleted: Value(deleted),
     );
   }
@@ -1992,6 +2132,10 @@ class Todo extends DataClass implements Insertable<Todo> {
       nagIntervalMinutes: serializer.fromJson<int?>(json['nagIntervalMinutes']),
       assigneeDeviceId: serializer.fromJson<String?>(json['assigneeDeviceId']),
       currentStreak: serializer.fromJson<int>(json['currentStreak']),
+      geofenceLat: serializer.fromJson<double?>(json['geofenceLat']),
+      geofenceLng: serializer.fromJson<double?>(json['geofenceLng']),
+      geofenceRadiusM: serializer.fromJson<int?>(json['geofenceRadiusM']),
+      geofenceLabel: serializer.fromJson<String?>(json['geofenceLabel']),
       deleted: serializer.fromJson<bool>(json['deleted']),
     );
   }
@@ -2020,6 +2164,10 @@ class Todo extends DataClass implements Insertable<Todo> {
       'nagIntervalMinutes': serializer.toJson<int?>(nagIntervalMinutes),
       'assigneeDeviceId': serializer.toJson<String?>(assigneeDeviceId),
       'currentStreak': serializer.toJson<int>(currentStreak),
+      'geofenceLat': serializer.toJson<double?>(geofenceLat),
+      'geofenceLng': serializer.toJson<double?>(geofenceLng),
+      'geofenceRadiusM': serializer.toJson<int?>(geofenceRadiusM),
+      'geofenceLabel': serializer.toJson<String?>(geofenceLabel),
       'deleted': serializer.toJson<bool>(deleted),
     };
   }
@@ -2046,6 +2194,10 @@ class Todo extends DataClass implements Insertable<Todo> {
     Value<int?> nagIntervalMinutes = const Value.absent(),
     Value<String?> assigneeDeviceId = const Value.absent(),
     int? currentStreak,
+    Value<double?> geofenceLat = const Value.absent(),
+    Value<double?> geofenceLng = const Value.absent(),
+    Value<int?> geofenceRadiusM = const Value.absent(),
+    Value<String?> geofenceLabel = const Value.absent(),
     bool? deleted,
   }) => Todo(
     id: id ?? this.id,
@@ -2083,6 +2235,14 @@ class Todo extends DataClass implements Insertable<Todo> {
         ? assigneeDeviceId.value
         : this.assigneeDeviceId,
     currentStreak: currentStreak ?? this.currentStreak,
+    geofenceLat: geofenceLat.present ? geofenceLat.value : this.geofenceLat,
+    geofenceLng: geofenceLng.present ? geofenceLng.value : this.geofenceLng,
+    geofenceRadiusM: geofenceRadiusM.present
+        ? geofenceRadiusM.value
+        : this.geofenceRadiusM,
+    geofenceLabel: geofenceLabel.present
+        ? geofenceLabel.value
+        : this.geofenceLabel,
     deleted: deleted ?? this.deleted,
   );
   Todo copyWithCompanion(TodosCompanion data) {
@@ -2126,6 +2286,18 @@ class Todo extends DataClass implements Insertable<Todo> {
       currentStreak: data.currentStreak.present
           ? data.currentStreak.value
           : this.currentStreak,
+      geofenceLat: data.geofenceLat.present
+          ? data.geofenceLat.value
+          : this.geofenceLat,
+      geofenceLng: data.geofenceLng.present
+          ? data.geofenceLng.value
+          : this.geofenceLng,
+      geofenceRadiusM: data.geofenceRadiusM.present
+          ? data.geofenceRadiusM.value
+          : this.geofenceRadiusM,
+      geofenceLabel: data.geofenceLabel.present
+          ? data.geofenceLabel.value
+          : this.geofenceLabel,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
     );
   }
@@ -2154,6 +2326,10 @@ class Todo extends DataClass implements Insertable<Todo> {
           ..write('nagIntervalMinutes: $nagIntervalMinutes, ')
           ..write('assigneeDeviceId: $assigneeDeviceId, ')
           ..write('currentStreak: $currentStreak, ')
+          ..write('geofenceLat: $geofenceLat, ')
+          ..write('geofenceLng: $geofenceLng, ')
+          ..write('geofenceRadiusM: $geofenceRadiusM, ')
+          ..write('geofenceLabel: $geofenceLabel, ')
           ..write('deleted: $deleted')
           ..write(')'))
         .toString();
@@ -2182,6 +2358,10 @@ class Todo extends DataClass implements Insertable<Todo> {
     nagIntervalMinutes,
     assigneeDeviceId,
     currentStreak,
+    geofenceLat,
+    geofenceLng,
+    geofenceRadiusM,
+    geofenceLabel,
     deleted,
   ]);
   @override
@@ -2209,6 +2389,10 @@ class Todo extends DataClass implements Insertable<Todo> {
           other.nagIntervalMinutes == this.nagIntervalMinutes &&
           other.assigneeDeviceId == this.assigneeDeviceId &&
           other.currentStreak == this.currentStreak &&
+          other.geofenceLat == this.geofenceLat &&
+          other.geofenceLng == this.geofenceLng &&
+          other.geofenceRadiusM == this.geofenceRadiusM &&
+          other.geofenceLabel == this.geofenceLabel &&
           other.deleted == this.deleted);
 }
 
@@ -2234,6 +2418,10 @@ class TodosCompanion extends UpdateCompanion<Todo> {
   final Value<int?> nagIntervalMinutes;
   final Value<String?> assigneeDeviceId;
   final Value<int> currentStreak;
+  final Value<double?> geofenceLat;
+  final Value<double?> geofenceLng;
+  final Value<int?> geofenceRadiusM;
+  final Value<String?> geofenceLabel;
   final Value<bool> deleted;
   final Value<int> rowid;
   const TodosCompanion({
@@ -2258,6 +2446,10 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     this.nagIntervalMinutes = const Value.absent(),
     this.assigneeDeviceId = const Value.absent(),
     this.currentStreak = const Value.absent(),
+    this.geofenceLat = const Value.absent(),
+    this.geofenceLng = const Value.absent(),
+    this.geofenceRadiusM = const Value.absent(),
+    this.geofenceLabel = const Value.absent(),
     this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -2283,6 +2475,10 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     this.nagIntervalMinutes = const Value.absent(),
     this.assigneeDeviceId = const Value.absent(),
     this.currentStreak = const Value.absent(),
+    this.geofenceLat = const Value.absent(),
+    this.geofenceLng = const Value.absent(),
+    this.geofenceRadiusM = const Value.absent(),
+    this.geofenceLabel = const Value.absent(),
     this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -2309,6 +2505,10 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     Expression<int>? nagIntervalMinutes,
     Expression<String>? assigneeDeviceId,
     Expression<int>? currentStreak,
+    Expression<double>? geofenceLat,
+    Expression<double>? geofenceLng,
+    Expression<int>? geofenceRadiusM,
+    Expression<String>? geofenceLabel,
     Expression<bool>? deleted,
     Expression<int>? rowid,
   }) {
@@ -2335,6 +2535,10 @@ class TodosCompanion extends UpdateCompanion<Todo> {
         'nag_interval_minutes': nagIntervalMinutes,
       if (assigneeDeviceId != null) 'assignee_device_id': assigneeDeviceId,
       if (currentStreak != null) 'current_streak': currentStreak,
+      if (geofenceLat != null) 'geofence_lat': geofenceLat,
+      if (geofenceLng != null) 'geofence_lng': geofenceLng,
+      if (geofenceRadiusM != null) 'geofence_radius_m': geofenceRadiusM,
+      if (geofenceLabel != null) 'geofence_label': geofenceLabel,
       if (deleted != null) 'deleted': deleted,
       if (rowid != null) 'rowid': rowid,
     });
@@ -2362,6 +2566,10 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     Value<int?>? nagIntervalMinutes,
     Value<String?>? assigneeDeviceId,
     Value<int>? currentStreak,
+    Value<double?>? geofenceLat,
+    Value<double?>? geofenceLng,
+    Value<int?>? geofenceRadiusM,
+    Value<String?>? geofenceLabel,
     Value<bool>? deleted,
     Value<int>? rowid,
   }) {
@@ -2387,6 +2595,10 @@ class TodosCompanion extends UpdateCompanion<Todo> {
       nagIntervalMinutes: nagIntervalMinutes ?? this.nagIntervalMinutes,
       assigneeDeviceId: assigneeDeviceId ?? this.assigneeDeviceId,
       currentStreak: currentStreak ?? this.currentStreak,
+      geofenceLat: geofenceLat ?? this.geofenceLat,
+      geofenceLng: geofenceLng ?? this.geofenceLng,
+      geofenceRadiusM: geofenceRadiusM ?? this.geofenceRadiusM,
+      geofenceLabel: geofenceLabel ?? this.geofenceLabel,
       deleted: deleted ?? this.deleted,
       rowid: rowid ?? this.rowid,
     );
@@ -2458,6 +2670,18 @@ class TodosCompanion extends UpdateCompanion<Todo> {
     if (currentStreak.present) {
       map['current_streak'] = Variable<int>(currentStreak.value);
     }
+    if (geofenceLat.present) {
+      map['geofence_lat'] = Variable<double>(geofenceLat.value);
+    }
+    if (geofenceLng.present) {
+      map['geofence_lng'] = Variable<double>(geofenceLng.value);
+    }
+    if (geofenceRadiusM.present) {
+      map['geofence_radius_m'] = Variable<int>(geofenceRadiusM.value);
+    }
+    if (geofenceLabel.present) {
+      map['geofence_label'] = Variable<String>(geofenceLabel.value);
+    }
     if (deleted.present) {
       map['deleted'] = Variable<bool>(deleted.value);
     }
@@ -2491,6 +2715,10 @@ class TodosCompanion extends UpdateCompanion<Todo> {
           ..write('nagIntervalMinutes: $nagIntervalMinutes, ')
           ..write('assigneeDeviceId: $assigneeDeviceId, ')
           ..write('currentStreak: $currentStreak, ')
+          ..write('geofenceLat: $geofenceLat, ')
+          ..write('geofenceLng: $geofenceLng, ')
+          ..write('geofenceRadiusM: $geofenceRadiusM, ')
+          ..write('geofenceLabel: $geofenceLabel, ')
           ..write('deleted: $deleted, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -5491,6 +5719,10 @@ typedef $$TodosTableCreateCompanionBuilder =
       Value<int?> nagIntervalMinutes,
       Value<String?> assigneeDeviceId,
       Value<int> currentStreak,
+      Value<double?> geofenceLat,
+      Value<double?> geofenceLng,
+      Value<int?> geofenceRadiusM,
+      Value<String?> geofenceLabel,
       Value<bool> deleted,
       Value<int> rowid,
     });
@@ -5517,6 +5749,10 @@ typedef $$TodosTableUpdateCompanionBuilder =
       Value<int?> nagIntervalMinutes,
       Value<String?> assigneeDeviceId,
       Value<int> currentStreak,
+      Value<double?> geofenceLat,
+      Value<double?> geofenceLng,
+      Value<int?> geofenceRadiusM,
+      Value<String?> geofenceLabel,
       Value<bool> deleted,
       Value<int> rowid,
     });
@@ -5690,6 +5926,26 @@ class $$TodosTableFilterComposer extends Composer<_$AppDatabase, $TodosTable> {
 
   ColumnFilters<int> get currentStreak => $composableBuilder(
     column: $table.currentStreak,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get geofenceLat => $composableBuilder(
+    column: $table.geofenceLat,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get geofenceLng => $composableBuilder(
+    column: $table.geofenceLng,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get geofenceRadiusM => $composableBuilder(
+    column: $table.geofenceRadiusM,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get geofenceLabel => $composableBuilder(
+    column: $table.geofenceLabel,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5892,6 +6148,26 @@ class $$TodosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get geofenceLat => $composableBuilder(
+    column: $table.geofenceLat,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get geofenceLng => $composableBuilder(
+    column: $table.geofenceLng,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get geofenceRadiusM => $composableBuilder(
+    column: $table.geofenceRadiusM,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get geofenceLabel => $composableBuilder(
+    column: $table.geofenceLabel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get deleted => $composableBuilder(
     column: $table.deleted,
     builder: (column) => ColumnOrderings(column),
@@ -6043,6 +6319,26 @@ class $$TodosTableAnnotationComposer
 
   GeneratedColumn<int> get currentStreak => $composableBuilder(
     column: $table.currentStreak,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get geofenceLat => $composableBuilder(
+    column: $table.geofenceLat,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get geofenceLng => $composableBuilder(
+    column: $table.geofenceLng,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get geofenceRadiusM => $composableBuilder(
+    column: $table.geofenceRadiusM,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get geofenceLabel => $composableBuilder(
+    column: $table.geofenceLabel,
     builder: (column) => column,
   );
 
@@ -6198,6 +6494,10 @@ class $$TodosTableTableManager
                 Value<int?> nagIntervalMinutes = const Value.absent(),
                 Value<String?> assigneeDeviceId = const Value.absent(),
                 Value<int> currentStreak = const Value.absent(),
+                Value<double?> geofenceLat = const Value.absent(),
+                Value<double?> geofenceLng = const Value.absent(),
+                Value<int?> geofenceRadiusM = const Value.absent(),
+                Value<String?> geofenceLabel = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TodosCompanion(
@@ -6222,6 +6522,10 @@ class $$TodosTableTableManager
                 nagIntervalMinutes: nagIntervalMinutes,
                 assigneeDeviceId: assigneeDeviceId,
                 currentStreak: currentStreak,
+                geofenceLat: geofenceLat,
+                geofenceLng: geofenceLng,
+                geofenceRadiusM: geofenceRadiusM,
+                geofenceLabel: geofenceLabel,
                 deleted: deleted,
                 rowid: rowid,
               ),
@@ -6248,6 +6552,10 @@ class $$TodosTableTableManager
                 Value<int?> nagIntervalMinutes = const Value.absent(),
                 Value<String?> assigneeDeviceId = const Value.absent(),
                 Value<int> currentStreak = const Value.absent(),
+                Value<double?> geofenceLat = const Value.absent(),
+                Value<double?> geofenceLng = const Value.absent(),
+                Value<int?> geofenceRadiusM = const Value.absent(),
+                Value<String?> geofenceLabel = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TodosCompanion.insert(
@@ -6272,6 +6580,10 @@ class $$TodosTableTableManager
                 nagIntervalMinutes: nagIntervalMinutes,
                 assigneeDeviceId: assigneeDeviceId,
                 currentStreak: currentStreak,
+                geofenceLat: geofenceLat,
+                geofenceLng: geofenceLng,
+                geofenceRadiusM: geofenceRadiusM,
+                geofenceLabel: geofenceLabel,
                 deleted: deleted,
                 rowid: rowid,
               ),

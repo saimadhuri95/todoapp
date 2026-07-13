@@ -29,6 +29,10 @@ const Map<String, Map<String, String>> syncColumns = {
     'nagIntervalMinutes': 'nag_interval_minutes',
     'assigneeDeviceId': 'assignee_device_id',
     'currentStreak': 'current_streak',
+    'geofenceLat': 'geofence_lat',
+    'geofenceLng': 'geofence_lng',
+    'geofenceRadiusM': 'geofence_radius_m',
+    'geofenceLabel': 'geofence_label',
     'deleted': 'deleted',
   },
   'todo_lists': {

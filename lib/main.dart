@@ -7,6 +7,7 @@ import 'package:window_manager/window_manager.dart';
 import 'app/alarm_service.dart';
 import 'app/background_mode.dart';
 import 'app/cloud_folder_channel.dart';
+import 'app/geofence_service.dart';
 import 'app/key_store_factory.dart';
 import 'app/notification_scheduler.dart';
 import 'app/providers.dart';
@@ -164,6 +165,7 @@ class _SyncBootstrapState extends ConsumerState<SyncBootstrap> {
     ref.read(syncServiceProvider).start();
     ref.read(alarmServiceProvider).start();
     ref.read(quickCaptureServiceProvider).start();
+    ref.read(geofenceServiceProvider).start();
   }
 
   @override
@@ -171,6 +173,7 @@ class _SyncBootstrapState extends ConsumerState<SyncBootstrap> {
     ref.read(syncServiceProvider).stop();
     ref.read(alarmServiceProvider).stop();
     ref.read(quickCaptureServiceProvider).stop();
+    ref.read(geofenceServiceProvider).stop();
     super.dispose();
   }
 
