@@ -218,18 +218,44 @@ class ExportService {
     if (map['v'] != formatVersion || map['app'] != 'knot') {
       throw const FormatException('Not a Knot export file');
     }
-    final lists = [
-      for (final l in (map['lists'] as List<dynamic>? ?? []))
-        TodoList.fromJson(l as Map<String, dynamic>),
-    ];
-    final todos = [
-      for (final t in (map['todos'] as List<dynamic>? ?? []))
-        Todo.fromJson(t as Map<String, dynamic>),
-    ];
+    final rawLists = (map['lists'] as List<dynamic>? ?? [])
+        .cast<Map<String, dynamic>>();
+    final rawTodos = (map['todos'] as List<dynamic>? ?? [])
+        .cast<Map<String, dynamic>>();
 
     final stamp = hlc.send();
-    await db.transaction(() async {
-      for (final list in lists) {
+    final (lists, todos) = await db.transaction(() async {
+      // A backup written by an older build lacks columns added since (three
+      // landed this month). drift's `fromJson` requires every column key, so
+      // decode against a template of the *current* schema's defaults and let
+      // each row override the keys it has (#140). Defaults are captured from
+      // throwaway probe rows so this needs no per-column maintenance and can
+      // never drift out of sync with the schema.
+      final listDefaults = await _defaultRowJson(
+        insert: () => db.todoLists.insertOne(
+          TodoListsCompanion.insert(id: _probeId, name: ''),
+        ),
+        read: () => (db.todoLists.select()..where((l) => l.id.equals(_probeId)))
+            .getSingle(),
+        remove: () =>
+            (db.todoLists.delete()..where((l) => l.id.equals(_probeId))).go(),
+      );
+      final todoDefaults = await _defaultRowJson(
+        insert: () =>
+            db.todos.insertOne(TodosCompanion.insert(id: _probeId, title: '')),
+        read: () => (db.todos.select()..where((t) => t.id.equals(_probeId)))
+            .getSingle(),
+        remove: () =>
+            (db.todos.delete()..where((t) => t.id.equals(_probeId))).go(),
+      );
+      final decodedLists = [
+        for (final l in rawLists) TodoList.fromJson({...listDefaults, ...l}),
+      ];
+      final decodedTodos = [
+        for (final t in rawTodos) Todo.fromJson({...todoDefaults, ...t}),
+      ];
+
+      for (final list in decodedLists) {
         await db.todoLists.insertOnConflictUpdate(list);
         await stampFields(
           db: db,
@@ -239,7 +265,7 @@ class ExportService {
           hlc: stamp,
         );
       }
-      for (final todo in todos) {
+      for (final todo in decodedTodos) {
         await db.todos.insertOnConflictUpdate(todo);
         await stampFields(
           db: db,
@@ -249,7 +275,27 @@ class ExportService {
           hlc: stamp,
         );
       }
+      return (decodedLists.length, decodedTodos.length);
     });
-    return (lists.length, todos.length);
+    return (lists, todos);
+  }
+
+  /// Row id for the transient probe rows used to snapshot the current
+  /// schema's column defaults. Inserted, read, and removed inside the
+  /// import transaction, so it never persists or syncs (no field clocks).
+  static const _probeId = '__knot_import_defaults_probe__';
+
+  /// Inserts a default-valued probe row, serializes it to capture every
+  /// column's default, then removes it — a schema-agnostic template for
+  /// filling columns missing from an older backup (#140).
+  Future<Map<String, dynamic>> _defaultRowJson({
+    required Future<void> Function() insert,
+    required Future<DataClass> Function() read,
+    required Future<void> Function() remove,
+  }) async {
+    await insert();
+    final row = await read();
+    await remove();
+    return row.toJson();
   }
 }

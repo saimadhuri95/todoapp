@@ -221,4 +221,45 @@ void main() {
     ], now: now);
     expect(after, isEmpty);
   });
+
+  group('malformed recurrence rule (#145)', () {
+    test('a todo with an unparseable rule falls back to its base occurrence '
+        'instead of throwing', () {
+      final plan = planAlarms([
+        todo(
+          'bad',
+          dueAtMs: inMin(30),
+          alarms: '[0]',
+          rrule: 'FREQ=FORTNIGHTLY', // not a supported FREQ
+        ),
+      ], now: now);
+
+      // No throw; the single base due occurrence still schedules.
+      expect(plan, hasLength(1));
+      expect(plan.single.fireAtMs, inMin(30));
+    });
+
+    test('one bad rule never takes down scheduling for other todos', () {
+      final plan = planAlarms([
+        todo('bad', dueAtMs: inMin(30), alarms: '[0]', rrule: 'GARBAGE'),
+        todo('good', dueAtMs: inMin(45), alarms: '[0]'),
+      ], now: now);
+
+      expect(plan.map((a) => a.todoId), containsAll(['bad', 'good']));
+    });
+
+    test(
+      'a malformed rule with a nag interval still schedules the nag chain',
+      () {
+        final plan = planAlarms(
+          [todo('bad', dueAtMs: inMin(-5), alarms: '[0]', rrule: 'x', nag: 10)],
+          now: now,
+          cap: 2,
+        );
+
+        // Overdue occurrence + 10-min nag: still fires, no crash.
+        expect(plan, isNotEmpty);
+      },
+    );
+  });
 }

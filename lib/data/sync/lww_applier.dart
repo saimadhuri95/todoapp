@@ -56,14 +56,22 @@ class LwwApplier {
     ('todos', 'assigneeDeviceId'): 'devices',
   };
 
-  /// Returns true if the write was applied, false if it lost LWW (or was a
-  /// duplicate). Ties (identical HLC) are duplicates by definition — HLCs
-  /// embed the writer's nodeId, so two devices can never mint the same one.
+  /// Returns true if the write was applied, false if it lost LWW, was a
+  /// duplicate, or names an entity/field this build doesn't know. Ties
+  /// (identical HLC) are duplicates by definition — HLCs embed the writer's
+  /// nodeId, so two devices can never mint the same one.
+  ///
+  /// Forward compatibility: an unknown entity/field is **skipped**, not
+  /// thrown. A newer peer legitimately syncs columns an older build lacks
+  /// (three were added this month); throwing would abort the whole
+  /// changeset and wedge the cursor, so the old device could never sync
+  /// again. Skipping applies every field it *does* understand and lets the
+  /// unknown one land after the app updates (its clock still travels).
   Future<bool> apply(FieldWrite w) {
     final column = syncColumns[w.entity]?[w.field];
     final ensureRow = _ensureRowSql[w.entity];
     if (column == null || ensureRow == null) {
-      throw ArgumentError('Unknown entity/field: ${w.entity}.${w.field}');
+      return Future.value(false);
     }
     return _db.transaction(() async {
       await _db.customStatement(ensureRow, [w.rowId]);

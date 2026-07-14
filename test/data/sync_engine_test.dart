@@ -132,6 +132,41 @@ void main() {
       expect(a.engine.visibleTodoChanges, 0);
     });
 
+    test('a changeset from a newer peer carrying an unknown field still '
+        'applies its known writes (forward compat, #141)', () async {
+      // Simulate a peer on a future schema: a real title write plus a write
+      // to a column this build doesn't have. The unknown one is skipped; the
+      // known one lands, and apply() does not throw (which would abort the
+      // whole pass and wedge the cursor).
+      final applied = await b.engine.apply(
+        Changeset(
+          deviceId: 'ccc',
+          writes: [
+            FieldWrite(
+              entity: 'todos',
+              rowId: 'fromfuture',
+              field: 'title',
+              value: 'from a newer build',
+              hlc: Hlc(start.millisecondsSinceEpoch, 0, 'ccc'),
+            ),
+            FieldWrite(
+              entity: 'todos',
+              rowId: 'fromfuture',
+              field: 'someUnknownV99Column',
+              value: 'ignored',
+              hlc: Hlc(start.millisecondsSinceEpoch, 1, 'ccc'),
+            ),
+          ],
+        ),
+      );
+
+      expect(applied, 1); // only the known field won
+      final row =
+          await (b.db.todos.select()..where((t) => t.id.equals('fromfuture')))
+              .getSingle();
+      expect(row.title, 'from a newer build');
+    });
+
     test('non-todo writes do not mark visible todos changed', () async {
       final applied = await b.engine.apply(
         Changeset(

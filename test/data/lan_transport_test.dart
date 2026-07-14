@@ -115,6 +115,27 @@ void main() {
     await clientSync(b, port);
     await _eventually(() async => (await b.db.todos.all().get()).length == 1);
   });
+
+  test('an oversized frame-length prefix is rejected without buffering, and '
+      'the server survives (#142)', () async {
+    await a.todos.create(title: 't');
+    final port = await server.start();
+
+    // A hostile length prefix (0xFFFFFFFF ≈ 4 GiB) followed by a trickle of
+    // bytes. The pre-buffer size check must drop this session immediately
+    // rather than accumulate up to 4 GiB into memory.
+    final attacker = await Socket.connect(InternetAddress.loopbackIPv4, port);
+    attacker.add([0xFF, 0xFF, 0xFF, 0xFF]);
+    attacker.add(List<int>.filled(1024, 0x00));
+    await attacker.flush();
+    // Give the server a moment to process and drop the session.
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    attacker.destroy();
+
+    // A legitimate client still syncs — the listener wasn't taken down.
+    await clientSync(b, port);
+    await _eventually(() async => (await b.db.todos.all().get()).length == 1);
+  });
 }
 
 Future<void> _eventually(Future<bool> Function() check) async {

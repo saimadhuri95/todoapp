@@ -96,6 +96,25 @@ void main() {
       expect(r.dueAt, DateTime(2026, 7, 6, 17, 30));
       expect(r.title, 'x at 5pm');
     });
+
+    test('an absurd offset is left unparsed, not overflowed into the past '
+        '(#146)', () {
+      // "in 999999999 days" used to wrap DateTime into year -182837; it must
+      // now be treated as unrecognized: phrase kept in the title, no due date.
+      final r = parse('y in 999999999 days');
+      expect(r.dueAt, isNull);
+      expect(r.title, 'y in 999999999 days');
+    });
+
+    test('offset just past the ~11-year horizon is left unparsed', () {
+      final r = parse('x in 200 months');
+      expect(r.dueAt, isNull);
+    });
+
+    test('a large-but-in-range offset still parses', () {
+      final r = parse('x in 365 days');
+      expect(r.dueAt, DateTime(2027, 7, 6, 9));
+    });
   });
 
   group('month-day', () {

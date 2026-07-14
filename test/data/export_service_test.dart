@@ -169,4 +169,59 @@ void main() {
     }
     expect(await b.db.todos.all().get(), isEmpty);
   });
+
+  test(
+    'restores a backup written before newer columns existed (#140)',
+    () async {
+      // A v1 Knot export from an older build: the todo row carries only the
+      // columns that existed then — no currentStreak / assigneeDeviceId /
+      // geofence* keys. This used to throw a raw TypeError and made every
+      // pre-schema backup (and encrypted backup) unrestorable.
+      const oldBackup = '''
+{
+  "v": 1,
+  "app": "knot",
+  "exportedAtMs": 0,
+  "lists": [],
+  "todos": [
+    {
+      "id": "t-old",
+      "listId": null,
+      "parentId": null,
+      "title": "from an old backup",
+      "notes": "",
+      "dueAtMs": null,
+      "recurrenceRule": null,
+      "completedAtMs": null,
+      "priority": 0,
+      "tagsJson": "[]",
+      "section": null,
+      "sortKey": "",
+      "alarmOffsetsJson": "[]",
+      "lastDismissedMs": null,
+      "snoozeUntilMs": null,
+      "pinned": false,
+      "estimateMinutes": null,
+      "energy": null,
+      "nagIntervalMinutes": null,
+      "deleted": false
+    }
+  ]
+}
+''';
+
+      final (lists, todos) = await importB.importJson(oldBackup);
+      expect(lists, 0);
+      expect(todos, 1);
+
+      final restored = await b.db.todos.all().getSingle();
+      expect(restored.title, 'from an old backup');
+      // Columns absent from the old backup take the current schema defaults.
+      expect(restored.currentStreak, 0);
+      expect(restored.assigneeDeviceId, isNull);
+      // The restore stamped every sync field, so it replicates like a local
+      // edit (no probe row leaked into the data).
+      expect(await b.db.todos.all().get(), hasLength(1));
+    },
+  );
 }
