@@ -241,4 +241,41 @@ void main() {
       expect(await transportFor(a).pendingOutboundCount(), greaterThan(0));
     },
   );
+
+  test(
+    'group-mailbox compaction snapshot stays scoped — no private/other-group '
+    'data leaks (#149)',
+    () async {
+      // A has a private local todo and a shared Family todo.
+      final private = await a.lists.create(name: 'Private');
+      await a.todos.create(title: 'MY SECRET', listId: private.id);
+      final family = await a.groups.create(
+        name: 'Family',
+        backendKind: 'webdav',
+      );
+      final shared = await a.lists.create(name: 'Groceries');
+      await a.lists.setGroup(shared.id, family.id);
+      await a.todos.create(title: 'milk', listId: shared.id);
+
+      // Publish, then force a compaction snapshot into the Family mailbox.
+      await transportFor(a, groupId: family.id).publish();
+      expect(
+        await transportFor(a, groupId: family.id).compactIfNeeded(threshold: 1),
+        isTrue,
+      );
+
+      // B, a Family member, consumes the whole Family mailbox (snapshot
+      // included). It must receive only the shared scope — never the
+      // private list or its todo.
+      await transportFor(b, groupId: family.id).consume();
+
+      final bTitles = (await b.db.todos.select().get()).map((t) => t.title);
+      expect(bTitles, contains('milk'));
+      expect(bTitles, isNot(contains('MY SECRET')));
+      expect(
+        (await b.db.todoLists.select().get()).map((l) => l.id),
+        isNot(contains(private.id)),
+      );
+    },
+  );
 }

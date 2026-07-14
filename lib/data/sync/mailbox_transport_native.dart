@@ -138,7 +138,11 @@ class MailboxTransport {
     )).where(_isChangesetName).toList();
     if (deltas.length < threshold) return false;
 
-    final snapshot = await engine.changesFor(const {});
+    // Scope the snapshot exactly like publish(): a group mailbox's snapshot
+    // must carry only that group's rows. Passing no groupId here would seal
+    // the whole device's state (personal + every other group) into this
+    // group's shared mailbox where every member can read it (ADR 0004).
+    final snapshot = await engine.changesFor(const {}, groupId: groupId);
     if (snapshot.writes.isEmpty) return false;
     final sealed = await PairingCrypto.seal(
       utf8.encode(snapshot.encode()),

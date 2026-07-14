@@ -152,6 +152,27 @@ void main() {
       expect(done.completedAtMs, isNotNull);
       expect(done.recurrenceRule, 'FREQ=WEEKLY');
     });
+
+    test(
+      'drops an RRULE Knot cannot parse, importing as non-recurring (#150)',
+      () {
+        // Unsupported RRULE features (HOURLY, positional BYDAY) would be stored
+        // verbatim and then never recur, so they're dropped rather than kept
+        // as a corrupt, un-editable, still-syncing rule.
+        const csv =
+            'Title,Repeat\n'
+            'Standup,FREQ=HOURLY\n'
+            'Sprint,"RRULE:FREQ=WEEKLY;BYDAY=1MO"\n'
+            'Chores,FREQ=WEEKLY;INTERVAL=2\n';
+        final todos = parseCsv(csv);
+        expect(todos.map((t) => t.title), ['Standup', 'Sprint', 'Chores']);
+        // Unsupported ones import as non-recurring…
+        expect(todos[0].recurrenceRule, isNull);
+        expect(todos[1].recurrenceRule, isNull);
+        // …a supported one still round-trips.
+        expect(todos[2].recurrenceRule, 'FREQ=WEEKLY;INTERVAL=2');
+      },
+    );
   });
 
   group('ExportService.importParsed', () {
