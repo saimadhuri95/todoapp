@@ -5,6 +5,8 @@
 /// turns the [ImportedTodo]s these return into stamped rows.
 library;
 
+import '../core/recurrence.dart';
+
 /// One todo parsed from an external file, before it is assigned an id or
 /// written. Priorities are already mapped onto Knot's 0–3 scale (0 none,
 /// 1 low, 2 medium, 3 high). Dates are epoch milliseconds; a date-only source
@@ -314,10 +316,21 @@ String? _recurrenceFromTag(String value) {
 }
 
 /// Accepts an RRULE-style recurrence cell (with or without a leading
-/// `RRULE:`) and keeps it only when it looks like a FREQ rule.
+/// `RRULE:`) and keeps it only when Knot can actually act on it. A source
+/// export may carry RRULE features Knot doesn't support (`FREQ=HOURLY`,
+/// positional `BYDAY=1MO`, `BYMONTHDAY`, …); storing those verbatim leaves a
+/// todo with a rule that never recurs and can't be edited, so — like the
+/// todo.txt `rec:` path — anything the app can't parse is dropped and the
+/// task imports as non-recurring.
 String? _recurrenceFromRRule(String value) {
   var v = value.trim();
   if (v.isEmpty) return null;
   if (v.toUpperCase().startsWith('RRULE:')) v = v.substring(6);
-  return v.toUpperCase().startsWith('FREQ=') ? v : null;
+  if (!v.toUpperCase().startsWith('FREQ=')) return null;
+  try {
+    Recurrence.parse(v);
+    return v;
+  } on FormatException {
+    return null;
+  }
 }
