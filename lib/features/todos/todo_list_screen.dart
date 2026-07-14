@@ -44,12 +44,26 @@ class TodoListScreen extends ConsumerWidget {
     ref.listen(quickCaptureRequestsProvider, (_, _) {
       _showAddDialog(context, ref);
     });
+    // Keyboard navigation (TASKS.md 5.5): new todo, focus search, open
+    // settings — each bound for both Ctrl (Windows/Linux) and Cmd (macOS).
+    void openSettings() => Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen()));
+    void focusSearch() =>
+        ref.read(searchFocusRequestsProvider.notifier).state++;
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyN, control: true): () =>
             _showAddDialog(context, ref),
         const SingleActivator(LogicalKeyboardKey.keyN, meta: true): () =>
             _showAddDialog(context, ref),
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true):
+            focusSearch,
+        const SingleActivator(LogicalKeyboardKey.keyF, meta: true): focusSearch,
+        const SingleActivator(LogicalKeyboardKey.comma, control: true):
+            openSettings,
+        const SingleActivator(LogicalKeyboardKey.comma, meta: true):
+            openSettings,
       },
       child: Focus(
         autofocus: true,
@@ -291,6 +305,39 @@ Future<void> _createTodoFromText(
   );
 }
 
+/// The list's search field, split out so it can own a [FocusNode] that the
+/// Ctrl/Cmd+F shortcut focuses via [searchFocusRequestsProvider] (TASKS.md
+/// 5.5 keyboard nav).
+class _SearchField extends ConsumerStatefulWidget {
+  const _SearchField();
+
+  @override
+  ConsumerState<_SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends ConsumerState<_SearchField> {
+  final _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(searchFocusRequestsProvider, (_, _) {
+      _focusNode.requestFocus();
+    });
+    return SearchBar(
+      focusNode: _focusNode,
+      hintText: 'Search',
+      leading: const Icon(Icons.search),
+      onChanged: (q) => ref.read(searchQueryProvider.notifier).state = q,
+    );
+  }
+}
+
 class _TodoListPane extends ConsumerWidget {
   const _TodoListPane();
 
@@ -313,13 +360,9 @@ class _TodoListPane extends ConsumerWidget {
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-          child: SearchBar(
-            hintText: 'Search',
-            leading: const Icon(Icons.search),
-            onChanged: (q) => ref.read(searchQueryProvider.notifier).state = q,
-          ),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(12, 8, 12, 4),
+          child: _SearchField(),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
@@ -407,7 +450,8 @@ class _TodoListPane extends ConsumerWidget {
             const Text('No todos yet — add one!'),
             const SizedBox(height: 4),
             Text(
-              'Tap + to add a todo. Ctrl/Cmd+N works too.',
+              'Tap + to add a todo. Keyboard: Ctrl/Cmd+N add, '
+              'Ctrl/Cmd+F search, Ctrl/Cmd+, settings.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],

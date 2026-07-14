@@ -386,6 +386,12 @@ final activeSmartFilterProvider = Provider<SavedSmartFilter?>((ref) {
 /// Search text applied to the active list (client-side filter).
 final searchQueryProvider = StateProvider<String>((_) => '');
 
+/// Bumped when the "focus search" keyboard shortcut (Ctrl/Cmd+F) fires; the
+/// search bar listens and requests focus (TASKS.md 5.5 keyboard nav). A signal
+/// counter, mirroring [quickCaptureRequestsProvider], so the shortcut at the
+/// top of the tree can reach the search field deep in the list pane.
+final searchFocusRequestsProvider = StateProvider<int>((_) => 0);
+
 /// "I have 10 minutes" quick-win filter toggle (TASKS.md 6.35): when on, the
 /// active list is narrowed to short, estimated todos via [quickWins].
 final quickWinFilterProvider = StateProvider<bool>((_) => false);
