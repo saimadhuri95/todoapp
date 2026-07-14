@@ -149,6 +149,17 @@ class _SecureFrameIO {
   final StreamIterator<Uint8List> _incoming;
   final _buffer = BytesBuilder();
 
+  /// Hard cap on a single frame. The length prefix is attacker-controlled
+  /// plaintext read *before* AEAD verification, so without this an
+  /// unpaired peer on the LAN could pin us to buffer up to 4 GiB (OOM).
+  /// A compacted full-state snapshot of even a 5k-todo DB is a few MB, so
+  /// 32 MiB is comfortably above any legitimate frame.
+  static const _maxFrameBytes = 32 * 1024 * 1024;
+
+  /// No legitimate peer goes silent mid-session; drop a stalled/withholding
+  /// connection rather than hold its buffer open indefinitely.
+  static const _readTimeout = Duration(seconds: 30);
+
   Future<void> writeJson(Map<String, Object?> message) async {
     final sealed = await PairingCrypto.seal(
       utf8.encode(jsonEncode(message)),
@@ -173,13 +184,24 @@ class _SecureFrameIO {
       final bytes = _buffer.toBytes();
       if (bytes.length >= 4) {
         final length = ByteData.sublistView(bytes, 0, 4).getUint32(0);
+        // Reject an oversized declared length up front, before buffering
+        // its payload — a hostile prefix must cost us nothing.
+        if (length > _maxFrameBytes) {
+          throw const FormatException('Frame exceeds maximum size');
+        }
         if (bytes.length >= 4 + length) {
           _buffer.clear();
           _buffer.add(bytes.sublist(4 + length));
           return Uint8List.sublistView(bytes, 4, 4 + length);
         }
       }
-      if (!await _incoming.moveNext()) return null;
+      final bool hasNext;
+      try {
+        hasNext = await _incoming.moveNext().timeout(_readTimeout);
+      } on TimeoutException {
+        return null; // Stalled peer: end the session cleanly.
+      }
+      if (!hasNext) return null;
       _buffer.add(_incoming.current);
     }
   }

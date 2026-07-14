@@ -86,9 +86,13 @@ class SyncOrchestrator {
           mailboxApplied += await box.consume();
           mailboxPublished += await box.publish();
           await box.compactIfNeeded();
-        } on IOException catch (e) {
-          // Folder stores throw FileSystemException; provider-API stores
-          // throw HttpException/SocketException. All soft: retry next pass.
+        } on Exception catch (e) {
+          // Fail soft per mailbox, retry next pass. IOException covers
+          // unreachable backends (folder FileSystemException, provider-API
+          // HttpException/SocketException); the broader catch also contains
+          // a poisoned changeset file (e.g. a decode/apply error from a
+          // newer peer) to this one mailbox instead of aborting the whole
+          // pass and wedging every other transport (see #141).
           errors.add('mailbox[${box.groupId ?? 'personal'}]: $e');
         }
       }
@@ -108,8 +112,11 @@ class SyncOrchestrator {
               groupKey: groupKey,
             );
             lanPeersReached++;
-          } on SocketException catch (e) {
-            errors.add('lan ${peer.host}:${peer.port}: ${e.message}');
+          } on Exception catch (e) {
+            // One unreachable/misbehaving peer must not skip the rest:
+            // SocketException (unreachable), plus TimeoutException and any
+            // decode error from a peer on a different protocol/version.
+            errors.add('lan ${peer.host}:${peer.port}: $e');
           }
         }
       }

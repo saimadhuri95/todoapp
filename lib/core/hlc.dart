@@ -35,9 +35,8 @@ class Hlc implements Comparable<Hlc> {
   final String nodeId;
 
   /// Timestamp for a local event. Monotonic even if the wall clock regressed.
-  Hlc send(int wallMs) => wallMs > millis
-      ? Hlc(wallMs, 0, nodeId)
-      : Hlc(millis, counter + 1, nodeId);
+  Hlc send(int wallMs) =>
+      wallMs > millis ? Hlc(wallMs, 0, nodeId) : _bump(millis, counter);
 
   /// Merge a remote timestamp on receipt; result exceeds both local and
   /// remote regardless of wall-clock skew between devices.
@@ -46,13 +45,21 @@ class Hlc implements Comparable<Hlc> {
       return Hlc(wallMs, 0, nodeId);
     }
     if (millis == remote.millis) {
-      return Hlc(millis, math.max(counter, remote.counter) + 1, nodeId);
+      return _bump(millis, math.max(counter, remote.counter));
     }
     if (millis > remote.millis) {
-      return Hlc(millis, counter + 1, nodeId);
+      return _bump(millis, counter);
     }
-    return Hlc(remote.millis, remote.counter + 1, nodeId);
+    return _bump(remote.millis, remote.counter);
   }
+
+  /// Advances past [base]/[fromCounter], carrying into [millis] when the
+  /// 16-bit counter would overflow. Without the carry a saturated counter
+  /// either trips the constructor assert (debug) or encodes as 5 hex digits
+  /// (release), breaking the lexicographic == logical ordering invariant.
+  Hlc _bump(int base, int fromCounter) => fromCounter >= maxCounter
+      ? Hlc(base + 1, 0, nodeId)
+      : Hlc(base, fromCounter + 1, nodeId);
 
   String encode() =>
       '${millis.toString().padLeft(15, '0')}:'

@@ -199,9 +199,8 @@ void _planNags(
 /// "previous occurrence" query.
 int? _latestOccurrenceAtOrBefore(Todo todo, int dueMs, int nowMs) {
   if (dueMs > nowMs) return null;
-  final rule = todo.recurrenceRule;
-  if (rule == null) return dueMs;
-  final recurrence = Recurrence.parse(rule);
+  final recurrence = _tryParseRecurrence(todo.recurrenceRule);
+  if (recurrence == null) return dueMs;
   final anchor = DateTime.fromMillisecondsSinceEpoch(dueMs);
   var latest = dueMs;
   var cursor = anchor;
@@ -214,6 +213,19 @@ int? _latestOccurrenceAtOrBefore(Todo todo, int dueMs, int nowMs) {
   return latest;
 }
 
+/// Parses [rule], returning null for a null rule *or* one this build can't
+/// understand (bad sync input / a newer syntax). Mirrors the guard
+/// [TodoRepository.complete] already applies so a malformed synced rule
+/// never crashes the reminder pipeline.
+Recurrence? _tryParseRecurrence(String? rule) {
+  if (rule == null) return null;
+  try {
+    return Recurrence.parse(rule);
+  } on FormatException {
+    return null;
+  }
+}
+
 Iterable<int> _occurrences(
   Todo todo,
   int dueMs, {
@@ -221,12 +233,14 @@ Iterable<int> _occurrences(
   required int horizonMs,
   required int perTodoCap,
 }) sync* {
-  final rule = todo.recurrenceRule;
-  if (rule == null) {
+  final recurrence = _tryParseRecurrence(todo.recurrenceRule);
+  if (recurrence == null) {
+    // No rule, or a rule this build can't parse (a malformed/newer synced
+    // value): fall back to the single base occurrence rather than throwing
+    // — one bad todo must not take down scheduling for every other todo.
     if (dueMs > afterMs) yield dueMs;
     return;
   }
-  final recurrence = Recurrence.parse(rule);
   final anchor = DateTime.fromMillisecondsSinceEpoch(dueMs);
   var cursor = DateTime.fromMillisecondsSinceEpoch(afterMs);
   for (var i = 0; i < perTodoCap; i++) {

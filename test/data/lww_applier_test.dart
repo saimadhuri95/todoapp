@@ -116,10 +116,28 @@ void main() {
     expect((await dbA.todos.all().getSingle()).deleted, isTrue);
   });
 
-  test('unknown field is rejected (allowlist)', () {
-    expect(
-      () => LwwApplier(dbA).apply(write('nope; DROP TABLE todos', 'x', 1, 'a')),
-      throwsArgumentError,
-    );
-  });
+  test(
+    'unknown field is skipped, not applied (forward compat, #141)',
+    () async {
+      final applier = LwwApplier(dbA);
+      // A field an older build doesn't know (a newer peer's column, or an
+      // injection attempt) must be a no-op returning false — never a throw
+      // that would abort the whole changeset. SQL-name allowlisting is still
+      // enforced: only syncColumns entries reach the UPDATE.
+      expect(
+        await applier.apply(write('nope; DROP TABLE todos', 'x', 1, 'a')),
+        isFalse,
+      );
+      // The table is intact and the known row is untouched.
+      expect(await title(dbA), 'original');
+
+      // A known field in the *same* changeset still applies — the unknown one
+      // doesn't poison its neighbours.
+      expect(
+        await applier.apply(write('title', 'from newer peer', 2, 'b')),
+        true,
+      );
+      expect(await title(dbA), 'from newer peer');
+    },
+  );
 }

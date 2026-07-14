@@ -86,6 +86,28 @@ void main() {
     test('parse rejects garbage', () {
       expect(() => Hlc.parse('not-an-hlc'), throwsFormatException);
     });
+
+    test(
+      'counter saturation carries into millis, not a 5th hex digit (#144)',
+      () {
+        // At the 16-bit counter ceiling with the wall clock at/behind millis,
+        // send/receive must roll to millis+1 rather than overflow the counter.
+        const saturated = Hlc(1000, Hlc.maxCounter, 'aa');
+
+        final sent = saturated.send(999); // wall clock behind → counter path
+        expect(sent, const Hlc(1001, 0, 'aa'));
+        expect(sent > saturated, isTrue);
+        // Encoded ordering must still agree with logical ordering — the
+        // release-mode failure mode was '10000' sorting before 'ffff'.
+        expect(saturated.encode().compareTo(sent.encode()) < 0, isTrue);
+        // Counter stays within its 4-hex-digit field.
+        expect(sent.encode().split(':')[1].length, 4);
+
+        final received = saturated.receive(const Hlc(1000, 5, 'bb'), 999);
+        expect(received, const Hlc(1001, 0, 'aa'));
+        expect(received > saturated, isTrue);
+      },
+    );
   });
 
   group('HlcClock', () {

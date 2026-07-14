@@ -37,12 +37,35 @@ String orderKeyBetween(String? lower, String? upper) {
         : _base;
 
     if (highDigit - lowDigit > 1) {
-      return '${prefix.toString()}${_alphabet[(lowDigit + highDigit) ~/ 2]}';
+      final key =
+          '${prefix.toString()}'
+          '${_alphabet[(lowDigit + highDigit) ~/ 2]}';
+      // Guard the no-gap case: when `hi` is `lo` extended only with
+      // bottom-of-alphabet digits (e.g. 'A' vs 'A0'), no string sorts
+      // strictly between them, and the midpoint above would land *after*
+      // `hi`. Rather than emit an out-of-range key that silently inverts
+      // order, signal exhaustion so the caller renumbers (replaceVisibleOrder).
+      if (hi != null && key.compareTo(hi) >= 0) {
+        throw OrderKeyExhaustedError(lo, hi);
+      }
+      return key;
     }
 
     prefix.write(position < (lo?.length ?? 0) ? lo![position] : _alphabet[0]);
     position++;
   }
+}
+
+/// Thrown by [orderKeyBetween] when no key sorts strictly between the two
+/// bounds — adjacent keys with no room, reachable only after concurrent
+/// midpoint chains merge over sync. Callers should fall back to a full
+/// renumber ([spacedOrderKey] over the visible order) on this.
+class OrderKeyExhaustedError extends StateError {
+  OrderKeyExhaustedError(this.lower, this.upper)
+    : super('No order key fits strictly between "$lower" and "$upper".');
+
+  final String? lower;
+  final String? upper;
 }
 
 String? _clean(String? key) {

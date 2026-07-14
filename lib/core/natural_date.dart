@@ -20,6 +20,11 @@ library;
 /// Hour used when a phrase names a day but no time ("tomorrow" → 09:00).
 const defaultDueHour = 9;
 
+/// Upper bound on relative "in N …" phrases, matching the editor date
+/// picker's `now.year + 10` horizon; larger offsets are treated as unparsed.
+const _maxHorizonDays = 366 * 11;
+const _maxHorizonMonths = 12 * 11;
+
 /// Hour implied by "tonight".
 const tonightHour = 20;
 
@@ -102,19 +107,33 @@ QuickAddResult parseQuickAdd(String input, DateTime now) {
     if (weekday[1] != null) ahead += 7; // "next"
     date = today.add(Duration(days: ahead));
   } else if (relative != null) {
-    matched.add(relative);
-    final n = int.parse(relative[1]!);
-    switch (relative[2]!.toLowerCase()) {
-      case 'minute' || 'min':
-        absolute = now.add(Duration(minutes: n));
-      case 'hour' || 'hr':
-        absolute = now.add(Duration(hours: n));
-      case 'day':
-        date = today.add(Duration(days: n));
-      case 'week':
-        date = today.add(Duration(days: 7 * n));
-      case 'month':
-        date = _addMonthsClamped(today, n);
+    final n = int.tryParse(relative[1]!) ?? 0;
+    // Reject absurd offsets ("in 999999999 days") that would overflow
+    // DateTime arithmetic into a far-past/garbage year. The bound matches
+    // the editor's date-picker horizon (now.year + 10) so typed and picked
+    // dates agree; out-of-range phrases stay in the title, dueAt null.
+    final withinHorizon = switch (relative[2]!.toLowerCase()) {
+      'minute' || 'min' => n <= _maxHorizonDays * 24 * 60,
+      'hour' || 'hr' => n <= _maxHorizonDays * 24,
+      'day' => n <= _maxHorizonDays,
+      'week' => n <= _maxHorizonDays ~/ 7,
+      'month' => n <= _maxHorizonMonths,
+      _ => false,
+    };
+    if (withinHorizon) {
+      matched.add(relative);
+      switch (relative[2]!.toLowerCase()) {
+        case 'minute' || 'min':
+          absolute = now.add(Duration(minutes: n));
+        case 'hour' || 'hr':
+          absolute = now.add(Duration(hours: n));
+        case 'day':
+          date = today.add(Duration(days: n));
+        case 'week':
+          date = today.add(Duration(days: 7 * n));
+        case 'month':
+          date = _addMonthsClamped(today, n);
+      }
     }
   } else if (monthDay != null || dayMonth != null) {
     final m = monthDay ?? dayMonth!;

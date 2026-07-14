@@ -37,4 +37,34 @@ void main() {
 
     expect(rows.map((row) => row.id), ['row-a', 'row-b']);
   });
+
+  test('no-gap bounds throw OrderKeyExhaustedError, never an out-of-range '
+      'key (#143)', () {
+    // 'A0' is 'A' extended with the smallest digit: nothing sorts strictly
+    // between them. The old code returned 'A0U' (> upper), silently
+    // inverting order; now it signals exhaustion so the caller renumbers.
+    expect(
+      () => orderKeyBetween('A', 'A0'),
+      throwsA(isA<OrderKeyExhaustedError>()),
+    );
+  });
+
+  test('any key it does return is strictly between its bounds', () {
+    // Property check over reachable adjacent pairs: either a strictly-between
+    // key or a clean exhaustion signal — never a key outside the interval.
+    const alphabet = '0123456789ABZaz';
+    for (final lo in alphabet.split('')) {
+      for (final suffix in ['', '0', '1', 'z', '0V']) {
+        final hi = lo + suffix;
+        if (lo.compareTo(hi) >= 0) continue;
+        try {
+          final key = orderKeyBetween(lo, hi);
+          expect(key.compareTo(lo) > 0, isTrue, reason: '$key !> $lo');
+          expect(key.compareTo(hi) < 0, isTrue, reason: '$key !< $hi');
+        } on OrderKeyExhaustedError {
+          // Acceptable: genuinely no key fits.
+        }
+      }
+    }
+  });
 }

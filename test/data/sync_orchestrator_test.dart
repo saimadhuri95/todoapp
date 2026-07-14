@@ -8,6 +8,7 @@ import 'package:todoapp/core/hlc.dart';
 import 'package:todoapp/data/sync/changeset.dart';
 import 'package:todoapp/data/sync/lan_transport.dart';
 import 'package:todoapp/data/sync/lww_applier.dart';
+import 'package:todoapp/data/sync/mailbox_store.dart';
 import 'package:todoapp/data/sync/mailbox_transport.dart';
 import 'package:todoapp/data/sync/sync_orchestrator.dart';
 
@@ -266,4 +267,82 @@ void main() {
     // The periodic pass published A's outbox.
     expect(Directory('${root.path}/aa').existsSync(), isTrue);
   });
+
+  test('a mailbox that throws a non-IOException fails soft, and the other '
+      'mailboxes in the pass still run (#141)', () async {
+    final root = await Directory.systemTemp.createTemp('orch_softfail');
+    addTearDown(() => root.delete(recursive: true));
+    await a.todos.create(title: 'publish me');
+
+    final orchestrator = SyncOrchestrator(
+      engine: a.engine,
+      groupKey: groupKey,
+      // A poisoned mailbox that raises a StateError (not an IOException) —
+      // e.g. the class of error a decode/apply on a newer peer's file used
+      // to throw. The pass must survive it.
+      mailbox: MailboxTransport.withStore(
+        store: _ThrowingStore(),
+        engine: a.engine,
+        db: a.db,
+        deviceId: a.id,
+        groupKey: groupKey,
+        groupId: 'poisoned',
+      ),
+      // A healthy personal mailbox that must still publish.
+      groupMailboxes: [
+        MailboxTransport(
+          root: root,
+          engine: a.engine,
+          db: a.db,
+          deviceId: a.id,
+          groupKey: groupKey,
+        ),
+      ],
+    );
+
+    final report = await orchestrator.syncNow();
+
+    // The pass completed (not thrown), recorded the failure, and the healthy
+    // mailbox still published A's outbox.
+    expect(report.skipped, isFalse);
+    expect(report.errors, isNotEmpty);
+    expect(report.errors.first, contains('poisoned'));
+    expect(Directory('${root.path}/aa').existsSync(), isTrue);
+  });
+}
+
+/// Signals a poisoned mailbox — models the class of failure a decode/read
+/// on a newer peer's file raises (an Exception, not an Error), which the
+/// old narrow `on IOException` catch let escape and abort the whole pass.
+class _PoisonedMailboxException implements Exception {
+  @override
+  String toString() => 'poisoned mailbox';
+}
+
+/// A [MailboxStore] whose reads/lists throw a non-IOException Exception,
+/// standing in for a poisoned changeset or a decode error from a newer
+/// peer (#141).
+class _ThrowingStore implements MailboxStore {
+  @override
+  Future<List<String>> listDeviceDirs() async =>
+      throw _PoisonedMailboxException();
+
+  @override
+  Future<List<String>> listFiles(String deviceDir) async =>
+      throw _PoisonedMailboxException();
+
+  @override
+  Future<List<int>?> read(String deviceDir, String name) async =>
+      throw _PoisonedMailboxException();
+
+  @override
+  Future<void> write(String deviceDir, String name, List<int> bytes) async =>
+      throw _PoisonedMailboxException();
+
+  @override
+  Future<void> delete(String deviceDir, String name) async =>
+      throw _PoisonedMailboxException();
+
+  @override
+  Future<void> wipeAll() async => throw _PoisonedMailboxException();
 }
