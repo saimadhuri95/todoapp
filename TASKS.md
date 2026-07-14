@@ -154,7 +154,7 @@ the ordinary merge engine; todo_alarms/alarm_dismissals tables unused.
 - [x] 2.10 TZ/DST: expansion runs in local calendar space; DST suite green under TZ=America/New_York (CI step). Cross-zone wall-clock storage documented as v1 limitation (docs/alarms.md), deferred
 - [ ] 2.11 Manual alarm matrix — needs real devices (user; iOS also needs Xcode)
 - [x] 3.15 (moved here) Alarm dismissal sync — by construction: dismissal is a synced field write; test in sync_engine_test
-- [ ] 5.1 (moved here) Linux resident process — in-app timers while running done; tray/autostart still open
+- [x] 5.1 (moved here) Linux resident process — in-app timers while running, tray (tray_manager), and login autostart (5.2) now compose the resident model (docs/alarms.md); systemd-timer closed-app fallback still a future option
 - [x] 5.2 (moved here) "Run in background at login" toggle — done (settings toggle, login item, hide-on-close)
 
 ## Phase 3 — Sync engine (executed SECOND — right after Phase 1)
@@ -346,10 +346,17 @@ driver/dispatcher scenario and Apple-first direction.
 - [ ] 6.22 (R3.9) Completed archive: browseable per-list history screen
   beyond the current Completed expansion tile
 - [ ] 6.23 (R4.3) Undo snackbars for complete/delete/edit
-- [ ] 6.24 (R8.1) Home-screen widgets (Android + iOS): today list,
+- [~] 6.24 (R8.1) Home-screen widgets (Android + iOS): today list,
   interactive check-off where the OS allows, quick-add button
-- [ ] 6.25 (R2.3) Share-sheet capture target (Android/iOS/macOS): shared
+  — Android done: `TodayWidgetProvider` (home_widget) renders the pure
+  `homeWidgetSummary` (count + first titles + "+N more"), refreshed on any
+  todo change, tap opens the app. iOS WidgetKit extension deferred (Xcode
+  target).
+- [~] 6.25 (R2.3) Share-sheet capture target (Android/iOS/macOS): shared
   text/URL becomes a task (title + notes)
+  — Android done: ACTION_SEND text/plain filed as an Inbox todo via the
+  `com.sai.knot/share` channel + `SharedContentService`. iOS/macOS share
+  extension deferred (Xcode target); channel + handler ready.
 - [x] 6.26 (R2.5) Multi-line paste into quick add → "create one task per
   line" prompt
 - [ ] 6.27 (R1.5) Sync health panel: extend 6.3's status line with transport
@@ -510,14 +517,21 @@ you a peer of someone else's storage without sharing credentials.
 - [x] 6.49 (R5.5/R5.6) Kanban board (sections as columns) + Eisenhower view
   — both done: sections-as-columns board with tap-to-move, alongside the
   Eisenhower matrix
-- [ ] 6.50 (R6.4/R6.5) Location reminders (on-device geofencing only) +
+- [~] 6.50 (R6.4/R6.5) Location reminders (on-device geofencing only) +
   Android sticky today-notification
+  — geofence data model (synced lat/lng/radius/label) + pure haversine +
+  enter-transition evaluator + editor UI done; the OS location subscription
+  is behind the `LocationMonitor` seam (noop default, real GPS monitor
+  deferred). Sticky today-notification not started.
 - [x] 6.51 (R7.2/R7.3) Assignee chip on shared-list tasks + "changed by
   <device>" attribution from HLC metadata (feeds 6.2 notification text)
   — assignee chip (tap to reassign a group member) + notification-body
   attribution wired on top of the earlier `lastChangedBy` building block
-- [ ] 6.52 (R8.2/R8.3/R8.4) iOS lock-screen widget; Siri Shortcuts / Android
+- [~] 6.52 (R8.2/R8.3/R8.4) iOS lock-screen widget; Siri Shortcuts / Android
   App Actions; desktop tray quick-add + today count (ties into 5.1/5.2)
+  — desktop tray quick-add + today count done (`TrayService`, tray_manager;
+  macOS build verified). iOS lock-screen widget / Siri Shortcuts / Android
+  App Actions deferred (native Xcode/Android-intent targets).
 - [x] 6.53 (R9.3) Theming: accent color + per-list colors/icons
   — app accent color done (persisted seed + settings picker); per-list
   colors/icons deferred (icons need a schema column; folded into the list-UI

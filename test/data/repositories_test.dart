@@ -445,13 +445,7 @@ void main() {
 
     test('setGeofence with nulls clears the reminder', () async {
       final todo = await todos.create(title: 't');
-      await todos.setGeofence(
-        todo.id,
-        lat: 1,
-        lng: 2,
-        radiusM: 50,
-        label: 'x',
-      );
+      await todos.setGeofence(todo.id, lat: 1, lng: 2, radiusM: 50, label: 'x');
 
       await todos.setGeofence(
         todo.id,

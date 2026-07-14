@@ -49,8 +49,9 @@ class TrayService with TrayListener {
   static const _quitKey = 'quit';
 
   // Windows needs the .ico; macOS/Linux take the .png.
-  static String get _iconPath =>
-      platformIsWindows ? 'assets/tray/tray_icon.ico' : 'assets/tray/tray_icon.png';
+  static String get _iconPath => platformIsWindows
+      ? 'assets/tray/tray_icon.ico'
+      : 'assets/tray/tray_icon.png';
 
   Future<void> start() async {
     if (!platformIsDesktop) return;
@@ -85,9 +86,11 @@ class TrayService with TrayListener {
   Future<void> _refreshTooltip() async {
     if (!platformIsDesktop) return;
     try {
-      final todos = await (_ref.read(databaseProvider).todos.select()
-            ..where((t) => t.deleted.equals(false) & t.completedAtMs.isNull()))
-          .get();
+      final todos =
+          await (_ref.read(databaseProvider).todos.select()..where(
+                (t) => t.deleted.equals(false) & t.completedAtMs.isNull(),
+              ))
+              .get();
       final count = dueTodayCount(todos, _ref.read(clockProvider).now());
       await trayManager.setToolTip(trayTooltip(count));
     } on Exception {

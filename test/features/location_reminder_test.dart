@@ -50,14 +50,22 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(home: Scaffold(body: TodoEditor(todo: todo))),
+        child: MaterialApp(
+          home: Scaffold(body: TodoEditor(todo: todo)),
+        ),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.widgetWithText(TextField, 'Place name'), 'Home');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Place name'),
+      'Home',
+    );
     await tester.enterText(find.widgetWithText(TextField, 'Latitude'), '40.5');
-    await tester.enterText(find.widgetWithText(TextField, 'Longitude'), '-74.2');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Longitude'),
+      '-74.2',
+    );
     await tester.enterText(find.widgetWithText(TextField, 'Radius m'), '200');
 
     await tester.tap(find.text('Save'));

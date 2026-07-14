@@ -211,10 +211,7 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
     final lat = double.tryParse(_geofenceLat.text.trim());
     final lng = double.tryParse(_geofenceLng.text.trim());
     final valid =
-        lat != null &&
-        lng != null &&
-        lat.abs() <= 90 &&
-        lng.abs() <= 180;
+        lat != null && lng != null && lat.abs() <= 90 && lng.abs() <= 180;
     final newLat = valid ? lat : null;
     final newLng = valid ? lng : null;
     final newRadius = valid

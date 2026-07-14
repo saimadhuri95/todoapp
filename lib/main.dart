@@ -8,6 +8,7 @@ import 'app/alarm_service.dart';
 import 'app/background_mode.dart';
 import 'app/cloud_folder_channel.dart';
 import 'app/geofence_service.dart';
+import 'app/home_widget_service.dart';
 import 'app/key_store_factory.dart';
 import 'app/notification_scheduler.dart';
 import 'app/providers.dart';
@@ -170,6 +171,7 @@ class _SyncBootstrapState extends ConsumerState<SyncBootstrap> {
     ref.read(geofenceServiceProvider).start();
     ref.read(trayServiceProvider).start();
     ref.read(sharedContentServiceProvider).start();
+    ref.read(homeWidgetServiceProvider).start();
   }
 
   @override
@@ -180,6 +182,7 @@ class _SyncBootstrapState extends ConsumerState<SyncBootstrap> {
     ref.read(geofenceServiceProvider).stop();
     ref.read(trayServiceProvider).stop();
     ref.read(sharedContentServiceProvider).stop();
+    ref.read(homeWidgetServiceProvider).stop();
     super.dispose();
   }
 

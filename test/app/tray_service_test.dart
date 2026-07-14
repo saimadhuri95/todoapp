@@ -26,7 +26,8 @@ Todo todo(
 
 void main() {
   final now = DateTime(2026, 7, 6, 12); // noon
-  int at(int day, int hour) => DateTime(2026, 7, day, hour).millisecondsSinceEpoch;
+  int at(int day, int hour) =>
+      DateTime(2026, 7, day, hour).millisecondsSinceEpoch;
 
   group('dueTodayCount', () {
     test('counts overdue and today, excludes future/undated', () {
