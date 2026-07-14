@@ -239,11 +239,15 @@ fixes; 4.18 is the follow-on persistence bug the picker fix will expose.
 - [x] 5.3 Export/import JSON (`export_service.dart` + settings UI): includes tombstones; import upserts with fresh HLC stamps so restores sync onward
 - [x] 5.4 Dark mode (light/dark themes since Phase 1, follows system)
 - [ ] 5.5 Accessibility pass: screen readers, contrast, font scaling, full keyboard nav (manual work, needs devices)
-  — code-level pass done on the todo list: semantic labels on the completion
+  — code-level passes done on the todo list: semantic labels on the completion
   checkbox + drag handle, screen-reader-friendly (comma, not "|") tile
-  subtitle, section headers marked as headings, and Delete reachable from the
-  actions menu (not swipe-only). Real screen-reader/device verification and a
-  wider sweep of remaining screens still pending.
+  subtitle, section headers marked as headings, Delete reachable from the
+  actions menu (not swipe-only), editor/Eisenhower/settings group + heading
+  labels. **Keyboard nav now covered:** Ctrl/Cmd+N add, Ctrl/Cmd+F focus
+  search (via `searchFocusRequestsProvider` + a `_SearchField` FocusNode),
+  Ctrl/Cmd+, settings — widget-tested in `keyboard_nav_test.dart`. Remaining
+  is device-only: real screen-reader walkthroughs, contrast measurement, and
+  font-scaling checks on hardware (keeps #27 open).
 - [x] 5.6 L10n scaffold: gen_l10n wired (l10n.yaml, app_en.arb, delegates in MaterialApp); full string extraction is ongoing as screens are touched
 - [x] 5.7 List perf: flattened rows + ListView.builder (lazy at 10k); sync payload/start-time budgets still to measure
 - [ ] 5.8 Battery audit: sync frequency, wake locks, background refresh behavior (needs devices)
