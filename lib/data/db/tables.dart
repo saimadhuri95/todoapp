@@ -130,6 +130,18 @@ class Todos extends Table {
   /// otherwise. 0 for non-recurring or never-completed todos.
   IntColumn get currentStreak => integer().withDefault(const Constant(0))();
 
+  /// Location reminder (schema v10, TASKS.md 6.50): an on-device geofence.
+  /// When [geofenceLat]/[geofenceLng] are set, the todo fires a notification
+  /// on arrival within [geofenceRadiusM] metres of the point. All three are
+  /// synced LWW fields; the GPS monitoring that consumes them is device-local
+  /// and never leaves the phone (no location ever syncs beyond these opt-in
+  /// coordinates the user themselves attached). [geofenceLabel] is a
+  /// human-readable name for the place ("Home", "Office").
+  RealColumn get geofenceLat => real().nullable()();
+  RealColumn get geofenceLng => real().nullable()();
+  IntColumn get geofenceRadiusM => integer().nullable()();
+  TextColumn get geofenceLabel => text().nullable()();
+
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
   @override

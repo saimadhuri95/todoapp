@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home-screen "Today" widget (TASKS.md 6.24): due count + first few titles.
+     Tapping anywhere opens the app (wired in TodayWidgetProvider). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/today_widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="#F5F5F5">
+
+    <TextView
+        android:id="@+id/today_widget_headline"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textColor="#1B5E20"
+        android:textSize="16sp"
+        android:text="Knot" />
+
+    <TextView
+        android:id="@+id/today_widget_titles"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:textColor="#333333"
+        android:textSize="14sp"
+        android:maxLines="4"
+        android:ellipsize="end"
+        android:text="" />
+</LinearLayout>

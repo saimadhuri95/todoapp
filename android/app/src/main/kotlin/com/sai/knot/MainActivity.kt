@@ -13,7 +13,11 @@ import java.io.IOException
 
 class MainActivity : FlutterActivity() {
     private var oauthChannel: MethodChannel? = null
+    private var shareChannel: MethodChannel? = null
     private var pendingTreeResult: MethodChannel.Result? = null
+    // Text shared into the app before Dart is ready to receive it (launch via
+    // the share sheet); Dart drains it through getInitialShare (TASKS.md 6.25).
+    private var pendingShare: String? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -25,6 +29,21 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             "com.sai.knot/cloud_folder"
         ).setMethodCallHandler { call, result -> handleCloudFolderCall(call, result) }
+        shareChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.sai.knot/share"
+        ).apply {
+            setMethodCallHandler { call, result ->
+                if (call.method == "getInitialShare") {
+                    val text = pendingShare
+                    pendingShare = null
+                    result.success(text)
+                } else {
+                    result.notImplemented()
+                }
+            }
+        }
+        pendingShare = extractSharedText(intent)
         forwardOAuthRedirect(intent)
     }
 
@@ -32,6 +51,23 @@ class MainActivity : FlutterActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         forwardOAuthRedirect(intent)
+        val shared = extractSharedText(intent)
+        if (shared != null) {
+            // App already running: push straight to Dart.
+            if (shareChannel != null) {
+                shareChannel?.invokeMethod("shared", shared)
+            } else {
+                pendingShare = shared
+            }
+        }
+    }
+
+    private fun extractSharedText(intent: Intent?): String? {
+        if (intent?.action != Intent.ACTION_SEND) return null
+        if (intent.type?.startsWith("text/") != true) return null
+        val text = intent.getStringExtra(Intent.EXTRA_TEXT)
+            ?: intent.getStringExtra(Intent.EXTRA_SUBJECT)
+        return text?.takeIf { it.isNotBlank() }
     }
 
     private fun forwardOAuthRedirect(intent: Intent?) {

@@ -57,14 +57,29 @@ alarm_dismissals tables are unused.
 - Limitation: sound plays once; no persistent ring while the app is closed
   (critical alerts need a special entitlement — not planned).
 
-### Linux (Phase 5, opt-in)
-- No OS-level scheduled-notification API; requires a resident process.
-- Plan: background/tray process started at login (autostart entry; XDG
-  Background portal under Flatpak) posting via libnotify/DBus.
+### Linux (Phase 5, opt-in) — resident model (TASKS.md 5.1)
+- No OS-level scheduled-notification API, so alarms need the app to be
+  *resident*. The residency is assembled from pieces that already exist rather
+  than a separate daemon:
+  - **Start at login** — the "Run in background at login" toggle (5.2) writes
+    an XDG autostart entry (`LoginItem`), launching Knot `--hidden` with the
+    session.
+  - **Stay running with the window closed** — window_manager prevent-close +
+    hide (5.2) keeps the isolate (and its in-app timer chain) alive after the
+    user closes the window.
+  - **System tray** — `TrayService` (`lib/app/tray_service.dart`,
+    `tray_manager`, shared with the desktop tray 6.52) gives the hidden app a
+    visible handle: today's due count in the tooltip and a Quick add / Show /
+    Quit menu. Needs `libayatana-appindicator3-dev` at build time (added to
+    CI).
+  - **Firing** — while resident, `LocalNotificationsScheduler._scheduleLinux`
+    posts each alarm through libnotify at its fire time via an in-app `Timer`
+    chain; every replan rebuilds it.
 - Fallback considered and rejected: cron (one-shot misfit, session-env problems,
   skips missed jobs, absent on some distros, Flatpak-hostile). systemd user
-  timers (`systemd-run --user --on-calendar`, `Persistent=true`) are the viable
-  non-resident fallback.
+  timers (`systemd-run --user --on-calendar`, `Persistent=true`) remain the
+  viable non-resident fallback for a future "closed app" story (the current
+  model only fires while the resident isolate is alive).
 
 ## Timezones & DST (v1 semantics)
 

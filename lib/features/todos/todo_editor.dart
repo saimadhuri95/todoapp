@@ -5,7 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import '../../core/linkify.dart';
 import '../../data/db/database.dart';
-import '../../data/repositories/todo_repository.dart' show TodoTags;
+import '../../data/repositories/todo_repository.dart'
+    show TodoRepository, TodoTags;
 import 'linkified_text.dart';
 import 'todo_undo.dart';
 
@@ -52,6 +53,23 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
   late String? _listId = widget.todo.listId;
   late final Set<int> _alarmOffsets = widget.todo.alarmOffsetsMinutes.toSet();
   late int? _nagInterval = widget.todo.nagIntervalMinutes;
+  // Location reminder (TASKS.md 6.50): manual lat/lng entry (no map plugin);
+  // clearing either coordinate removes the geofence on save.
+  late final _geofenceLabel = TextEditingController(
+    text: widget.todo.geofenceLabel ?? '',
+  );
+  late final _geofenceLat = TextEditingController(
+    text: widget.todo.geofenceLat?.toString() ?? '',
+  );
+  late final _geofenceLng = TextEditingController(
+    text: widget.todo.geofenceLng?.toString() ?? '',
+  );
+  late final _geofenceRadius = TextEditingController(
+    text: widget.todo.geofenceRadiusM?.toString() ?? '',
+  );
+
+  /// Default geofence radius in metres when the user leaves it blank.
+  static const _defaultGeofenceRadiusM = 150;
 
   static const _alarmOptions = {
     0: 'At due time',
@@ -115,6 +133,10 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
     _notes.dispose();
     _tags.dispose();
     _section.dispose();
+    _geofenceLabel.dispose();
+    _geofenceLat.dispose();
+    _geofenceLng.dispose();
+    _geofenceRadius.dispose();
     super.dispose();
   }
 
@@ -167,6 +189,7 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
       ),
       nagIntervalMinutes: Value(_dueAt == null ? null : _nagInterval),
     );
+    await _saveGeofence(repo);
     final after = await repo.getById(widget.todo.id);
     if (!mounted) return;
     if (widget.popOnSave) Navigator.of(context).pop();
@@ -177,6 +200,44 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
       before: widget.todo,
       after: after,
       message: 'Todo updated',
+    );
+  }
+
+  /// Parses the location fields and writes the geofence only when it actually
+  /// changed, so a normal save doesn't bump the geofence clocks (which would
+  /// let a stale value win a later merge). Blank or invalid coordinates clear
+  /// the reminder.
+  Future<void> _saveGeofence(TodoRepository repo) async {
+    final lat = double.tryParse(_geofenceLat.text.trim());
+    final lng = double.tryParse(_geofenceLng.text.trim());
+    final valid =
+        lat != null && lng != null && lat.abs() <= 90 && lng.abs() <= 180;
+    final newLat = valid ? lat : null;
+    final newLng = valid ? lng : null;
+    final newRadius = valid
+        ? (int.tryParse(_geofenceRadius.text.trim()) ?? _defaultGeofenceRadiusM)
+        : null;
+    final label = _geofenceLabel.text.trim();
+    final newLabel = valid && label.isNotEmpty ? label : null;
+    // Compare against the *current* stored row, not the (possibly stale)
+    // widget.todo snapshot: the editor can save more than once in a session
+    // (wide-layout detail pane), and only writing on a real change keeps a
+    // no-op save from bumping the geofence clocks and clobbering a peer's
+    // concurrent edit on merge.
+    final current = await repo.getById(widget.todo.id);
+    if (current != null &&
+        newLat == current.geofenceLat &&
+        newLng == current.geofenceLng &&
+        newRadius == current.geofenceRadiusM &&
+        newLabel == current.geofenceLabel) {
+      return;
+    }
+    await repo.setGeofence(
+      widget.todo.id,
+      lat: newLat,
+      lng: newLng,
+      radiusM: newRadius,
+      label: newLabel,
     );
   }
 
@@ -373,6 +434,64 @@ class _TodoEditorState extends ConsumerState<TodoEditor> {
                     setState(() => _energy = selected ? level : null),
               ),
           ],
+        ),
+        const SizedBox(height: 16),
+        // Location reminder (TASKS.md 6.50): on-device geofence, fires on
+        // arrival. Manual coordinates keep it dependency-free; clearing them
+        // removes the reminder on save.
+        Semantics(
+          container: true,
+          label: 'Location reminder',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Location reminder'),
+              TextField(
+                controller: _geofenceLabel,
+                decoration: const InputDecoration(
+                  labelText: 'Place name',
+                  hintText: 'Optional, e.g. Home or Office',
+                ),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _geofenceLat,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                        signed: true,
+                      ),
+                      decoration: const InputDecoration(labelText: 'Latitude'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _geofenceLng,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                        signed: true,
+                      ),
+                      decoration: const InputDecoration(labelText: 'Longitude'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 96,
+                    child: TextField(
+                      controller: _geofenceRadius,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Radius m',
+                        hintText: '150',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ],
     );

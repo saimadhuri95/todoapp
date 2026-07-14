@@ -59,6 +59,8 @@ numbers; the **order we execute** is:
 
 > Update this before ending every session. Next session starts by reading this.
 
+- **Session 2026-07-13 (native-platform batch: 6.50/6.52/5.1/6.25/6.24, branch `feature/native-platform-batch`):**
+  five native features in one PR, each as seam + pure logic + tests + buildable native wiring, deferring only pieces that need a brand-new Xcode target. **6.50 location reminders:** schema v10 synced geofence fields (lat/lng/radius/label), pure haversine + enter-transition evaluator (`lib/core/geofence.dart`, `lib/app/geofence_service.dart`), `LocationMonitor` seam (noop default — no location permission until a real GPS monitor is injected), editor UI; restoreSnapshot/undo extended for the 4 new columns. **6.52 desktop tray + 5.1 Linux resident:** `TrayService` (tray_manager) — today-count tooltip (pure `dueTodayCount`/`trayTooltip`) + Quick-add/Show/Quit menu wired to quick-capture + window_manager; for Linux this + 5.2 autostart/hide-on-close + the libnotify in-app timer chain is the documented resident model (docs/alarms.md); CI Linux gains `libayatana-appindicator3-dev`. **6.25 share-sheet:** Android ACTION_SEND text/plain → Inbox todo via `com.sai.knot/share` channel + `SharedContentService` (pure `sharedTextToTitle`). **6.24 home widget:** Android `TodayWidgetProvider` (home_widget) renders pure `homeWidgetSummary` (count + titles + "+N more"), pushed on every todo change. Verified locally: `flutter build macos` + `flutter build apk` both green; 504 tests, analyzer + format clean. **Deferred (need Xcode/native targets):** iOS WidgetKit lock-screen widget, iOS/macOS share extension, Siri Shortcuts / Android App Actions, real GPS geofence registration, 6.50 sticky today-notification. **Next: open the combined PR, watch CI (first run of the new apt dep + iOS Podfile), merge, close #26/#43/#44/#62/#63.**
 - **Session 2026-07-11 (7-issue combined batch: 6.51/6.55/6.49/6.43/6.11/6.57/6.48, branch `feature/phase6-in-progress-batch`):**
   every remaining open `in-progress`/`in progress`-labeled GitHub issue done in one PR per explicit user direction (normally these ship as separate PRs — see the token-budget/isolated-worktree convention above). Schema v9 adds `todos.assigneeDeviceId` (FK devices) + `todos.currentStreak`. (1) **6.51 assignee + attribution:** `TodoRepository.setAssignee`, `GroupRepository.watchMembers`, tap-to-reassign chip on shared-list tiles, `AlarmInstance.changedBy` threaded through `planAlarms`/`AlarmService.replan` into the notification body ("changed by ..."). (2) **6.55 realistic-day meter:** `realisticDayMeter()` in `todo_sections.dart`, `dailyAvailableMinutesProvider` (settings dropdown), Today section header shows "Xh of Yh planned" in error color once over-committed. (3) **6.49 kanban:** `kanbanColumns()` groups by `section` (unsectioned column always leads), `KanbanScreen` with tap-to-move-column + "new column" — alongside the existing Eisenhower view. (4) **6.43 snooze presets:** `core/snooze_presets.dart` (`resolveSnoozeUntil`: 10m/1h/this-evening/tomorrow, wall-clock presets roll to the next day once the hour's passed), replaces the old single "Snooze 10 min" notification action with all four. (5) **6.11 habit streaks + focus timer:** `TodoRepository.complete` increments `currentStreak` on on-time completion, resets to 1 when overdue (🔥 badge shown at streak ≥ 2); `FocusTimerController` (ephemeral, one session app-wide, real `Timer`) + duration-picker action + banner, end notification respects the desktop alarms opt-in. (6) **6.57 simple mode:** `simpleModeProvider`, settings toggle, tile collapses to checkbox+title only at 1.8x scale; caregiver setup guide dialog; "not a medical device" line added to docs/launch.md + docs/packaging.md. (7) **6.48 configurable swipe:** `SwipeAction` enum, independent left/right pickers (default: right=none, left=delete, preserving old UX), `Dismissible.confirmDismiss` always returns false so complete/snooze don't visually yank a tile the stream hasn't removed yet. 464 tests green locally (fixed 2 pre-existing settings-screen widget tests whose target tile got pushed below the fold by new settings rows), lib/data 85.7%, DST green. **Next: open the PR, watch CI, merge.**
 - **Session 2026-07-11 (5-issue batch: 6.44/6.38/6.14/6.46/5.2):** five GitHub issues fixed, PR'd, CI-gated and merged in one loop (PRs #131–#134 + #136; issues #78/#52/#36/#58/#71 closed). (1) **6.44 nag reminders:** schema v8 `todos.nagIntervalMinutes` (synced LWW field), planner nag chains — every undismissed due occurrence re-fires every N min, overdue anchors from *now*, chain shares the occurrence id so dismiss/complete silences everywhere; editor "Nag" dropdown. (2) **6.38 kiosk:** `KioskScreen` (Settings → Wall display: clock header + pinned/overdue/today, 8-position burn-in pixel ring, night dim), `KioskPower` seam (battery_plus + wakelock_plus, awake while `!= discharging`), Android `BootLaunchReceiver` + "Launch on boot" toggle (needs Display-over-apps on API 29+). (3) **6.14 quick capture:** `QuickCaptureService` → `quickCaptureRequestsProvider` bump opens quick-add; desktop Ctrl/Cmd+Shift+K system hotkey (hotkey_manager + window_manager raise; CI + flatpak now carry keybinder-3.0), Android launcher shortcut + iOS quick action (quick_actions). (4) **6.46 voice input:** `VoiceInput` seam over speech_to_text (`onDevice: true`, dictation mode; `supported` lives on the seam so tests are CI-host-independent), mic suffix button in quick add appends transcript + live natural-date parse; mic/speech Info.plist keys + entitlements + RECORD_AUDIO added; hidden on Linux (no backend). (5) **5.2 background-at-login:** `BackgroundMode` seam — macOS SMAppService via the existing channel (sandbox-safe, 13+), hand-rolled `LoginItem` (XDG autostart / HKCU Run via `reg`; launch_at_startup conflicts with wakelock_plus over win32) — plus window_manager prevent-close→hide, `--hidden` login launches, "Quit Knot" tile while enabled. Suite ended at 436 green locally (the 2 macOS-host sync_settings fails got fixed on main by PR #135's tall-viewport change mid-session). Remaining open non-blocked issues are device/native-heavy (5.1 Linux tray, 6.24 widgets, 6.25 share-sheet, 6.52 lock-screen widget, 6.50 geofencing, 4.12 screenshots).
@@ -154,7 +156,7 @@ the ordinary merge engine; todo_alarms/alarm_dismissals tables unused.
 - [x] 2.10 TZ/DST: expansion runs in local calendar space; DST suite green under TZ=America/New_York (CI step). Cross-zone wall-clock storage documented as v1 limitation (docs/alarms.md), deferred
 - [ ] 2.11 Manual alarm matrix — needs real devices (user; iOS also needs Xcode)
 - [x] 3.15 (moved here) Alarm dismissal sync — by construction: dismissal is a synced field write; test in sync_engine_test
-- [ ] 5.1 (moved here) Linux resident process — in-app timers while running done; tray/autostart still open
+- [x] 5.1 (moved here) Linux resident process — in-app timers while running, tray (tray_manager), and login autostart (5.2) now compose the resident model (docs/alarms.md); systemd-timer closed-app fallback still a future option
 - [x] 5.2 (moved here) "Run in background at login" toggle — done (settings toggle, login item, hide-on-close)
 
 ## Phase 3 — Sync engine (executed SECOND — right after Phase 1)
@@ -346,10 +348,17 @@ driver/dispatcher scenario and Apple-first direction.
 - [ ] 6.22 (R3.9) Completed archive: browseable per-list history screen
   beyond the current Completed expansion tile
 - [ ] 6.23 (R4.3) Undo snackbars for complete/delete/edit
-- [ ] 6.24 (R8.1) Home-screen widgets (Android + iOS): today list,
+- [~] 6.24 (R8.1) Home-screen widgets (Android + iOS): today list,
   interactive check-off where the OS allows, quick-add button
-- [ ] 6.25 (R2.3) Share-sheet capture target (Android/iOS/macOS): shared
+  — Android done: `TodayWidgetProvider` (home_widget) renders the pure
+  `homeWidgetSummary` (count + first titles + "+N more"), refreshed on any
+  todo change, tap opens the app. iOS WidgetKit extension deferred (Xcode
+  target).
+- [~] 6.25 (R2.3) Share-sheet capture target (Android/iOS/macOS): shared
   text/URL becomes a task (title + notes)
+  — Android done: ACTION_SEND text/plain filed as an Inbox todo via the
+  `com.sai.knot/share` channel + `SharedContentService`. iOS/macOS share
+  extension deferred (Xcode target); channel + handler ready.
 - [x] 6.26 (R2.5) Multi-line paste into quick add → "create one task per
   line" prompt
 - [ ] 6.27 (R1.5) Sync health panel: extend 6.3's status line with transport
@@ -510,14 +519,21 @@ you a peer of someone else's storage without sharing credentials.
 - [x] 6.49 (R5.5/R5.6) Kanban board (sections as columns) + Eisenhower view
   — both done: sections-as-columns board with tap-to-move, alongside the
   Eisenhower matrix
-- [ ] 6.50 (R6.4/R6.5) Location reminders (on-device geofencing only) +
+- [~] 6.50 (R6.4/R6.5) Location reminders (on-device geofencing only) +
   Android sticky today-notification
+  — geofence data model (synced lat/lng/radius/label) + pure haversine +
+  enter-transition evaluator + editor UI done; the OS location subscription
+  is behind the `LocationMonitor` seam (noop default, real GPS monitor
+  deferred). Sticky today-notification not started.
 - [x] 6.51 (R7.2/R7.3) Assignee chip on shared-list tasks + "changed by
   <device>" attribution from HLC metadata (feeds 6.2 notification text)
   — assignee chip (tap to reassign a group member) + notification-body
   attribution wired on top of the earlier `lastChangedBy` building block
-- [ ] 6.52 (R8.2/R8.3/R8.4) iOS lock-screen widget; Siri Shortcuts / Android
+- [~] 6.52 (R8.2/R8.3/R8.4) iOS lock-screen widget; Siri Shortcuts / Android
   App Actions; desktop tray quick-add + today count (ties into 5.1/5.2)
+  — desktop tray quick-add + today count done (`TrayService`, tray_manager;
+  macOS build verified). iOS lock-screen widget / Siri Shortcuts / Android
+  App Actions deferred (native Xcode/Android-intent targets).
 - [x] 6.53 (R9.3) Theming: accent color + per-list colors/icons
   — app accent color done (persisted seed + settings picker); per-list
   colors/icons deferred (icons need a schema column; folded into the list-UI

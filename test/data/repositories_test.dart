@@ -55,7 +55,7 @@ void main() {
       expect(todo.priority, 2);
 
       final stamps = await clocksFor(todo.id);
-      expect(stamps.keys, hasLength(21)); // every todos entry in syncColumns
+      expect(stamps.keys, hasLength(25)); // every todos entry in syncColumns
       expect(stamps.keys, contains('title'));
       expect(stamps.keys, contains('parentId'));
       expect(stamps.keys, contains('section'));
@@ -163,7 +163,7 @@ void main() {
 
         final childStamps = await clocksFor(children.first.id);
         expect(childStamps.keys, containsAll(['parentId', 'sortKey']));
-        expect(childStamps.keys, hasLength(21));
+        expect(childStamps.keys, hasLength(25));
       },
     );
 
@@ -416,6 +416,50 @@ void main() {
       await todos.setAssignee(todo.id, null);
 
       expect((await todos.getById(todo.id))!.assigneeDeviceId, isNull);
+    });
+  });
+
+  group('geofence (TASKS.md 6.50)', () {
+    test('setGeofence stamps all four fields', () async {
+      final todo = await todos.create(title: 't');
+
+      await todos.setGeofence(
+        todo.id,
+        lat: 40.0,
+        lng: -74.0,
+        radiusM: 150,
+        label: 'Home',
+      );
+
+      final row = (await todos.getById(todo.id))!;
+      expect(row.geofenceLat, 40.0);
+      expect(row.geofenceLng, -74.0);
+      expect(row.geofenceRadiusM, 150);
+      expect(row.geofenceLabel, 'Home');
+      final stamps = await clocksFor(todo.id);
+      expect(
+        stamps.keys,
+        containsAll(['geofenceLat', 'geofenceLng', 'geofenceRadiusM']),
+      );
+    });
+
+    test('setGeofence with nulls clears the reminder', () async {
+      final todo = await todos.create(title: 't');
+      await todos.setGeofence(todo.id, lat: 1, lng: 2, radiusM: 50, label: 'x');
+
+      await todos.setGeofence(
+        todo.id,
+        lat: null,
+        lng: null,
+        radiusM: null,
+        label: null,
+      );
+
+      final row = (await todos.getById(todo.id))!;
+      expect(row.geofenceLat, isNull);
+      expect(row.geofenceLng, isNull);
+      expect(row.geofenceRadiusM, isNull);
+      expect(row.geofenceLabel, isNull);
     });
   });
 

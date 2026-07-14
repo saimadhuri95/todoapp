@@ -144,4 +144,21 @@ void main() {
     expect(migrated.assigneeDeviceId, isNull);
     expect(migrated.currentStreak, 0);
   });
+
+  test('schema migration v9 to v10 adds the geofence columns', () async {
+    await db.customStatement('PRAGMA foreign_keys = OFF');
+    await db.customStatement('ALTER TABLE todos DROP COLUMN geofence_lat');
+    await db.customStatement('ALTER TABLE todos DROP COLUMN geofence_lng');
+    await db.customStatement('ALTER TABLE todos DROP COLUMN geofence_radius_m');
+    await db.customStatement('ALTER TABLE todos DROP COLUMN geofence_label');
+    await db.todos.insertOne(TodosCompanion.insert(id: 't1', title: 'Pre-v10'));
+
+    await db.migration.onUpgrade(db.createMigrator(), 9, 10);
+
+    final migrated = await db.todos.all().getSingle();
+    expect(migrated.geofenceLat, isNull);
+    expect(migrated.geofenceLng, isNull);
+    expect(migrated.geofenceRadiusM, isNull);
+    expect(migrated.geofenceLabel, isNull);
+  });
 }

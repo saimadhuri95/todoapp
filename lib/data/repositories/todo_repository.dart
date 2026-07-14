@@ -146,6 +146,27 @@ class TodoRepository {
     const ['assigneeDeviceId'],
   );
 
+  /// Sets or clears a todo's location reminder (TASKS.md 6.50). Pass all
+  /// coordinates to arm the geofence, or nulls to remove it. The synced LWW
+  /// fields travel with the todo; the GPS watching that consumes them stays
+  /// device-local.
+  Future<void> setGeofence(
+    String id, {
+    required double? lat,
+    required double? lng,
+    required int? radiusM,
+    required String? label,
+  }) => _write(
+    id,
+    TodosCompanion(
+      geofenceLat: Value(lat),
+      geofenceLng: Value(lng),
+      geofenceRadiusM: Value(radiusM),
+      geofenceLabel: Value(label),
+    ),
+    const ['geofenceLat', 'geofenceLng', 'geofenceRadiusM', 'geofenceLabel'],
+  );
+
   Future<List<Todo>> createSubtasks(
     String parentId,
     Iterable<String> titles,
@@ -374,6 +395,18 @@ class TodoRepository {
             : const Value.absent(),
         currentStreak: requested.contains('currentStreak')
             ? Value(snapshot.currentStreak)
+            : const Value.absent(),
+        geofenceLat: requested.contains('geofenceLat')
+            ? Value(snapshot.geofenceLat)
+            : const Value.absent(),
+        geofenceLng: requested.contains('geofenceLng')
+            ? Value(snapshot.geofenceLng)
+            : const Value.absent(),
+        geofenceRadiusM: requested.contains('geofenceRadiusM')
+            ? Value(snapshot.geofenceRadiusM)
+            : const Value.absent(),
+        geofenceLabel: requested.contains('geofenceLabel')
+            ? Value(snapshot.geofenceLabel)
             : const Value.absent(),
         deleted: requested.contains('deleted')
             ? Value(snapshot.deleted)
