@@ -84,6 +84,16 @@ flows, drawer/list filters, wide-layout detail behavior, settings navigation,
 alarm-toggle persistence, sync invitation/pairing flows, and QR scan result
 handling through an injected fake scanner surface.
 
+Accessibility is partly automated: `test/features/accessibility_screens_test.dart`
+asserts semantic group labels/headings, and
+`test/features/accessibility_guidelines_test.dart` runs Flutter's
+`meetsGuideline` matchers (WCAG AA text contrast, tap-target labelling) plus a
+1.5x font-scale overflow smoke on the home list, in both light and dark themes.
+These cover the mechanical checks so the manual, real-device screen-reader pass
+(VoiceOver / TalkBack / NVDA) focuses on what only a human can judge. Tap-target
+*size* guidelines are excluded on purpose — an inline text field legitimately
+produces a sub-48dp semantic node the matcher would flag as a false positive.
+
 ## 5. Platform smoke tests (`integration_test`, CI matrix)
 
 `integration_test/app_smoke_test.dart` runs on all five platforms in CI:
@@ -92,6 +102,15 @@ Linux, Windows, macOS, Android emulator, and iOS simulator.
 - Flow: launch -> add todo -> complete -> restart -> data persisted.
 - Desktop smoke runs use native runners (`xvfb` on Linux).
 - Mobile smoke runs use an Android emulator and an iOS simulator.
+
+`test_driver/integration_test.dart` is the driver entrypoint so the same suite
+also runs under `flutter drive` and on **real** mobile hardware via Firebase
+Test Lab (`.github/workflows/device-test.yml`, owner-gated). Emulators and
+simulators catch functional regressions; the device-cloud run is what exercises
+the old/low-RAM Android floor and real device rendering. See
+`docs/decisions/0006-device-testing-cloud.md`. The real-hardware behaviours no
+cloud reproduces well — alarms firing with the app closed, battery/wake-lock
+audits — still need a physical low-end device.
 
 ## 6. Time and timezone suite
 
