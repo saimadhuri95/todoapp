@@ -329,11 +329,19 @@ class _SearchFieldState extends ConsumerState<_SearchField> {
     ref.listen(searchFocusRequestsProvider, (_, _) {
       _focusNode.requestFocus();
     });
-    return SearchBar(
-      focusNode: _focusNode,
-      hintText: 'Search',
-      leading: const Icon(Icons.search),
-      onChanged: (q) => ref.read(searchQueryProvider.notifier).state = q,
+    // SearchBar surfaces its placeholder as a hint, not a semantic label, so
+    // the tappable node reads as unlabeled to screen readers. An explicit
+    // label satisfies labeledTapTargetGuideline (see
+    // accessibility_guidelines_test.dart).
+    return Semantics(
+      label: 'Search todos',
+      textField: true,
+      child: SearchBar(
+        focusNode: _focusNode,
+        hintText: 'Search',
+        leading: const Icon(Icons.search),
+        onChanged: (q) => ref.read(searchQueryProvider.notifier).state = q,
+      ),
     );
   }
 }

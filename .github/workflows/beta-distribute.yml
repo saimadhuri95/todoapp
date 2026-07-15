@@ -1,0 +1,74 @@
+name: Beta distribute (Firebase App Distribution)
+
+# Ships a beta Android build to real testers' own devices for the beta round
+# (#29). See docs/distribution.md.
+#
+# Owner-gated: inert until the repository secrets FIREBASE_APP_ID and
+# FIREBASE_SA_KEY (a Firebase service-account JSON with the App Distribution
+# Admin role) are set. Without them the job logs a notice and skips.
+#
+# iOS beta distribution (TestFlight) is intentionally not wired here: it needs
+# the Apple Developer Program membership tracked in #21. Desktop betas ship as
+# artifacts on GitHub Releases (see .github/workflows/release.yml).
+
+on:
+  workflow_dispatch:
+    inputs:
+      groups:
+        description: Comma-separated App Distribution tester groups
+        default: internal
+      notes:
+        description: Release notes shown to testers
+        default: Beta build from CI
+
+jobs:
+  distribute-android:
+    name: Android → App Distribution
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check for App Distribution credentials
+        id: guard
+        run: |
+          if [ -z "${{ secrets.FIREBASE_SA_KEY }}" ] || [ -z "${{ secrets.FIREBASE_APP_ID }}" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::FIREBASE_APP_ID / FIREBASE_SA_KEY not set — skipping App Distribution upload. See docs/distribution.md."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v5
+        if: steps.guard.outputs.enabled == 'true'
+      - uses: actions/setup-java@v5
+        if: steps.guard.outputs.enabled == 'true'
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        if: steps.guard.outputs.enabled == 'true'
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+        if: steps.guard.outputs.enabled == 'true'
+
+      # Sideload-only debug-signed APK, matching release.yml's Android posture.
+      - name: Build APK
+        if: steps.guard.outputs.enabled == 'true'
+        run: flutter build apk --release
+
+      - id: auth
+        if: steps.guard.outputs.enabled == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SA_KEY }}
+
+      - name: Upload to App Distribution
+        if: steps.guard.outputs.enabled == 'true'
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          serviceCredentialsFile: ${{ steps.auth.outputs.credentials_file_path }}
+          groups: ${{ github.event.inputs.groups }}
+          releaseNotes: ${{ github.event.inputs.notes }}
+          file: build/app/outputs/flutter-apk/app-release.apk

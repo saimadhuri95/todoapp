@@ -1,0 +1,79 @@
+name: Device test (Firebase Test Lab)
+
+# Runs the integration_test suite on real Android hardware via Firebase Test
+# Lab. See docs/decisions/0006-device-testing-cloud.md.
+#
+# Owner-gated: inert until the repository secrets GCP_PROJECT and GCP_SA_KEY
+# (a Firebase service-account JSON key) are set. Without them the job logs a
+# notice and skips, so it never blocks other CI. Trigger from the Actions tab.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: integration_test entrypoint to run
+        default: integration_test/app_smoke_test.dart
+
+jobs:
+  test-lab:
+    name: Android real-device run
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check for Test Lab credentials
+        id: guard
+        run: |
+          if [ -z "${{ secrets.GCP_SA_KEY }}" ] || [ -z "${{ secrets.GCP_PROJECT }}" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::GCP_PROJECT / GCP_SA_KEY not set — skipping Firebase Test Lab run. See docs/decisions/0006-device-testing-cloud.md."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v5
+        if: steps.guard.outputs.enabled == 'true'
+      - uses: actions/setup-java@v5
+        if: steps.guard.outputs.enabled == 'true'
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        if: steps.guard.outputs.enabled == 'true'
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+        if: steps.guard.outputs.enabled == 'true'
+
+      # Build the app-under-test and the instrumentation APK that bundles the
+      # chosen integration_test entrypoint (Flutter's gradle plugin reads -Ptarget).
+      - name: Build app + androidTest APKs
+        if: steps.guard.outputs.enabled == 'true'
+        working-directory: android
+        run: |
+          ./gradlew app:assembleDebug app:assembleDebugAndroidTest \
+            -Ptarget="${{ github.event.inputs.target }}"
+
+      - id: auth
+        if: steps.guard.outputs.enabled == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - uses: google-github-actions/setup-gcloud@v2
+        if: steps.guard.outputs.enabled == 'true'
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+
+      # Device models drift over time; list current ones with
+      #   gcloud firebase test android models list
+      # `redfin` = Pixel 5 (recent). Swap the second device for the oldest / most
+      # RAM-constrained model available when validating the #53 hardware floor.
+      - name: Run on Firebase Test Lab
+        if: steps.guard.outputs.enabled == 'true'
+        run: |
+          gcloud firebase test android run \
+            --type instrumentation \
+            --app build/app/outputs/apk/debug/app-debug.apk \
+            --test build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+            --device model=redfin,version=30,locale=en,orientation=portrait \
+            --timeout 10m
