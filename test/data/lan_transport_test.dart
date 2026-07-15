@@ -44,6 +44,13 @@ void main() {
     );
   }
 
+  test('port reflects the bound socket once started', () async {
+    expect(server.port == null, isTrue);
+    final bound = await server.start();
+    expect(server.port, bound);
+    expect(server.port! > 0, isTrue);
+  });
+
   test('one session syncs both directions over loopback', () async {
     await a.todos.create(title: 'from server');
     await b.todos.create(title: 'from client');
