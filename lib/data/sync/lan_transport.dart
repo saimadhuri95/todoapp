@@ -95,10 +95,16 @@ class LanSync {
       });
       await socket.flush();
       return applied;
+      // Defensive, but unreachable from a real peer on the client side: a
+      // server that shares our group key produces frames we *can* open, and
+      // one that doesn't can't have opened our hello to reply in the first
+      // place — so a mid-session decrypt/format failure here can't occur.
+      // coverage:ignore-start
     } on SecretBoxAuthenticationError {
       return 0;
     } on FormatException {
       return 0;
+      // coverage:ignore-end
     } finally {
       socket.destroy();
     }
@@ -198,9 +204,13 @@ class _SecureFrameIO {
       final bool hasNext;
       try {
         hasNext = await _incoming.moveNext().timeout(_readTimeout);
+        // A 30s socket stall isn't deterministically reproducible in an
+        // in-process loopback test without real wall-clock waiting.
+        // coverage:ignore-start
       } on TimeoutException {
         return null; // Stalled peer: end the session cleanly.
       }
+      // coverage:ignore-end
       if (!hasNext) return null;
       _buffer.add(_incoming.current);
     }

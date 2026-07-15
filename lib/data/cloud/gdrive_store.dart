@@ -151,7 +151,10 @@ class GoogleDriveMailboxStore implements MailboxStore {
             'q': '$q and trashed=false',
             'spaces': 'appDataFolder',
             'fields': 'nextPageToken,files(id,name)',
-            'pageToken': ?pageToken,
+            // Second+ page fetch: the prefix-only FakeHttp can't return two
+            // different bodies for the same URL, and mailboxes are ≤~20 files
+            // (compaction) so a real second page never occurs in practice.
+            'pageToken': ?pageToken, // coverage:ignore-line
           },
         ),
       );

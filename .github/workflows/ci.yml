@@ -38,11 +38,12 @@ jobs:
           test/data/sync_simulator_test.dart
       - name: Full suite with coverage
         run: flutter test --coverage
-      - name: Coverage floor (lib/data, generated code excluded)
+      - name: Coverage floor (pure logic — 100%, generated/native excluded)
         run: >
           dart tool/check_coverage.dart
           --lcov coverage/lcov.info
-          --min 80
+          --min 100
+          --scope lib/core
           --scope lib/data
       - name: DST correctness suite (needs a DST-observing zone)
         run: TZ=America/New_York flutter test test/core/dst_test.dart

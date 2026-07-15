@@ -22,7 +22,12 @@ class AppDatabase extends _$AppDatabase {
   /// Tests pass `NativeDatabase.memory()`; production uses [open].
   AppDatabase(super.e);
 
+  // Production entrypoint: openConnection() opens the real on-disk SQLite
+  // file via path_provider (a platform channel), so it can't run in the
+  // headless test host. Tests inject NativeDatabase.memory() instead.
+  // coverage:ignore-start
   factory AppDatabase.open() => AppDatabase(openConnection());
+  // coverage:ignore-end
 
   @override
   int get schemaVersion => 10;

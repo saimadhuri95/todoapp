@@ -5,6 +5,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:drift/drift.dart' hide isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:todoapp/data/sync/mailbox_transport.dart';
+import 'package:todoapp/data/sync/pairing_crypto.dart';
 
 import '../support/simulated_device.dart';
 
@@ -264,5 +265,47 @@ void main() {
     // Each cursor is independently caught up: nothing re-applies.
     expect(await groupTransport(b, null).consume(), 0);
     expect(await groupTransport(b, 'family').consume(), 0);
+  });
+
+  test('wipeAll clears the whole mailbox', () async {
+    await a.todos.create(title: 'x');
+    await transportFor(a).publish();
+    expect(Directory('${root.path}/aa').existsSync(), isTrue);
+    await transportFor(a).wipeAll();
+    expect(root.existsSync(), isFalse); // the folder store wipes the root
+    root.createSync(recursive: true); // recreate so tearDown's delete succeeds
+  });
+
+  test(
+    'an unreadable vector marker is ignored — republish everything',
+    () async {
+      await a.todos.create(title: 'x');
+      await transportFor(a).publish(); // writes a vector.bin
+      // A well-formed secretbox with a flipped tag byte fails authentication
+      // → SecretBoxAuthenticationError inside _readVector.
+      final vector = File('${root.path}/aa/vector.bin');
+      final bytes = await vector.readAsBytes();
+      bytes[bytes.length - 1] ^= 0xFF;
+      await vector.writeAsBytes(bytes);
+      expect(await transportFor(a).publish(), greaterThan(0));
+    },
+  );
+
+  test('a validly-sealed but non-JSON vector is ignored', () async {
+    await a.todos.create(title: 'x');
+    await transportFor(a).publish();
+    // Opens fine, but the plaintext isn't JSON → FormatException in _readVector.
+    final sealed = await PairingCrypto.seal(utf8.encode('not json'), groupKey);
+    await File('${root.path}/aa/vector.bin').writeAsBytes(sealed);
+    expect(await transportFor(a).publish(), greaterThan(0));
+  });
+
+  test('a peer changeset that decrypts to non-JSON is skipped', () async {
+    // A file that opens with the group key but isn't a valid changeset:
+    // consume decodes it, hits FormatException, and stops at that file.
+    final sealed = await PairingCrypto.seal(utf8.encode('garbage'), groupKey);
+    final dir = Directory('${root.path}/bb')..createSync(recursive: true);
+    await File('${dir.path}/000000000001000_0001_bb.bin').writeAsBytes(sealed);
+    expect(await transportFor(a).consume(), 0);
   });
 }

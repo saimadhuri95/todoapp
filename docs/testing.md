@@ -16,8 +16,15 @@ manual.
   `test/core/hlc_test.dart`, `test/data/repositories_test.dart`,
   `test/core/recurrence_test.dart`, `test/data/lww_applier_test.dart`, and
   `test/data/sync_engine_test.dart`.
-- Coverage floor: 80% on `lib/data/**`, excluding generated `*.g.dart`,
-  enforced by `tool/check_coverage.dart`.
+- Coverage floor: **100% on the pure-logic layers** (`lib/core/**` +
+  `lib/data/**`), enforced by `tool/check_coverage.dart`. Excluded from the
+  floor: generated `*.g.dart`; declarative drift schema and
+  platform-channel/native files (the `_platformOnly` list in the tool — real
+  SQLite/HTTP/keychain/mDNS that can't run in the headless test host); and
+  individual genuinely-unreachable lines marked `// coverage:ignore-line` /
+  `-start`/`-end` with an in-source justification (production entrypoints,
+  defensive catches for protocol-impossible states). UI (`lib/features`) and
+  app-wiring (`lib/app`, `main.dart`) are not on the logic floor.
 
 ## 2. Property-based convergence tests (Phase 3 gate)
 

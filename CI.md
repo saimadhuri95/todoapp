@@ -24,7 +24,7 @@ C:\src\flutter\bin\cache\dart-sdk\bin\dart.exe format lib test integration_test 
 C:\src\flutter\bin\cache\dart-sdk\bin\dart.exe format --output=none --set-exit-if-changed lib test integration_test tool
 C:\src\flutter\bin\flutter.bat analyze
 C:\src\flutter\bin\flutter.bat test --coverage
-C:\src\flutter\bin\cache\dart-sdk\bin\dart.exe tool\check_coverage.dart --lcov coverage\lcov.info --min 80 --scope lib/data
+C:\src\flutter\bin\cache\dart-sdk\bin\dart.exe tool\check_coverage.dart --lcov coverage\lcov.info --min 100 --scope lib/core --scope lib/data
 C:\src\flutter\bin\flutter.bat test test\core\dst_test.dart
 C:\src\flutter\bin\flutter.bat test integration_test\app_smoke_test.dart -d windows
 ```
